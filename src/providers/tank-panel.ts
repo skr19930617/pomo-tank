@@ -101,6 +101,15 @@ export class TankPanelManager {
           });
         }
         break;
+      case "toggleLight": {
+        const lightOn = this.engine.toggleLight();
+        this.panel?.webview.postMessage({
+          type: "lightToggleResult",
+          lightOn,
+          success: true,
+        });
+        break;
+      }
       case "openStore":
         // Store is handled in webview JS
         break;
@@ -143,7 +152,7 @@ export class TankPanelManager {
   <body>
     <div id="app">
       <div id="tank-view">
-        <canvas id="tank-canvas" width="400" height="300"></canvas>
+        <canvas id="tank-canvas" width="200" height="200"></canvas>
       </div>
       <div id="stats-bar">
         <span id="stat-hunger">Hunger: 0%</span>
@@ -157,6 +166,7 @@ export class TankPanelManager {
         <button id="btn-feed" class="action-btn">Feed Fish</button>
         <button id="btn-water" class="action-btn">Change Water</button>
         <button id="btn-algae" class="action-btn">Clean Algae</button>
+        <button id="btn-light" class="action-btn light-btn">Light: ON</button>
         <button id="btn-store" class="action-btn store-btn">Store</button>
       </div>
       <div id="store-panel" class="hidden">

@@ -55,6 +55,12 @@ export class GameEngine {
   }
 
   tick(): void {
+    // Skip deterioration and health when light is off
+    if (!this.state.lightOn) {
+      this.notifySubscribers();
+      return;
+    }
+
     const isActive = this.activityTracker.isActivelyCoding();
 
     // Apply deterioration (returns new state)
@@ -251,7 +257,37 @@ export class GameEngine {
       store: {
         items: getStoreSnapshot(this.state),
       },
+      lightOn: this.state.lightOn,
     };
+  }
+
+  toggleLight(): boolean {
+    const now = Date.now();
+    if (this.state.lightOn) {
+      // Turning off
+      this.state = {
+        ...this.state,
+        lightOn: false,
+        lightOffTimestamp: now,
+      };
+    } else {
+      // Turning on — add paused duration to timestamps so timers skip the off period
+      const lightOffDuration = this.state.lightOffTimestamp
+        ? now - this.state.lightOffTimestamp
+        : 0;
+      this.state = {
+        ...this.state,
+        lightOn: true,
+        lightOffTimestamp: null,
+        player: {
+          ...this.state.player,
+          lastTickTimestamp: this.state.player.lastTickTimestamp + lightOffDuration,
+          sessionStartTime: this.state.player.sessionStartTime + lightOffDuration,
+        },
+      };
+    }
+    this.notifySubscribers();
+    return this.state.lightOn;
   }
 
   getTimeSinceLastMaintenance(): number {

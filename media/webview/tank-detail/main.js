@@ -13,6 +13,17 @@ let fishAnimations = [];
 let frameCount = 0;
 let storeOpen = false;
 
+// Tank render sizes matching TankSizeTier → canvas dimensions
+const TANK_RENDER_SIZES = {
+  Nano:   { width: 200, height: 150 },
+  Small:  { width: 260, height: 195 },
+  Medium: { width: 320, height: 240 },
+  Large:  { width: 370, height: 278 },
+  XL:     { width: 400, height: 300 },
+};
+const DESK_HEIGHT = 30;
+const LIGHT_BAR_HEIGHT = 20;
+
 // Colors
 const COLORS = {
   waterClean: "#4a90d9",
@@ -34,11 +45,32 @@ const HUNGER_CUE = 50;
 const DIRTINESS_CUE = 50;
 const ALGAE_CUE = 60;
 
+function resizeCanvas(sizeTier) {
+  const size = TANK_RENDER_SIZES[sizeTier] || TANK_RENDER_SIZES.Nano;
+  canvas.width = size.width;
+  canvas.height = size.height + DESK_HEIGHT + LIGHT_BAR_HEIGHT;
+}
+
+function getTankBounds() {
+  const size = TANK_RENDER_SIZES[state ? state.tank.sizeTier : "Nano"] || TANK_RENDER_SIZES.Nano;
+  return {
+    xMin: 20,
+    xMax: size.width - 20,
+    yMin: LIGHT_BAR_HEIGHT + 20,
+    yMax: LIGHT_BAR_HEIGHT + size.height - 20,
+    tankTop: LIGHT_BAR_HEIGHT,
+    tankBottom: LIGHT_BAR_HEIGHT + size.height,
+    tankWidth: size.width,
+    tankHeight: size.height,
+  };
+}
+
 function initFishAnim(fish) {
+  const bounds = getTankBounds();
   return {
     id: fish.id,
-    x: 30 + Math.random() * (canvas.width - 60),
-    y: 50 + Math.random() * (canvas.height - 100),
+    x: bounds.xMin + 10 + Math.random() * (bounds.xMax - bounds.xMin - 20),
+    y: bounds.yMin + 10 + Math.random() * (bounds.yMax - bounds.yMin - 20),
     dx: (Math.random() - 0.5) * 1.0,
     dy: (Math.random() - 0.5) * 0.4,
     size: 16,
@@ -54,19 +86,21 @@ function updateAnimations() {
       fishAnimations.push(initFishAnim(fish));
     }
   }
+  const bounds = getTankBounds();
   for (const a of fishAnimations) {
     const fd = state.fish.find((f) => f.id === a.id);
     if (!fd || fd.healthState === "Dead") continue;
-    const sp = fd.healthState === "Sick" ? 0.3 : 1.0;
+    let sp = fd.healthState === "Sick" ? 0.3 : 1.0;
+    if (state && !state.lightOn) sp *= 0.5;
     a.x += a.dx * sp;
     a.y += a.dy * sp;
-    if (a.x < 20 || a.x > canvas.width - 20) {
+    if (a.x < bounds.xMin || a.x > bounds.xMax) {
       a.dx *= -1;
-      a.x = Math.max(20, Math.min(canvas.width - 20, a.x));
+      a.x = Math.max(bounds.xMin, Math.min(bounds.xMax, a.x));
     }
-    if (a.y < 40 || a.y > canvas.height - 40) {
+    if (a.y < bounds.yMin || a.y > bounds.yMax) {
       a.dy *= -1;
-      a.y = Math.max(40, Math.min(canvas.height - 40, a.y));
+      a.y = Math.max(bounds.yMin, Math.min(bounds.yMax, a.y));
     }
     if (Math.random() < 0.02) {
       a.dx += (Math.random() - 0.5) * 0.3;
@@ -79,11 +113,26 @@ function updateAnimations() {
 
 function draw() {
   if (!ctx) return;
+  const bounds = getTankBounds();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Light bar at top
+  const lightOn = state ? state.lightOn : true;
+  ctx.fillStyle = lightOn ? "#e8e0c0" : "#4a4a4a";
+  ctx.fillRect(0, 0, bounds.tankWidth, LIGHT_BAR_HEIGHT);
+  // Light bar housing
+  ctx.fillStyle = "#333";
+  ctx.fillRect(0, 0, bounds.tankWidth, 4);
+  ctx.fillRect(0, LIGHT_BAR_HEIGHT - 2, bounds.tankWidth, 2);
+  // Light glow indicator
+  if (lightOn) {
+    ctx.fillStyle = "#fffbe0";
+    ctx.fillRect(10, 5, bounds.tankWidth - 20, LIGHT_BAR_HEIGHT - 9);
+  }
 
   // Tank background
   ctx.fillStyle = COLORS.tankBg;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, bounds.tankTop, bounds.tankWidth, bounds.tankHeight);
 
   // Water
   if (state) {
@@ -95,19 +144,19 @@ function draw() {
   } else {
     ctx.fillStyle = COLORS.waterClean;
   }
-  ctx.fillRect(3, 20, canvas.width - 6, canvas.height - 35);
+  ctx.fillRect(3, bounds.tankTop + 3, bounds.tankWidth - 6, bounds.tankHeight - 18);
 
   // Sand
   ctx.fillStyle = COLORS.sand;
-  ctx.fillRect(3, canvas.height - 18, canvas.width - 6, 15);
+  ctx.fillRect(3, bounds.tankBottom - 18, bounds.tankWidth - 6, 15);
 
   // Algae
   if (state && state.tank.algaeLevel > 10) {
     const a = Math.min(state.tank.algaeLevel / 100, 0.6);
     ctx.fillStyle = `rgba(58,122,42,${a})`;
-    ctx.fillRect(3, 20, 6, canvas.height - 35);
-    ctx.fillRect(canvas.width - 9, 20, 6, canvas.height - 35);
-    ctx.fillRect(3, canvas.height - 22, canvas.width - 6, 4);
+    ctx.fillRect(3, bounds.tankTop + 3, 6, bounds.tankHeight - 18);
+    ctx.fillRect(bounds.tankWidth - 9, bounds.tankTop + 3, 6, bounds.tankHeight - 18);
+    ctx.fillRect(3, bounds.tankBottom - 22, bounds.tankWidth - 6, 4);
   }
 
   // Fish
@@ -119,7 +168,7 @@ function draw() {
       const color = COLORS.fishColors[fd.speciesId] || "#ff9944";
       let alpha = 1.0;
       let dy = anim.y;
-      if (fd.healthState === "Dead") { alpha = 0.4; dy = 30; }
+      if (fd.healthState === "Dead") { alpha = 0.4; dy = bounds.tankTop + 15; }
       else if (fd.healthState === "Sick") { alpha = 0.6; }
       else if (fd.healthState === "Warning") { alpha = 0.8; }
 
@@ -156,7 +205,29 @@ function draw() {
   // Tank border
   ctx.strokeStyle = COLORS.tankBorder;
   ctx.lineWidth = 3;
-  ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+  ctx.strokeRect(1, bounds.tankTop, bounds.tankWidth - 2, bounds.tankHeight);
+
+  // Dark overlay when light is off
+  if (!lightOn) {
+    ctx.fillStyle = "rgba(0, 0, 20, 0.5)";
+    ctx.fillRect(0, bounds.tankTop, bounds.tankWidth, bounds.tankHeight);
+  }
+
+  // Desk below tank
+  const deskTop = bounds.tankBottom;
+  // Desk surface (main wood color)
+  ctx.fillStyle = "#8B6914";
+  ctx.fillRect(0, deskTop, bounds.tankWidth, DESK_HEIGHT);
+  // Wood grain lines
+  ctx.fillStyle = "#7A5C10";
+  ctx.fillRect(0, deskTop + 8, bounds.tankWidth, 2);
+  ctx.fillRect(0, deskTop + 18, bounds.tankWidth, 2);
+  // Desk edge highlight
+  ctx.fillStyle = "#A07818";
+  ctx.fillRect(0, deskTop, bounds.tankWidth, 3);
+  // Desk bottom shadow
+  ctx.fillStyle = "#5A4510";
+  ctx.fillRect(0, deskTop + DESK_HEIGHT - 3, bounds.tankWidth, 3);
 
   frameCount++;
 }
@@ -174,7 +245,10 @@ function updateStats() {
   document.getElementById("stat-algae").textContent = `Algae: ${Math.round(state.tank.algaeLevel)}%`;
   document.getElementById("stat-pomo").textContent = `Pomo: ${state.player.pomoBalance}`;
   document.getElementById("stat-streak").textContent = `Streak: ${state.player.currentStreak}`;
-  document.getElementById("stat-timer").textContent = `Session: ${timeMins}min`;
+  document.getElementById("stat-timer").textContent = state.lightOn
+    ? `Session: ${timeMins}min`
+    : `Session: ${timeMins}min (paused)`;
+  document.getElementById("btn-light").textContent = state.lightOn ? "Light: ON" : "Light: OFF";
 }
 
 function renderStore() {
@@ -239,6 +313,9 @@ document.getElementById("btn-water").addEventListener("click", () => {
 document.getElementById("btn-algae").addEventListener("click", () => {
   vscode.postMessage({ type: "cleanAlgae" });
 });
+document.getElementById("btn-light").addEventListener("click", () => {
+  vscode.postMessage({ type: "toggleLight" });
+});
 document.getElementById("btn-store").addEventListener("click", () => {
   storeOpen = !storeOpen;
   const panel = document.getElementById("store-panel");
@@ -256,8 +333,14 @@ window.addEventListener("message", (event) => {
   switch (msg.type) {
     case "stateUpdate":
       state = msg.state;
+      resizeCanvas(state.tank.sizeTier);
       updateStats();
       if (storeOpen) renderStore();
+      break;
+    case "lightToggleResult":
+      if (msg.success && state) {
+        state.lightOn = msg.lightOn;
+      }
       break;
     case "actionResult":
       if (msg.success) {
@@ -276,6 +359,9 @@ window.addEventListener("message", (event) => {
       break;
   }
 });
+
+// Initial canvas size (Nano default, will be updated on first stateUpdate)
+resizeCanvas("Nano");
 
 vscode.postMessage({ type: "ready" });
 render();

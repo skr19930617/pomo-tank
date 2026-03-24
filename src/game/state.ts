@@ -24,6 +24,17 @@ export const TANK_SIZE_ORDER: TankSizeTier[] = [
   TankSizeTier.XL,
 ];
 
+export const TANK_RENDER_SIZES: Record<TankSizeTier, { width: number; height: number }> = {
+  [TankSizeTier.Nano]: { width: 200, height: 150 },
+  [TankSizeTier.Small]: { width: 260, height: 195 },
+  [TankSizeTier.Medium]: { width: 320, height: 240 },
+  [TankSizeTier.Large]: { width: 370, height: 278 },
+  [TankSizeTier.XL]: { width: 400, height: 300 },
+};
+
+export const DESK_HEIGHT = 30;
+export const LIGHT_BAR_HEIGHT = 20;
+
 export enum HealthState {
   Healthy = "Healthy",
   Warning = "Warning",
@@ -264,6 +275,8 @@ export interface GameState {
   player: PlayerProfile;
   tank: Tank;
   fish: Fish[];
+  lightOn: boolean;
+  lightOffTimestamp: number | null;
 }
 
 // ── Snapshot for webview communication ──
@@ -301,6 +314,7 @@ export interface GameStateSnapshot {
       meetsPrerequisites: boolean;
     }>;
   };
+  lightOn: boolean;
 }
 
 // ── Initial State Factory ──
@@ -339,5 +353,7 @@ export function createInitialState(): GameState {
         sicknessTick: 0,
       },
     ],
+    lightOn: true,
+    lightOffTimestamp: null,
   };
 }

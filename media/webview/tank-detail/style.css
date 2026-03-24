@@ -79,6 +79,15 @@ body {
   opacity: 0.8;
 }
 
+.light-btn {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+}
+
+.light-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
 .store-btn {
   background: var(--vscode-button-secondaryBackground, #3a3d41);
   color: var(--vscode-button-secondaryForeground, #cccccc);

@@ -27,7 +27,8 @@ export class StatusBarManager implements vscode.Disposable {
     const worstHealth = this.getWorstHealth(state);
 
     const icon = this.getStateIcon(hunger, dirtiness, algae, worstHealth);
-    this.item.text = `$(beaker) ${icon}`;
+    const lightPrefix = state.lightOn ? "" : "$(debug-pause) ";
+    this.item.text = `${lightPrefix}$(beaker) ${icon}`;
 
     const livingFish = state.fish.filter(
       (f) => f.healthState !== HealthState.Dead,
@@ -41,6 +42,7 @@ export class StatusBarManager implements vscode.Disposable {
 
     this.item.tooltip = [
       `Pomotank - ${livingFish.length} fish`,
+      `Light: ${state.lightOn ? "ON" : "OFF (paused)"}`,
       `Hunger: ${Math.round(hunger)}%`,
       `Water: ${Math.round(dirtiness)}%`,
       `Algae: ${Math.round(algae)}%`,
