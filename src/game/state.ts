@@ -1,65 +1,41 @@
-// ── Enums ──
+// ── Re-export shared types for backward compatibility ──
+export {
+  TankSizeTier,
+  HealthState,
+  StoreItemType,
+  TANK_CAPACITY,
+  TANK_SIZE_ORDER,
+  TANK_RENDER_SIZES,
+  DESK_HEIGHT,
+  LIGHT_BAR_HEIGHT,
+} from "../shared/types";
+export type {
+  FishSpeciesId,
+  FilterId,
+  StoreItemId,
+  ActionType,
+} from "../shared/types";
 
-export enum TankSizeTier {
-  Nano = "Nano",
-  Small = "Small",
-  Medium = "Medium",
-  Large = "Large",
-  XL = "XL",
-}
-
-export const TANK_CAPACITY: Record<TankSizeTier, number> = {
-  [TankSizeTier.Nano]: 3,
-  [TankSizeTier.Small]: 5,
-  [TankSizeTier.Medium]: 8,
-  [TankSizeTier.Large]: 12,
-  [TankSizeTier.XL]: 18,
-};
-
-export const TANK_SIZE_ORDER: TankSizeTier[] = [
-  TankSizeTier.Nano,
-  TankSizeTier.Small,
-  TankSizeTier.Medium,
-  TankSizeTier.Large,
-  TankSizeTier.XL,
-];
-
-export const TANK_RENDER_SIZES: Record<TankSizeTier, { width: number; height: number }> = {
-  [TankSizeTier.Nano]: { width: 200, height: 150 },
-  [TankSizeTier.Small]: { width: 260, height: 195 },
-  [TankSizeTier.Medium]: { width: 320, height: 240 },
-  [TankSizeTier.Large]: { width: 370, height: 278 },
-  [TankSizeTier.XL]: { width: 400, height: 300 },
-};
-
-export const DESK_HEIGHT = 30;
-export const LIGHT_BAR_HEIGHT = 20;
-
-export enum HealthState {
-  Healthy = "Healthy",
-  Warning = "Warning",
-  Sick = "Sick",
-  Dead = "Dead",
-}
-
-export enum StoreItemType {
-  TankUpgrade = "TankUpgrade",
-  Filter = "Filter",
-  FishSpecies = "FishSpecies",
-}
+import {
+  TankSizeTier,
+  HealthState,
+  StoreItemType,
+  type FishSpeciesId,
+  type FilterId,
+} from "../shared/types";
 
 // ── Fish Species Catalog ──
 
 export interface FishSpeciesData {
-  id: string;
+  id: FishSpeciesId;
   name: string;
-  hungerRate: number; // hunger increase per tick (base)
-  dirtinessLoad: number; // contribution to water dirtiness per tick
+  hungerRate: number;
+  dirtinessLoad: number;
   minTankSize: TankSizeTier;
-  schoolingMin: number; // recommended group size
+  schoolingMin: number;
 }
 
-export const FISH_SPECIES: Record<string, FishSpeciesData> = {
+export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesData> = {
   guppy: {
     id: "guppy",
     name: "Guppy",
@@ -105,12 +81,12 @@ export const FISH_SPECIES: Record<string, FishSpeciesData> = {
 // ── Filter Catalog ──
 
 export interface FilterData {
-  id: string;
+  id: FilterId;
   name: string;
-  efficiency: number; // 0.0–1.0 multiplier reducing dirtiness per tick
+  efficiency: number;
 }
 
-export const FILTERS: Record<string, FilterData> = {
+export const FILTERS: Record<FilterId, FilterData> = {
   basic_sponge: {
     id: "basic_sponge",
     name: "Basic Sponge",
@@ -150,7 +126,6 @@ export interface StoreItemData {
 }
 
 export const STORE_ITEMS: Record<string, StoreItemData> = {
-  // Tank upgrades
   tank_small: {
     id: "tank_small",
     name: "Small Tank",
@@ -183,7 +158,6 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     prerequisite: { requiredUnlocks: ["tank_large"] },
     description: "The ultimate tank. Holds up to 18 fish.",
   },
-  // Filters
   hang_on_back: {
     id: "hang_on_back",
     name: "Hang-On-Back Filter",
@@ -208,7 +182,6 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     prerequisite: {},
     description: "The best money can buy. Reduces dirtiness by 70%.",
   },
-  // Fish species
   neon_tetra: {
     id: "neon_tetra",
     name: "Neon Tetra",
@@ -247,28 +220,28 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
 
 export interface Fish {
   id: string;
-  speciesId: string;
-  hungerLevel: number; // 0–100
+  speciesId: FishSpeciesId;
+  hungerLevel: number;
   healthState: HealthState;
-  sicknessTick: number; // ticks in current unhealthy state
+  sicknessTick: number;
 }
 
 export interface Tank {
   sizeTier: TankSizeTier;
-  waterDirtiness: number; // 0–100
-  algaeLevel: number; // 0–100
-  filterId: string | null;
+  waterDirtiness: number;
+  algaeLevel: number;
+  filterId: FilterId | null;
 }
 
 export interface PlayerProfile {
   pomoBalance: number;
   totalPomoEarned: number;
   currentStreak: number;
-  lastMaintenanceDate: string; // ISO date string
+  lastMaintenanceDate: string;
   dailyContinuityDays: number;
   unlockedItems: string[];
-  lastTickTimestamp: number; // Unix ms
-  sessionStartTime: number; // Unix ms
+  lastTickTimestamp: number;
+  sessionStartTime: number;
 }
 
 export interface GameState {
@@ -279,20 +252,20 @@ export interface GameState {
   lightOffTimestamp: number | null;
 }
 
-// ── Snapshot for webview communication ──
+// ── Snapshot for webview communication (type-safe) ──
 
 export interface GameStateSnapshot {
   tank: {
-    sizeTier: string;
+    sizeTier: TankSizeTier;
     waterDirtiness: number;
     algaeLevel: number;
-    filterId: string | null;
+    filterId: FilterId | null;
   };
   fish: Array<{
     id: string;
-    speciesId: string;
+    speciesId: FishSpeciesId;
     hungerLevel: number;
-    healthState: string;
+    healthState: HealthState;
   }>;
   player: {
     pomoBalance: number;
@@ -308,7 +281,7 @@ export interface GameStateSnapshot {
     items: Array<{
       id: string;
       name: string;
-      type: string;
+      type: StoreItemType;
       pomoCost: number;
       affordable: boolean;
       meetsPrerequisites: boolean;

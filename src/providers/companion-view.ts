@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { GameEngine } from "../game/engine";
 import type { GameState } from "../game/state";
+import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from "../shared/messages";
 
 export class CompanionViewProvider implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | null = null;
@@ -17,18 +18,21 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(this.extensionUri, "media"),
+        vscode.Uri.joinPath(this.extensionUri, "dist"),
       ],
     };
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
-    webviewView.webview.onDidReceiveMessage((message) => {
+    webviewView.webview.onDidReceiveMessage((message: WebviewToExtensionMessage) => {
       switch (message.type) {
         case "ready":
           this.sendState(this.engine.getState());
           break;
         case "openTank":
           vscode.commands.executeCommand("pomotank.openTank");
+          break;
+        default:
           break;
       }
     });
@@ -38,24 +42,22 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  updateState(state: GameState): void {
-    if (this.view) {
-      const snapshot = this.engine.createSnapshot(false);
-      this.view.webview.postMessage({
-        type: "stateUpdate",
-        state: snapshot,
-      });
-    }
+  updateState(_state: GameState): void {
+    this.sendToWebview({
+      type: "stateUpdate",
+      state: this.engine.createSnapshot(false),
+    });
   }
 
-  private sendState(state: GameState): void {
-    if (this.view) {
-      const snapshot = this.engine.createSnapshot(false);
-      this.view.webview.postMessage({
-        type: "stateUpdate",
-        state: snapshot,
-      });
-    }
+  private sendToWebview(msg: ExtensionToWebviewMessage): void {
+    this.view?.webview.postMessage(msg);
+  }
+
+  private sendState(_state: GameState): void {
+    this.sendToWebview({
+      type: "stateUpdate",
+      state: this.engine.createSnapshot(false),
+    });
   }
 
   private getHtml(webview: vscode.Webview): string {
@@ -71,10 +73,8 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(
         this.extensionUri,
-        "media",
-        "webview",
-        "companion",
-        "main.js",
+        "dist",
+        "webview-companion.js",
       ),
     );
     const nonce = getNonce();
@@ -92,9 +92,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     <link rel="stylesheet" href="${styleUri}" />
   </head>
   <body>
-    <div id="tank-container">
-      <canvas id="tank-canvas" width="440" height="360"></canvas>
-    </div>
+    <div id="root"></div>
     <script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
 </html>`;

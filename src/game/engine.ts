@@ -1,6 +1,7 @@
 import {
   type GameState,
   type GameStateSnapshot,
+  type ActionType,
   STORE_ITEMS,
   HealthState,
   generateFishId,
@@ -123,7 +124,7 @@ export class GameEngine {
     };
   }
 
-  performAction(action: "feedFish" | "changeWater" | "cleanAlgae"): void {
+  performAction(action: ActionType): void {
     const now = Date.now();
     const timeSinceLastMaintenance =
       now - this.state.player.sessionStartTime;
@@ -299,7 +300,7 @@ export class GameEngine {
     return elapsed >= 20 * 60 * 1000 && elapsed <= 30 * 60 * 1000;
   }
 
-  private isTankHealthy(action: "feedFish" | "changeWater" | "cleanAlgae"): boolean {
+  private isTankHealthy(action: ActionType): boolean {
     switch (action) {
       case "feedFish": {
         const living = this.state.fish.filter(

@@ -5,6 +5,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-24
 ## Active Technologies
 - TypeScript 5.3+ + @types/vscode ^1.85.0, esbuild ^0.20.0 (002-tank-growth-light)
 - VSCode ExtensionContext globalState (既存) (002-tank-growth-light)
+- TypeScript 5.3+ (strict mode有効) + @types/vscode ^1.85.0, esbuild ^0.20.0, React 18+, react-dom, react-konva, konva (003-type-safety-refactor)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -24,6 +25,7 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 003-type-safety-refactor: Added TypeScript 5.3+ (strict mode有効) + @types/vscode ^1.85.0, esbuild ^0.20.0, React 18+, react-dom, react-konva, konva
 - 002-tank-growth-light: Added TypeScript 5.3+ + @types/vscode ^1.85.0, esbuild ^0.20.0
 
 - 001-pomotank-mvp: Added TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler)

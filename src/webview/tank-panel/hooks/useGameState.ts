@@ -1,0 +1,88 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { GameStateSnapshot } from "../../../game/state";
+import type {
+  ExtensionToWebviewMessage,
+  WebviewToExtensionMessage,
+} from "../../../shared/messages";
+
+// Acquire the VS Code API once at module level
+interface VsCodeApi {
+  postMessage(msg: unknown): void;
+  getState(): unknown;
+  setState(state: unknown): void;
+}
+
+declare function acquireVsCodeApi(): VsCodeApi;
+
+const vscode = acquireVsCodeApi();
+
+export interface UseGameStateResult {
+  state: GameStateSnapshot | null;
+  notification: string | null;
+  sendMessage: (msg: WebviewToExtensionMessage) => void;
+}
+
+export function useGameState(): UseGameStateResult {
+  const [state, setState] = useState<GameStateSnapshot | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+  const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showNotification = useCallback((text: string) => {
+    setNotification(text);
+    if (notificationTimer.current) {
+      clearTimeout(notificationTimer.current);
+    }
+    notificationTimer.current = setTimeout(() => {
+      setNotification(null);
+      notificationTimer.current = null;
+    }, 3000);
+  }, []);
+
+  const sendMessage = useCallback((msg: WebviewToExtensionMessage) => {
+    vscode.postMessage(msg);
+  }, []);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent<ExtensionToWebviewMessage>) => {
+      const msg = event.data;
+      switch (msg.type) {
+        case "stateUpdate":
+          setState(msg.state);
+          break;
+        case "actionResult":
+          showNotification(
+            msg.success ? `${msg.action} done!` : `${msg.action} failed`
+          );
+          break;
+        case "purchaseResult":
+          showNotification(
+            msg.success
+              ? `Purchased ${msg.itemId}!`
+              : msg.message ?? `Cannot buy ${msg.itemId}`
+          );
+          break;
+        case "lightToggleResult":
+          showNotification(
+            msg.success
+              ? `Light ${msg.lightOn ? "on" : "off"}`
+              : "Light toggle failed"
+          );
+          break;
+      }
+    };
+
+    window.addEventListener("message", handler);
+
+    // Tell extension we are ready
+    sendMessage({ type: "ready" });
+
+    return () => {
+      window.removeEventListener("message", handler);
+      if (notificationTimer.current) {
+        clearTimeout(notificationTimer.current);
+      }
+    };
+  }, [sendMessage, showNotification]);
+
+  return { state, notification, sendMessage };
+}

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { createInitialState } from "./game/state";
+import { createInitialState, HealthState } from "./game/state";
 import { initStorage, loadState, saveState } from "./persistence/storage";
 import { GameEngine } from "./game/engine";
 import { CompanionViewProvider } from "./providers/companion-view";
@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const config = vscode.workspace.getConfiguration("pomotank");
     if (config.get<boolean>("enableNotifications", false)) {
       const livingFish = newState.fish.filter(
-        (f) => f.healthState !== "Dead",
+        (f) => f.healthState !== HealthState.Dead,
       );
       const avgHunger =
         livingFish.length > 0

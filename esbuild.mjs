@@ -4,7 +4,7 @@ const isWatch = process.argv.includes("--watch");
 const isProduction = process.argv.includes("--production");
 
 /** @type {import('esbuild').BuildOptions} */
-const buildOptions = {
+const extensionOptions = {
   entryPoints: ["src/extension.ts"],
   bundle: true,
   outfile: "dist/extension.js",
@@ -16,11 +16,48 @@ const buildOptions = {
   minify: isProduction,
 };
 
+/** @type {import('esbuild').BuildOptions} */
+const webviewBaseOptions = {
+  bundle: true,
+  format: "iife",
+  platform: "browser",
+  target: "es2020",
+  sourcemap: !isProduction,
+  minify: isProduction,
+  jsx: "automatic",
+};
+
+/** @type {import('esbuild').BuildOptions} */
+const tankPanelOptions = {
+  ...webviewBaseOptions,
+  entryPoints: ["src/webview/tank-panel/index.tsx"],
+  outfile: "dist/webview-tank-panel.js",
+};
+
+/** @type {import('esbuild').BuildOptions} */
+const companionOptions = {
+  ...webviewBaseOptions,
+  entryPoints: ["src/webview/companion/index.tsx"],
+  outfile: "dist/webview-companion.js",
+};
+
+async function buildAll() {
+  await Promise.all([
+    esbuild.build(extensionOptions),
+    esbuild.build(tankPanelOptions),
+    esbuild.build(companionOptions),
+  ]);
+  console.log("Build complete.");
+}
+
 if (isWatch) {
-  const ctx = await esbuild.context(buildOptions);
-  await ctx.watch();
+  const [extCtx, tankCtx, compCtx] = await Promise.all([
+    esbuild.context(extensionOptions),
+    esbuild.context(tankPanelOptions),
+    esbuild.context(companionOptions),
+  ]);
+  await Promise.all([extCtx.watch(), tankCtx.watch(), compCtx.watch()]);
   console.log("Watching for changes...");
 } else {
-  await esbuild.build(buildOptions);
-  console.log("Build complete.");
+  await buildAll();
 }

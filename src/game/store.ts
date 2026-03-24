@@ -194,7 +194,7 @@ export function getCapacity(sizeTier: TankSizeTier): number {
 export function getStoreSnapshot(state: GameState): Array<{
   id: string;
   name: string;
-  type: string;
+  type: StoreItemType;
   pomoCost: number;
   affordable: boolean;
   meetsPrerequisites: boolean;

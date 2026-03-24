@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { GameEngine } from "../game/engine";
 import type { GameState } from "../game/state";
+import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from "../shared/messages";
 
 export class TankPanelManager {
   private panel: vscode.WebviewPanel | null = null;
@@ -28,6 +29,7 @@ export class TankPanelManager {
         retainContextWhenHidden: true,
         localResourceRoots: [
           vscode.Uri.joinPath(this.extensionUri, "media"),
+          vscode.Uri.joinPath(this.extensionUri, "dist"),
         ],
       },
     );
@@ -43,75 +45,56 @@ export class TankPanelManager {
     });
   }
 
-  updateState(state: GameState): void {
+  updateState(_state: GameState): void {
     if (this.panel) {
-      const snapshot = this.engine.createSnapshot(false);
-      this.panel.webview.postMessage({
+      const msg: ExtensionToWebviewMessage = {
         type: "stateUpdate",
-        state: snapshot,
-      });
+        state: this.engine.createSnapshot(false),
+      };
+      this.panel.webview.postMessage(msg);
     }
   }
 
-  private handleMessage(message: {
-    type: string;
-    itemId?: string;
-  }): void {
+  private sendToWebview(msg: ExtensionToWebviewMessage): void {
+    this.panel?.webview.postMessage(msg);
+  }
+
+  private handleMessage(message: WebviewToExtensionMessage): void {
     switch (message.type) {
-      case "ready": {
-        const snapshot = this.engine.createSnapshot(false);
-        this.panel?.webview.postMessage({
+      case "ready":
+        this.sendToWebview({
           type: "stateUpdate",
-          state: snapshot,
+          state: this.engine.createSnapshot(false),
         });
         break;
-      }
       case "feedFish":
         this.engine.performAction("feedFish");
-        this.panel?.webview.postMessage({
-          type: "actionResult",
-          action: "Feed Fish",
-          success: true,
-        });
+        this.sendToWebview({ type: "actionResult", action: "Feed Fish", success: true });
         break;
       case "changeWater":
         this.engine.performAction("changeWater");
-        this.panel?.webview.postMessage({
-          type: "actionResult",
-          action: "Change Water",
-          success: true,
-        });
+        this.sendToWebview({ type: "actionResult", action: "Change Water", success: true });
         break;
       case "cleanAlgae":
         this.engine.performAction("cleanAlgae");
-        this.panel?.webview.postMessage({
-          type: "actionResult",
-          action: "Clean Algae",
-          success: true,
-        });
+        this.sendToWebview({ type: "actionResult", action: "Clean Algae", success: true });
         break;
-      case "purchaseItem":
-        if (message.itemId) {
-          const result = this.engine.purchaseItem(message.itemId);
-          this.panel?.webview.postMessage({
-            type: "purchaseResult",
-            itemId: message.itemId,
-            success: result.success,
-            message: result.message,
-          });
-        }
-        break;
-      case "toggleLight": {
-        const lightOn = this.engine.toggleLight();
-        this.panel?.webview.postMessage({
-          type: "lightToggleResult",
-          lightOn,
-          success: true,
+      case "purchaseItem": {
+        const result = this.engine.purchaseItem(message.itemId);
+        this.sendToWebview({
+          type: "purchaseResult",
+          itemId: message.itemId,
+          success: result.success,
+          message: result.message,
         });
         break;
       }
-      case "openStore":
-        // Store is handled in webview JS
+      case "toggleLight": {
+        const lightOn = this.engine.toggleLight();
+        this.sendToWebview({ type: "lightToggleResult", lightOn, success: true });
+        break;
+      }
+      case "openTank":
         break;
     }
   }
@@ -129,10 +112,8 @@ export class TankPanelManager {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(
         this.extensionUri,
-        "media",
-        "webview",
-        "tank-detail",
-        "main.js",
+        "dist",
+        "webview-tank-panel.js",
       ),
     );
     const nonce = getNonce();
@@ -150,31 +131,7 @@ export class TankPanelManager {
     <link rel="stylesheet" href="${styleUri}" />
   </head>
   <body>
-    <div id="app">
-      <div id="tank-view">
-        <canvas id="tank-canvas" width="960" height="760"></canvas>
-      </div>
-      <div id="stats-bar">
-        <span id="stat-hunger">Hunger: 0%</span>
-        <span id="stat-water">Water: 0%</span>
-        <span id="stat-algae">Algae: 0%</span>
-        <span id="stat-pomo">Pomo: 0</span>
-        <span id="stat-streak">Streak: 0</span>
-        <span id="stat-timer">Session: 0min</span>
-      </div>
-      <div id="actions">
-        <button id="btn-feed" class="action-btn">Feed Fish</button>
-        <button id="btn-water" class="action-btn">Change Water</button>
-        <button id="btn-algae" class="action-btn">Clean Algae</button>
-        <button id="btn-light" class="action-btn light-btn">Light: ON</button>
-        <button id="btn-store" class="action-btn store-btn">Store</button>
-      </div>
-      <div id="store-panel" class="hidden">
-        <h3>Store</h3>
-        <div id="store-items"></div>
-      </div>
-      <div id="notification" class="hidden"></div>
-    </div>
+    <div id="root"></div>
     <script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
 </html>`;
