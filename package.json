@@ -1,0 +1,100 @@
+{
+  "name": "pomotank",
+  "displayName": "Pomotank",
+  "description": "A cute pixel-art VSCode companion that gently encourages healthy coding breaks through a light idle aquarium care loop.",
+  "version": "0.1.0",
+  "publisher": "pomotank",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "pomotank.companionView",
+          "name": "Pomotank",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "pomotank.openTank",
+        "title": "Pomotank: Open Tank"
+      },
+      {
+        "command": "pomotank.feedFish",
+        "title": "Pomotank: Feed Fish"
+      },
+      {
+        "command": "pomotank.changeWater",
+        "title": "Pomotank: Change Water"
+      },
+      {
+        "command": "pomotank.cleanAlgae",
+        "title": "Pomotank: Clean Algae"
+      },
+      {
+        "command": "pomotank.openStore",
+        "title": "Pomotank: Open Store"
+      },
+      {
+        "command": "pomotank.debugTick",
+        "title": "Pomotank: [Debug] Tick x10"
+      },
+      {
+        "command": "pomotank.debugReset",
+        "title": "Pomotank: [Debug] Reset State"
+      },
+      {
+        "command": "pomotank.debugAddPomo",
+        "title": "Pomotank: [Debug] Add 100 Pomo"
+      }
+    ],
+    "configuration": {
+      "title": "Pomotank",
+      "properties": {
+        "pomotank.enableNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable VSCode notification reminders for tank care"
+        },
+        "pomotank.workSessionMinutes": {
+          "type": "number",
+          "default": 25,
+          "description": "Work session duration (minutes) before break window"
+        },
+        "pomotank.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show/hide status bar indicator"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "test:unit": "vitest run",
+    "test:integration": "node ./test/integration/run.mjs",
+    "test": "npm run test:unit",
+    "lint": "eslint src/ --ext .ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.8",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}

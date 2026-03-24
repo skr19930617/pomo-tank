@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${cspSource}"
+    />
+    <link rel="stylesheet" href="${styleUri}" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="tank-view">
+        <canvas id="tank-canvas" width="400" height="300"></canvas>
+      </div>
+      <div id="stats-bar">
+        <span id="stat-hunger">Hunger: 0%</span>
+        <span id="stat-water">Water: 0%</span>
+        <span id="stat-algae">Algae: 0%</span>
+        <span id="stat-pomo">Pomo: 0</span>
+        <span id="stat-streak">Streak: 0</span>
+        <span id="stat-timer">Session: 0min</span>
+      </div>
+      <div id="actions">
+        <button id="btn-feed" class="action-btn">Feed Fish</button>
+        <button id="btn-water" class="action-btn">Change Water</button>
+        <button id="btn-algae" class="action-btn">Clean Algae</button>
+        <button id="btn-store" class="action-btn store-btn">Store</button>
+      </div>
+      <div id="store-panel" class="hidden">
+        <h3>Store</h3>
+        <div id="store-items"></div>
+      </div>
+      <div id="notification" class="hidden"></div>
+    </div>
+    <script nonce="${nonce}" src="${scriptUri}"></script>
+  </body>
+</html>
