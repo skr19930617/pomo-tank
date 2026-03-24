@@ -1,13 +1,9 @@
-import React, { useMemo } from "react";
-import { useGameState } from "../tank-panel/hooks/useGameState";
-import { useFishAnimation } from "../tank-panel/hooks/useFishAnimation";
-import type { FishBounds } from "../tank-panel/hooks/useFishAnimation";
-import { TankScene } from "../tank-panel/components/TankScene";
-import {
-  TANK_RENDER_SIZES,
-  DESK_HEIGHT,
-  LIGHT_BAR_HEIGHT,
-} from "../../shared/types";
+import React, { useMemo } from 'react';
+import { useGameState } from '../tank-panel/hooks/useGameState';
+import { useFishAnimation } from '../tank-panel/hooks/useFishAnimation';
+import type { FishBounds } from '../tank-panel/hooks/useFishAnimation';
+import { TankScene } from '../tank-panel/components/TankScene';
+import { TANK_RENDER_SIZES, LIGHT_BAR_HEIGHT } from '../../shared/types';
 
 const COMPANION_SCENE_W = 220;
 const COMPANION_SCENE_H = 180;
@@ -35,6 +31,7 @@ export function App() {
       width: tw - 6,
       height: th - 14,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.tank.sizeTier]);
 
   const { animatedFish, frameCount } = useFishAnimation(
@@ -44,15 +41,15 @@ export function App() {
   );
 
   const handleClick = () => {
-    sendMessage({ type: "openTank" });
+    sendMessage({ type: 'openTank' });
   };
 
   if (!state) {
-    return <div style={{ padding: 8, color: "#999" }}>Loading...</div>;
+    return <div style={{ padding: 8, color: '#999' }}>Loading...</div>;
   }
 
   return (
-    <div onClick={handleClick} style={{ cursor: "pointer" }}>
+    <div onClick={handleClick} style={{ cursor: 'pointer' }}>
       <TankScene
         state={state}
         animatedFish={animatedFish}

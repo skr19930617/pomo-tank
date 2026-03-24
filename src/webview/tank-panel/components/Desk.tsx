@@ -1,5 +1,5 @@
-import React from "react";
-import { Rect, Line } from "react-konva";
+import React from 'react';
+import { Rect, Line } from 'react-konva';
 
 interface DeskProps {
   sceneWidth: number;
@@ -16,21 +16,9 @@ export const Desk: React.FC<DeskProps> = ({ sceneWidth, deskTop, deskHeight }) =
   return (
     <>
       {/* Desk surface */}
-      <Rect
-        x={0}
-        y={deskTop}
-        width={sceneWidth}
-        height={deskHeight}
-        fill="#6b4226"
-      />
+      <Rect x={0} y={deskTop} width={sceneWidth} height={deskHeight} fill="#6b4226" />
       {/* Desk top edge highlight */}
-      <Rect
-        x={0}
-        y={deskTop}
-        width={sceneWidth}
-        height={3}
-        fill="#8b6240"
-      />
+      <Rect x={0} y={deskTop} width={sceneWidth} height={3} fill="#8b6240" />
       {/* Wood grain lines */}
       {grainLines.map((offset, i) => (
         <Line

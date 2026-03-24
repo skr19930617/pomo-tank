@@ -1,4 +1,4 @@
-import { Fish, HealthState, GameState } from "./state";
+import { Fish, HealthState, GameState } from './state';
 
 // Thresholds (in ticks, where 1 tick = 60 seconds)
 const WARNING_THRESHOLD = 120; // ~2 hours
@@ -12,11 +12,7 @@ const RECOVERY_RATE = 2; // sicknessTick decrease per tick when conditions are g
  * Poor conditions: fish hunger > 70, water dirtiness > 70, or algae level > 80.
  */
 export function isPoorConditions(fish: Fish, state: GameState): boolean {
-  return (
-    fish.hungerLevel > 70 ||
-    state.tank.waterDirtiness > 70 ||
-    state.tank.algaeLevel > 80
-  );
+  return fish.hungerLevel > 70 || state.tank.waterDirtiness > 70 || state.tank.algaeLevel > 80;
 }
 
 function healthStateFromTick(sicknessTick: number, currentState: HealthState): HealthState {

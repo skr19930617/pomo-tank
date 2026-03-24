@@ -3,14 +3,13 @@ import {
   type Fish,
   STORE_ITEMS,
   FISH_SPECIES,
-  FILTERS,
   TANK_CAPACITY,
   TANK_SIZE_ORDER,
   TankSizeTier,
   StoreItemType,
   HealthState,
   generateFishId,
-} from "./state";
+} from './state';
 
 export interface PurchaseResult {
   success: boolean;
@@ -24,7 +23,7 @@ export function canPurchase(
 ): { allowed: boolean; reason?: string } {
   const item = STORE_ITEMS[itemId];
   if (!item) {
-    return { allowed: false, reason: "Item not found." };
+    return { allowed: false, reason: 'Item not found.' };
   }
 
   // Check pomo balance
@@ -49,9 +48,7 @@ export function canPurchase(
 
   if (item.prerequisite.minTankSize) {
     const currentIdx = TANK_SIZE_ORDER.indexOf(state.tank.sizeTier);
-    const requiredIdx = TANK_SIZE_ORDER.indexOf(
-      item.prerequisite.minTankSize,
-    );
+    const requiredIdx = TANK_SIZE_ORDER.indexOf(item.prerequisite.minTankSize);
     if (currentIdx < requiredIdx) {
       return {
         allowed: false,
@@ -63,24 +60,22 @@ export function canPurchase(
   // Type-specific checks
   if (item.type === StoreItemType.TankUpgrade) {
     if (state.player.unlockedItems.includes(itemId)) {
-      return { allowed: false, reason: "Already owned." };
+      return { allowed: false, reason: 'Already owned.' };
     }
   }
 
   if (item.type === StoreItemType.Filter) {
     if (state.player.unlockedItems.includes(itemId)) {
-      return { allowed: false, reason: "Already owned." };
+      return { allowed: false, reason: 'Already owned.' };
     }
   }
 
   if (item.type === StoreItemType.FishSpecies) {
     // Check tank capacity
-    const livingFish = state.fish.filter(
-      (f) => f.healthState !== HealthState.Dead,
-    );
+    const livingFish = state.fish.filter((f) => f.healthState !== HealthState.Dead);
     const capacity = TANK_CAPACITY[state.tank.sizeTier];
     if (livingFish.length >= capacity) {
-      return { allowed: false, reason: "Tank is full." };
+      return { allowed: false, reason: 'Tank is full.' };
     }
 
     // Check species min tank size
@@ -113,7 +108,7 @@ export function executePurchase(
   }
 
   const item = STORE_ITEMS[itemId];
-  let newState: GameState = JSON.parse(JSON.stringify(state));
+  const newState: GameState = JSON.parse(JSON.stringify(state));
 
   // Deduct pomo
   newState.player.pomoBalance -= item.pomoCost;
@@ -159,9 +154,7 @@ export function executePurchase(
       const species = FISH_SPECIES[itemId];
       if (species && species.schoolingMin > 1) {
         const count = newState.fish.filter(
-          (f) =>
-            f.speciesId === itemId &&
-            f.healthState !== HealthState.Dead,
+          (f) => f.speciesId === itemId && f.healthState !== HealthState.Dead,
         ).length;
         if (count < species.schoolingMin) {
           warning = `${species.name} prefers groups of ${species.schoolingMin}+. You have ${count}.`;
@@ -175,16 +168,14 @@ export function executePurchase(
     state: newState,
     result: {
       success: true,
-      message: warning ? `Purchased! ${warning}` : "Purchased!",
+      message: warning ? `Purchased! ${warning}` : 'Purchased!',
       warning,
     },
   };
 }
 
 export function getCurrentLoad(state: GameState): number {
-  return state.fish.filter(
-    (f) => f.healthState !== HealthState.Dead,
-  ).length;
+  return state.fish.filter((f) => f.healthState !== HealthState.Dead).length;
 }
 
 export function getCapacity(sizeTier: TankSizeTier): number {

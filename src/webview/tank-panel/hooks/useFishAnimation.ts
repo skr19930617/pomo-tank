@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import type { GameStateSnapshot } from "../../../game/state";
-import { HealthState } from "../../../shared/types";
-import type { FishSpeciesId } from "../../../shared/types";
+import { useEffect, useRef, useState, useCallback } from 'react';
+import type { GameStateSnapshot } from '../../../game/state';
+import { HealthState } from '../../../shared/types';
 
 export interface AnimatedFishData {
   x: number;
@@ -29,13 +28,15 @@ const LIGHT_OFF_MULT = 0.5;
 const DRIFT_CHANCE = 0.02;
 
 export function useFishAnimation(
-  fish: GameStateSnapshot["fish"] | undefined,
+  fish: GameStateSnapshot['fish'] | undefined,
   lightOn: boolean,
-  bounds: FishBounds
+  bounds: FishBounds,
 ): { animatedFish: Map<string, AnimatedFishData>; frameCount: number } {
   const stateRef = useRef<Map<string, FishAnimState>>(new Map());
-  const [animatedFish, setAnimatedFish] = useState<Map<string, AnimatedFishData>>(new Map());
-  const frameRef = useRef(0);
+  const [animState, setAnimState] = useState<{
+    fish: Map<string, AnimatedFishData>;
+    frameCount: number;
+  }>({ fish: new Map(), frameCount: 0 });
   const rafRef = useRef<number>(0);
 
   // Sync fish list — add new fish, remove gone ones
@@ -66,6 +67,7 @@ export function useFishAnimation(
 
   useEffect(() => {
     syncFish();
+    let frameCounter = 0;
 
     const tick = () => {
       if (!fish) {
@@ -73,7 +75,7 @@ export function useFishAnimation(
         return;
       }
 
-      frameRef.current += 1;
+      frameCounter += 1;
       const result = new Map<string, AnimatedFishData>();
 
       for (const f of fish) {
@@ -129,7 +131,7 @@ export function useFishAnimation(
         result.set(f.id, { x: s.x, y: s.y, dx: s.dx });
       }
 
-      setAnimatedFish(result);
+      setAnimState({ fish: result, frameCount: frameCounter });
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -140,5 +142,5 @@ export function useFishAnimation(
     };
   }, [fish, lightOn, bounds, syncFish]);
 
-  return { animatedFish, frameCount: frameRef.current };
+  return { animatedFish: animState.fish, frameCount: animState.frameCount };
 }

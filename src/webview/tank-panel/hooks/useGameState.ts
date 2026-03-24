@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { GameStateSnapshot } from "../../../game/state";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { GameStateSnapshot } from '../../../game/state';
 import type {
   ExtensionToWebviewMessage,
   WebviewToExtensionMessage,
-} from "../../../shared/messages";
+} from '../../../shared/messages';
 
 // Acquire the VS Code API once at module level
 interface VsCodeApi {
@@ -46,38 +46,32 @@ export function useGameState(): UseGameStateResult {
     const handler = (event: MessageEvent<ExtensionToWebviewMessage>) => {
       const msg = event.data;
       switch (msg.type) {
-        case "stateUpdate":
+        case 'stateUpdate':
           setState(msg.state);
           break;
-        case "actionResult":
+        case 'actionResult':
+          showNotification(msg.success ? `${msg.action} done!` : `${msg.action} failed`);
+          break;
+        case 'purchaseResult':
           showNotification(
-            msg.success ? `${msg.action} done!` : `${msg.action} failed`
+            msg.success ? `Purchased ${msg.itemId}!` : (msg.message ?? `Cannot buy ${msg.itemId}`),
           );
           break;
-        case "purchaseResult":
+        case 'lightToggleResult':
           showNotification(
-            msg.success
-              ? `Purchased ${msg.itemId}!`
-              : msg.message ?? `Cannot buy ${msg.itemId}`
-          );
-          break;
-        case "lightToggleResult":
-          showNotification(
-            msg.success
-              ? `Light ${msg.lightOn ? "on" : "off"}`
-              : "Light toggle failed"
+            msg.success ? `Light ${msg.lightOn ? 'on' : 'off'}` : 'Light toggle failed',
           );
           break;
       }
     };
 
-    window.addEventListener("message", handler);
+    window.addEventListener('message', handler);
 
     // Tell extension we are ready
-    sendMessage({ type: "ready" });
+    sendMessage({ type: 'ready' });
 
     return () => {
-      window.removeEventListener("message", handler);
+      window.removeEventListener('message', handler);
       if (notificationTimer.current) {
         clearTimeout(notificationTimer.current);
       }

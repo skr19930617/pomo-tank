@@ -1,7 +1,7 @@
-import * as vscode from "vscode";
-import type { GameEngine } from "../game/engine";
-import type { GameState } from "../game/state";
-import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from "../shared/messages";
+import * as vscode from 'vscode';
+import type { GameEngine } from '../game/engine';
+import type { GameState } from '../game/state';
+import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
 
 export class CompanionViewProvider implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | null = null;
@@ -17,8 +17,8 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this.extensionUri, "media"),
-        vscode.Uri.joinPath(this.extensionUri, "dist"),
+        vscode.Uri.joinPath(this.extensionUri, 'media'),
+        vscode.Uri.joinPath(this.extensionUri, 'dist'),
       ],
     };
 
@@ -26,11 +26,11 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message: WebviewToExtensionMessage) => {
       switch (message.type) {
-        case "ready":
+        case 'ready':
           this.sendState(this.engine.getState());
           break;
-        case "openTank":
-          vscode.commands.executeCommand("pomotank.openTank");
+        case 'openTank':
+          vscode.commands.executeCommand('pomotank.openTank');
           break;
         default:
           break;
@@ -44,7 +44,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
   updateState(_state: GameState): void {
     this.sendToWebview({
-      type: "stateUpdate",
+      type: 'stateUpdate',
       state: this.engine.createSnapshot(false),
     });
   }
@@ -55,27 +55,17 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
   private sendState(_state: GameState): void {
     this.sendToWebview({
-      type: "stateUpdate",
+      type: 'stateUpdate',
       state: this.engine.createSnapshot(false),
     });
   }
 
   private getHtml(webview: vscode.Webview): string {
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.extensionUri,
-        "media",
-        "webview",
-        "companion",
-        "style.css",
-      ),
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'companion', 'style.css'),
     );
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.extensionUri,
-        "dist",
-        "webview-companion.js",
-      ),
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview-companion.js'),
     );
     const nonce = getNonce();
     const cspSource = webview.cspSource;
@@ -100,9 +90,8 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 }
 
 function getNonce(): string {
-  let text = "";
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let text = '';
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   for (let i = 0; i < 32; i++) {
     text += chars.charAt(Math.floor(Math.random() * chars.length));
   }

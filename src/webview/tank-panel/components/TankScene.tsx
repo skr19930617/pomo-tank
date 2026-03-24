@@ -1,17 +1,13 @@
-import React from "react";
-import { Stage, Layer } from "react-konva";
-import type { GameStateSnapshot } from "../../../game/state";
-import {
-  TANK_RENDER_SIZES,
-  DESK_HEIGHT,
-  LIGHT_BAR_HEIGHT,
-} from "../../../shared/types";
-import type { AnimatedFishData } from "../hooks/useFishAnimation";
-import { Wall } from "./Wall";
-import { Desk } from "./Desk";
-import { Light } from "./Light";
-import { Tank } from "./Tank";
-import { FishSprite } from "./Fish";
+import React from 'react';
+import { Stage, Layer } from 'react-konva';
+import type { GameStateSnapshot } from '../../../game/state';
+import { TANK_RENDER_SIZES, DESK_HEIGHT, LIGHT_BAR_HEIGHT } from '../../../shared/types';
+import type { AnimatedFishData } from '../hooks/useFishAnimation';
+import { Wall } from './Wall';
+import { Desk } from './Desk';
+import { Light } from './Light';
+import { Tank } from './Tank';
+import { FishSprite } from './Fish';
 
 const DEFAULT_SCENE_W = 480;
 const DEFAULT_SCENE_H = 380;
@@ -32,8 +28,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   sceneWidth = DEFAULT_SCENE_W,
   sceneHeight = DEFAULT_SCENE_H,
 }) => {
-  const { width: tankWidth, height: tankHeight } =
-    TANK_RENDER_SIZES[state.tank.sizeTier];
+  const { width: tankWidth, height: tankHeight } = TANK_RENDER_SIZES[state.tank.sizeTier];
 
   const deskTop = sceneHeight - DESK_HEIGHT;
   const tankBottom = deskTop;
@@ -48,11 +43,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
         <Wall sceneWidth={sceneWidth} sceneHeight={sceneHeight} />
 
         {/* Desk */}
-        <Desk
-          sceneWidth={sceneWidth}
-          deskTop={deskTop}
-          deskHeight={DESK_HEIGHT}
-        />
+        <Desk sceneWidth={sceneWidth} deskTop={deskTop} deskHeight={DESK_HEIGHT} />
 
         {/* Light bar */}
         <Light

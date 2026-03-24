@@ -2,22 +2,13 @@ import {
   type GameState,
   type GameStateSnapshot,
   type ActionType,
-  STORE_ITEMS,
   HealthState,
   generateFishId,
-  TANK_SIZE_ORDER,
-} from "./state";
-import { applyTick } from "./deterioration";
-import { evaluateHealthTick } from "./health";
-import {
-  calculatePoints,
-  isWellTimed,
-  updateStreak,
-} from "./points";
-import {
-  executePurchase,
-  getStoreSnapshot,
-} from "./store";
+} from './state';
+import { applyTick } from './deterioration';
+import { evaluateHealthTick } from './health';
+import { calculatePoints, isWellTimed, updateStreak } from './points';
+import { executePurchase, getStoreSnapshot } from './store';
 
 export interface IActivityTracker {
   isActivelyCoding(): boolean;
@@ -36,7 +27,9 @@ export class GameEngine {
 
   start(): void {
     if (this.intervalId !== null) return;
-    this.intervalId = setInterval(() => this.tick(), 60_000) as unknown as ReturnType<typeof setTimeout>;
+    this.intervalId = setInterval(() => this.tick(), 60_000) as unknown as ReturnType<
+      typeof setTimeout
+    >;
   }
 
   stop(): void {
@@ -71,9 +64,7 @@ export class GameEngine {
     this.state = {
       ...this.state,
       fish: this.state.fish.map((fish) =>
-        fish.healthState !== HealthState.Dead
-          ? evaluateHealthTick(fish, this.state)
-          : fish,
+        fish.healthState !== HealthState.Dead ? evaluateHealthTick(fish, this.state) : fish,
       ),
     };
 
@@ -105,9 +96,7 @@ export class GameEngine {
       this.state = {
         ...this.state,
         fish: this.state.fish.map((fish) =>
-          fish.healthState !== HealthState.Dead
-            ? evaluateHealthTick(fish, this.state)
-            : fish,
+          fish.healthState !== HealthState.Dead ? evaluateHealthTick(fish, this.state) : fish,
         ),
       };
 
@@ -126,15 +115,14 @@ export class GameEngine {
 
   performAction(action: ActionType): void {
     const now = Date.now();
-    const timeSinceLastMaintenance =
-      now - this.state.player.sessionStartTime;
+    const timeSinceLastMaintenance = now - this.state.player.sessionStartTime;
 
     // Edge case: check if tank actually needs this action
     const tankHealthy = this.isTankHealthy(action);
 
     // Apply maintenance effect
     switch (action) {
-      case "feedFish":
+      case 'feedFish':
         this.state = {
           ...this.state,
           fish: this.state.fish.map((f) =>
@@ -144,20 +132,17 @@ export class GameEngine {
           ),
         };
         break;
-      case "changeWater":
+      case 'changeWater':
         this.state = {
           ...this.state,
           tank: {
             ...this.state.tank,
-            waterDirtiness: Math.max(
-              0,
-              this.state.tank.waterDirtiness - 50,
-            ),
+            waterDirtiness: Math.max(0, this.state.tank.waterDirtiness - 50),
             algaeLevel: Math.max(0, this.state.tank.algaeLevel - 10),
           },
         };
         break;
-      case "cleanAlgae":
+      case 'cleanAlgae':
         this.state = {
           ...this.state,
           tank: { ...this.state.tank, algaeLevel: 0 },
@@ -167,8 +152,7 @@ export class GameEngine {
 
     // Calculate pomo points (0 if tank was already healthy for this action)
     const todayIso = new Date(now).toISOString().slice(0, 10);
-    const isFirstToday =
-      this.state.player.lastMaintenanceDate !== todayIso;
+    const isFirstToday = this.state.player.lastMaintenanceDate !== todayIso;
 
     const result = tankHealthy
       ? { points: 0, timingBonus: 1.0, streakMultiplier: 1.0, dailyBonus: 0 }
@@ -181,14 +165,10 @@ export class GameEngine {
 
     // Update streak
     const wellTimed = isWellTimed(timeSinceLastMaintenance);
-    const newStreak = updateStreak(
-      this.state.player.currentStreak,
-      wellTimed,
-    );
+    const newStreak = updateStreak(this.state.player.currentStreak, wellTimed);
 
     // Update daily continuity
-    let newDailyContinuityDays =
-      this.state.player.dailyContinuityDays;
+    let newDailyContinuityDays = this.state.player.dailyContinuityDays;
     if (isFirstToday) {
       newDailyContinuityDays += 1;
     }
@@ -198,8 +178,7 @@ export class GameEngine {
       player: {
         ...this.state.player,
         pomoBalance: this.state.player.pomoBalance + result.points,
-        totalPomoEarned:
-          this.state.player.totalPomoEarned + result.points,
+        totalPomoEarned: this.state.player.totalPomoEarned + result.points,
         currentStreak: newStreak,
         lastMaintenanceDate: todayIso,
         dailyContinuityDays: newDailyContinuityDays,
@@ -210,13 +189,8 @@ export class GameEngine {
     this.notifySubscribers();
   }
 
-  purchaseItem(
-    itemId: string,
-  ): { success: boolean; message?: string } {
-    const { state: newState, result } = executePurchase(
-      this.state,
-      itemId,
-    );
+  purchaseItem(itemId: string): { success: boolean; message?: string } {
+    const { state: newState, result } = executePurchase(this.state, itemId);
     if (result.success) {
       this.state = newState;
       this.notifySubscribers();
@@ -229,8 +203,7 @@ export class GameEngine {
   }
 
   createSnapshot(isActiveCoding: boolean): GameStateSnapshot {
-    const timeSinceLastMaintenance =
-      Date.now() - this.state.player.sessionStartTime;
+    const timeSinceLastMaintenance = Date.now() - this.state.player.sessionStartTime;
 
     return {
       tank: {
@@ -302,29 +275,23 @@ export class GameEngine {
 
   private isTankHealthy(action: ActionType): boolean {
     switch (action) {
-      case "feedFish": {
-        const living = this.state.fish.filter(
-          (f) => f.healthState !== HealthState.Dead,
-        );
+      case 'feedFish': {
+        const living = this.state.fish.filter((f) => f.healthState !== HealthState.Dead);
         return living.every((f) => f.hungerLevel < 10);
       }
-      case "changeWater":
+      case 'changeWater':
         return this.state.tank.waterDirtiness < 10;
-      case "cleanAlgae":
+      case 'cleanAlgae':
         return this.state.tank.algaeLevel < 10;
     }
   }
 
   private handleDeadFish(): void {
-    const hasDeadFish = this.state.fish.some(
-      (f) => f.healthState === HealthState.Dead,
-    );
+    const hasDeadFish = this.state.fish.some((f) => f.healthState === HealthState.Dead);
     if (!hasDeadFish) return;
 
     // Reset streak on death
-    const livingAfterRemoval = this.state.fish.filter(
-      (f) => f.healthState !== HealthState.Dead,
-    );
+    const livingAfterRemoval = this.state.fish.filter((f) => f.healthState !== HealthState.Dead);
 
     let newFish = livingAfterRemoval;
 
@@ -333,7 +300,7 @@ export class GameEngine {
       newFish = [
         {
           id: generateFishId(),
-          speciesId: "guppy",
+          speciesId: 'guppy',
           hungerLevel: 0,
           healthState: HealthState.Healthy,
           sicknessTick: 0,

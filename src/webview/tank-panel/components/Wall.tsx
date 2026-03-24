@@ -1,5 +1,5 @@
-import React from "react";
-import { Rect, Line } from "react-konva";
+import React from 'react';
+import { Rect, Line } from 'react-konva';
 
 interface WallProps {
   sceneWidth: number;
@@ -7,14 +7,14 @@ interface WallProps {
 }
 
 const WALL_COLORS = [
-  "#2a2a3e",
-  "#2c2c40",
-  "#2e2e42",
-  "#303045",
-  "#323248",
-  "#34344a",
-  "#36364c",
-  "#38384e",
+  '#2a2a3e',
+  '#2c2c40',
+  '#2e2e42',
+  '#303045',
+  '#323248',
+  '#34344a',
+  '#36364c',
+  '#38384e',
 ];
 
 export const Wall: React.FC<WallProps> = ({ sceneWidth, sceneHeight }) => {
@@ -33,11 +33,7 @@ export const Wall: React.FC<WallProps> = ({ sceneWidth, sceneHeight }) => {
         />
       ))}
       {/* Decorative shelf line */}
-      <Line
-        points={[0, 60, sceneWidth, 60]}
-        stroke="#444460"
-        strokeWidth={2}
-      />
+      <Line points={[0, 60, sceneWidth, 60]} stroke="#444460" strokeWidth={2} />
     </>
   );
 };

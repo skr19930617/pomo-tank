@@ -1,7 +1,7 @@
-import * as vscode from "vscode";
-import type { GameEngine } from "../game/engine";
-import type { GameState } from "../game/state";
-import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from "../shared/messages";
+import * as vscode from 'vscode';
+import type { GameEngine } from '../game/engine';
+import type { GameState } from '../game/state';
+import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
 
 export class TankPanelManager {
   private panel: vscode.WebviewPanel | null = null;
@@ -11,25 +11,22 @@ export class TankPanelManager {
     private readonly engine: GameEngine,
   ) {}
 
-  openOrReveal(
-    context: vscode.ExtensionContext,
-    initialView?: string,
-  ): void {
+  openOrReveal(_context: vscode.ExtensionContext, _initialView?: string): void {
     if (this.panel) {
       this.panel.reveal();
       return;
     }
 
     this.panel = vscode.window.createWebviewPanel(
-      "pomotank.tankDetail",
-      "Pomotank - My Tank",
+      'pomotank.tankDetail',
+      'Pomotank - My Tank',
       vscode.ViewColumn.One,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(this.extensionUri, "media"),
-          vscode.Uri.joinPath(this.extensionUri, "dist"),
+          vscode.Uri.joinPath(this.extensionUri, 'media'),
+          vscode.Uri.joinPath(this.extensionUri, 'dist'),
         ],
       },
     );
@@ -48,7 +45,7 @@ export class TankPanelManager {
   updateState(_state: GameState): void {
     if (this.panel) {
       const msg: ExtensionToWebviewMessage = {
-        type: "stateUpdate",
+        type: 'stateUpdate',
         state: this.engine.createSnapshot(false),
       };
       this.panel.webview.postMessage(msg);
@@ -61,60 +58,50 @@ export class TankPanelManager {
 
   private handleMessage(message: WebviewToExtensionMessage): void {
     switch (message.type) {
-      case "ready":
+      case 'ready':
         this.sendToWebview({
-          type: "stateUpdate",
+          type: 'stateUpdate',
           state: this.engine.createSnapshot(false),
         });
         break;
-      case "feedFish":
-        this.engine.performAction("feedFish");
-        this.sendToWebview({ type: "actionResult", action: "Feed Fish", success: true });
+      case 'feedFish':
+        this.engine.performAction('feedFish');
+        this.sendToWebview({ type: 'actionResult', action: 'Feed Fish', success: true });
         break;
-      case "changeWater":
-        this.engine.performAction("changeWater");
-        this.sendToWebview({ type: "actionResult", action: "Change Water", success: true });
+      case 'changeWater':
+        this.engine.performAction('changeWater');
+        this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
         break;
-      case "cleanAlgae":
-        this.engine.performAction("cleanAlgae");
-        this.sendToWebview({ type: "actionResult", action: "Clean Algae", success: true });
+      case 'cleanAlgae':
+        this.engine.performAction('cleanAlgae');
+        this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
         break;
-      case "purchaseItem": {
+      case 'purchaseItem': {
         const result = this.engine.purchaseItem(message.itemId);
         this.sendToWebview({
-          type: "purchaseResult",
+          type: 'purchaseResult',
           itemId: message.itemId,
           success: result.success,
           message: result.message,
         });
         break;
       }
-      case "toggleLight": {
+      case 'toggleLight': {
         const lightOn = this.engine.toggleLight();
-        this.sendToWebview({ type: "lightToggleResult", lightOn, success: true });
+        this.sendToWebview({ type: 'lightToggleResult', lightOn, success: true });
         break;
       }
-      case "openTank":
+      case 'openTank':
         break;
     }
   }
 
   private getHtml(webview: vscode.Webview): string {
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.extensionUri,
-        "media",
-        "webview",
-        "tank-detail",
-        "style.css",
-      ),
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'tank-detail', 'style.css'),
     );
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.extensionUri,
-        "dist",
-        "webview-tank-panel.js",
-      ),
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview-tank-panel.js'),
     );
     const nonce = getNonce();
     const cspSource = webview.cspSource;
@@ -139,9 +126,8 @@ export class TankPanelManager {
 }
 
 function getNonce(): string {
-  let text = "";
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let text = '';
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   for (let i = 0; i < 32; i++) {
     text += chars.charAt(Math.floor(Math.random() * chars.length));
   }

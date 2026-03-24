@@ -5,57 +5,48 @@
 // ── Enums (re-exported from here as canonical source) ──
 
 export enum TankSizeTier {
-  Nano = "Nano",
-  Small = "Small",
-  Medium = "Medium",
-  Large = "Large",
-  XL = "XL",
+  Nano = 'Nano',
+  Small = 'Small',
+  Medium = 'Medium',
+  Large = 'Large',
+  XL = 'XL',
 }
 
 export enum HealthState {
-  Healthy = "Healthy",
-  Warning = "Warning",
-  Sick = "Sick",
-  Dead = "Dead",
+  Healthy = 'Healthy',
+  Warning = 'Warning',
+  Sick = 'Sick',
+  Dead = 'Dead',
 }
 
 export enum StoreItemType {
-  TankUpgrade = "TankUpgrade",
-  Filter = "Filter",
-  FishSpecies = "FishSpecies",
+  TankUpgrade = 'TankUpgrade',
+  Filter = 'Filter',
+  FishSpecies = 'FishSpecies',
 }
 
 // ── ID union literal types ──
 
-export type FishSpeciesId =
-  | "guppy"
-  | "neon_tetra"
-  | "corydoras"
-  | "betta"
-  | "angelfish";
+export type FishSpeciesId = 'guppy' | 'neon_tetra' | 'corydoras' | 'betta' | 'angelfish';
 
-export type FilterId =
-  | "basic_sponge"
-  | "hang_on_back"
-  | "canister"
-  | "premium_canister";
+export type FilterId = 'basic_sponge' | 'hang_on_back' | 'canister' | 'premium_canister';
 
 export type StoreItemId =
-  | "tank_small"
-  | "tank_medium"
-  | "tank_large"
-  | "tank_xl"
-  | "hang_on_back"
-  | "canister"
-  | "premium_canister"
-  | "neon_tetra"
-  | "corydoras"
-  | "betta"
-  | "angelfish";
+  | 'tank_small'
+  | 'tank_medium'
+  | 'tank_large'
+  | 'tank_xl'
+  | 'hang_on_back'
+  | 'canister'
+  | 'premium_canister'
+  | 'neon_tetra'
+  | 'corydoras'
+  | 'betta'
+  | 'angelfish';
 
 // ── Action type ──
 
-export type ActionType = "feedFish" | "changeWater" | "cleanAlgae";
+export type ActionType = 'feedFish' | 'changeWater' | 'cleanAlgae';
 
 // ── Constants ──
 

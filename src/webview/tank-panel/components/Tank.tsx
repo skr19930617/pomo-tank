@@ -1,5 +1,5 @@
-import React from "react";
-import { Rect } from "react-konva";
+import React from 'react';
+import { Rect } from 'react-konva';
 
 interface TankProps {
   tankLeft: number;

@@ -2,8 +2,8 @@
 // Pure functions that compute per-tick decay of hunger, water dirtiness, and algae.
 // No vscode imports.
 
-import type { GameState, Fish } from "./state";
-import { FISH_SPECIES, FILTERS } from "./state";
+import type { GameState, Fish } from './state';
+import { FISH_SPECIES, FILTERS } from './state';
 
 // ── Balancing Constants ──
 
@@ -38,10 +38,7 @@ export function applyHungerTick(fish: Fish, isActiveCoding: boolean): Fish {
  * Returns the new waterDirtiness value after one tick.
  * dirtinessDelta = sum(fish.species.dirtinessLoad) × (1 - filter.efficiency)
  */
-export function applyDirtinessTick(
-  state: GameState,
-  _isActiveCoding: boolean,
-): number {
+export function applyDirtinessTick(state: GameState, _isActiveCoding: boolean): number {
   const totalDirtinessLoad = state.fish.reduce((sum, f) => {
     const species = FISH_SPECIES[f.speciesId];
     return sum + (species ? species.dirtinessLoad : 0);
@@ -60,9 +57,7 @@ export function applyDirtinessTick(
  * algaeDelta = baseAlgaeRate + (waterDirtiness / 100) × dirtyAlgaeBonus
  */
 export function applyAlgaeTick(state: GameState): number {
-  const algaeDelta =
-    BASE_ALGAE_RATE +
-    (state.tank.waterDirtiness / 100) * DIRTY_ALGAE_BONUS;
+  const algaeDelta = BASE_ALGAE_RATE + (state.tank.waterDirtiness / 100) * DIRTY_ALGAE_BONUS;
   return clamp(state.tank.algaeLevel + algaeDelta, 0, 100);
 }
 
@@ -70,10 +65,7 @@ export function applyAlgaeTick(state: GameState): number {
  * Applies all deterioration (hunger, dirtiness, algae) for one tick.
  * Returns a new GameState with all values clamped to 0–100.
  */
-export function applyTick(
-  state: GameState,
-  isActiveCoding: boolean,
-): GameState {
+export function applyTick(state: GameState, isActiveCoding: boolean): GameState {
   const newFish = state.fish.map((f) => applyHungerTick(f, isActiveCoding));
   const newWaterDirtiness = applyDirtinessTick(state, isActiveCoding);
   const newAlgaeLevel = applyAlgaeTick(state);

@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 const ACTIVE_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
 

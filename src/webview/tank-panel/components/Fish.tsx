@@ -1,14 +1,14 @@
-import React from "react";
-import { Group, Rect, Text } from "react-konva";
-import { HealthState } from "../../../shared/types";
-import type { FishSpeciesId } from "../../../shared/types";
+import React from 'react';
+import { Group, Rect, Text } from 'react-konva';
+import { HealthState } from '../../../shared/types';
+import type { FishSpeciesId } from '../../../shared/types';
 
 const FISH_COLORS: Record<FishSpeciesId, string> = {
-  guppy: "#ff9944",
-  neon_tetra: "#44ddff",
-  corydoras: "#aa8855",
-  betta: "#dd4488",
-  angelfish: "#eedd44",
+  guppy: '#ff9944',
+  neon_tetra: '#44ddff',
+  corydoras: '#aa8855',
+  betta: '#dd4488',
+  angelfish: '#eedd44',
 };
 
 interface FishProps {
@@ -48,9 +48,8 @@ export const FishSprite: React.FC<FishProps> = ({
   const wagOffset = Math.sin(frameCount * 0.15) * 2;
 
   // Speech bubble for hungry/sick fish
-  const showBubble =
-    !isDead && (hungerLevel > 70 || isSick) && frameCount % 120 < 80;
-  const bubbleText = isSick ? "..." : "!";
+  const showBubble = !isDead && (hungerLevel > 70 || isSick) && frameCount % 120 < 80;
+  const bubbleText = isSick ? '...' : '!';
 
   // Mirror horizontally when facing left
   const scaleX = facingLeft ? -1 : 1;
@@ -88,30 +87,11 @@ export const FishSprite: React.FC<FishProps> = ({
       />
 
       {/* Belly highlight */}
-      <Rect
-        x={-bodyW / 2 + 2}
-        y={1}
-        width={bodyW - 4}
-        height={3}
-        fill="#ffffff"
-        opacity={0.25}
-      />
+      <Rect x={-bodyW / 2 + 2} y={1} width={bodyW - 4} height={3} fill="#ffffff" opacity={0.25} />
 
       {/* Eye */}
-      <Rect
-        x={bodyW / 2 - 4}
-        y={-2}
-        width={3}
-        height={3}
-        fill="#ffffff"
-      />
-      <Rect
-        x={bodyW / 2 - 3}
-        y={-1}
-        width={2}
-        height={2}
-        fill="#111111"
-      />
+      <Rect x={bodyW / 2 - 4} y={-2} width={3} height={3} fill="#ffffff" />
+      <Rect x={bodyW / 2 - 3} y={-1} width={2} height={2} fill="#111111" />
 
       {/* Speech bubble */}
       {showBubble && (

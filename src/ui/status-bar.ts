@@ -1,22 +1,19 @@
-import * as vscode from "vscode";
-import type { GameState } from "../game/state";
-import { HealthState } from "../game/state";
+import * as vscode from 'vscode';
+import type { GameState } from '../game/state';
+import { HealthState } from '../game/state';
 
 export class StatusBarManager implements vscode.Disposable {
   private item: vscode.StatusBarItem;
 
   constructor(_engine: { getState(): GameState }) {
-    this.item = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
-      100,
-    );
-    this.item.command = "pomotank.openTank";
+    this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    this.item.command = 'pomotank.openTank';
     this.item.show();
   }
 
   update(state: GameState): void {
-    const config = vscode.workspace.getConfiguration("pomotank");
-    if (!config.get<boolean>("showStatusBar", true)) {
+    const config = vscode.workspace.getConfiguration('pomotank');
+    if (!config.get<boolean>('showStatusBar', true)) {
       this.item.hide();
       return;
     }
@@ -27,49 +24,38 @@ export class StatusBarManager implements vscode.Disposable {
     const worstHealth = this.getWorstHealth(state);
 
     const icon = this.getStateIcon(hunger, dirtiness, algae, worstHealth);
-    const lightPrefix = state.lightOn ? "" : "$(debug-pause) ";
+    const lightPrefix = state.lightOn ? '' : '$(debug-pause) ';
     this.item.text = `${lightPrefix}$(beaker) ${icon}`;
 
-    const livingFish = state.fish.filter(
-      (f) => f.healthState !== HealthState.Dead,
-    );
-    const fishSummary = livingFish
-      .map((f) => `${f.speciesId}: ${f.healthState}`)
-      .join(", ");
+    const livingFish = state.fish.filter((f) => f.healthState !== HealthState.Dead);
+    const fishSummary = livingFish.map((f) => `${f.speciesId}: ${f.healthState}`).join(', ');
 
     const timeSince = Date.now() - state.player.sessionStartTime;
     const minutesSince = Math.floor(timeSince / 60000);
 
     this.item.tooltip = [
       `Pomotank - ${livingFish.length} fish`,
-      `Light: ${state.lightOn ? "ON" : "OFF (paused)"}`,
+      `Light: ${state.lightOn ? 'ON' : 'OFF (paused)'}`,
       `Hunger: ${Math.round(hunger)}%`,
       `Water: ${Math.round(dirtiness)}%`,
       `Algae: ${Math.round(algae)}%`,
-      `Fish: ${fishSummary || "none"}`,
+      `Fish: ${fishSummary || 'none'}`,
       `Pomo: ${state.player.pomoBalance}`,
       `Streak: ${state.player.currentStreak}`,
       `Session: ${minutesSince}min`,
-    ].join("\n");
+    ].join('\n');
 
     this.item.show();
   }
 
   private getAvgHunger(state: GameState): number {
-    const living = state.fish.filter(
-      (f) => f.healthState !== HealthState.Dead,
-    );
+    const living = state.fish.filter((f) => f.healthState !== HealthState.Dead);
     if (living.length === 0) return 0;
     return living.reduce((sum, f) => sum + f.hungerLevel, 0) / living.length;
   }
 
   private getWorstHealth(state: GameState): HealthState {
-    const order = [
-      HealthState.Healthy,
-      HealthState.Warning,
-      HealthState.Sick,
-      HealthState.Dead,
-    ];
+    const order = [HealthState.Healthy, HealthState.Warning, HealthState.Sick, HealthState.Dead];
     let worst = 0;
     for (const fish of state.fish) {
       const idx = order.indexOf(fish.healthState);
@@ -84,11 +70,11 @@ export class StatusBarManager implements vscode.Disposable {
     algae: number,
     health: HealthState,
   ): string {
-    if (health === HealthState.Dead) return "!!";
-    if (health === HealthState.Sick) return "!";
-    if (hunger > 70 || dirtiness > 70 || algae > 80) return "~";
-    if (hunger > 50 || dirtiness > 50 || algae > 60) return ".";
-    return "*";
+    if (health === HealthState.Dead) return '!!';
+    if (health === HealthState.Sick) return '!';
+    if (hunger > 70 || dirtiness > 70 || algae > 80) return '~';
+    if (hunger > 50 || dirtiness > 50 || algae > 60) return '.';
+    return '*';
   }
 
   dispose(): void {
