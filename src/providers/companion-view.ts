@@ -93,7 +93,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
   </head>
   <body>
     <div id="tank-container">
-      <canvas id="tank-canvas" width="100" height="100"></canvas>
+      <canvas id="tank-canvas" width="440" height="360"></canvas>
     </div>
     <script nonce="${nonce}" src="${scriptUri}"></script>
   </body>

@@ -13,23 +13,38 @@ let fishAnimations = [];
 let frameCount = 0;
 let storeOpen = false;
 
-// Tank render sizes matching TankSizeTier → canvas dimensions
-const TANK_RENDER_SIZES = {
-  Nano:   { width: 200, height: 150 },
-  Small:  { width: 260, height: 195 },
-  Medium: { width: 320, height: 240 },
-  Large:  { width: 370, height: 278 },
-  XL:     { width: 400, height: 300 },
+// ── Scene constants (in display pixels, canvas = 2x) ──
+const S = 2; // pixel scale factor
+const SCENE_W = 480;
+const SCENE_H = 380;
+const DESK_H = 40;
+const LIGHT_H = 16;
+const WALL_SHELF_Y = 60; // decorative shelf line on the wall
+
+// Canvas is always fixed at 2x scene size
+canvas.width = SCENE_W * S;
+canvas.height = SCENE_H * S;
+
+// Tank render sizes (display pixels) — tank glass area only
+const TANK_SIZES = {
+  Nano:   { width: 160, height: 120 },
+  Small:  { width: 220, height: 165 },
+  Medium: { width: 300, height: 225 },
+  Large:  { width: 380, height: 285 },
+  XL:     { width: 440, height: 310 },
 };
-const DESK_HEIGHT = 30;
-const LIGHT_BAR_HEIGHT = 20;
 
 // Colors
 const COLORS = {
   waterClean: "#4a90d9",
   tankBg: "#2a5a8a",
   tankBorder: "#1a3a5a",
+  tankBorderLight: "#2a5070",
   sand: "#c8b878",
+  sandDark: "#b0a060",
+  wallTop: "#3a3a4a",
+  wallBottom: "#2e2e3a",
+  wallAccent: "#44445a",
   fishColors: {
     guppy: "#ff9944",
     neon_tetra: "#44ddff",
@@ -42,38 +57,41 @@ const COLORS = {
 };
 
 const HUNGER_CUE = 50;
-const DIRTINESS_CUE = 50;
-const ALGAE_CUE = 60;
 
-function resizeCanvas(sizeTier) {
-  const size = TANK_RENDER_SIZES[sizeTier] || TANK_RENDER_SIZES.Nano;
-  canvas.width = size.width;
-  canvas.height = size.height + DESK_HEIGHT + LIGHT_BAR_HEIGHT;
-}
+// ── Layout helpers ──
 
-function getTankBounds() {
-  const size = TANK_RENDER_SIZES[state ? state.tank.sizeTier : "Nano"] || TANK_RENDER_SIZES.Nano;
+function getTankLayout() {
+  const tier = state ? state.tank.sizeTier : "Nano";
+  const size = TANK_SIZES[tier] || TANK_SIZES.Nano;
+  const tw = size.width;
+  const th = size.height;
+
+  const deskTop = SCENE_H - DESK_H;
+  const tankBottom = deskTop;
+  const tankTop = tankBottom - th;
+  const tankLeft = (SCENE_W - tw) / 2;
+  const lightTop = tankTop - LIGHT_H;
+
   return {
-    xMin: 20,
-    xMax: size.width - 20,
-    yMin: LIGHT_BAR_HEIGHT + 20,
-    yMax: LIGHT_BAR_HEIGHT + size.height - 20,
-    tankTop: LIGHT_BAR_HEIGHT,
-    tankBottom: LIGHT_BAR_HEIGHT + size.height,
-    tankWidth: size.width,
-    tankHeight: size.height,
+    tw, th, tankLeft, tankTop, tankBottom, lightTop, deskTop,
+    // Fish swim bounds (in display coords)
+    fishXMin: tankLeft + 16,
+    fishXMax: tankLeft + tw - 16,
+    fishYMin: tankTop + 16,
+    fishYMax: tankBottom - 16,
   };
 }
 
+// ── Fish animation ──
+
 function initFishAnim(fish) {
-  const bounds = getTankBounds();
+  const l = getTankLayout();
   return {
     id: fish.id,
-    x: bounds.xMin + 10 + Math.random() * (bounds.xMax - bounds.xMin - 20),
-    y: bounds.yMin + 10 + Math.random() * (bounds.yMax - bounds.yMin - 20),
-    dx: (Math.random() - 0.5) * 1.0,
-    dy: (Math.random() - 0.5) * 0.4,
-    size: 16,
+    x: l.fishXMin + 8 + Math.random() * (l.fishXMax - l.fishXMin - 16),
+    y: l.fishYMin + 8 + Math.random() * (l.fishYMax - l.fishYMin - 16),
+    dx: (Math.random() - 0.5) * 1.2,
+    dy: (Math.random() - 0.5) * 0.5,
   };
 }
 
@@ -86,53 +104,109 @@ function updateAnimations() {
       fishAnimations.push(initFishAnim(fish));
     }
   }
-  const bounds = getTankBounds();
+  const l = getTankLayout();
   for (const a of fishAnimations) {
     const fd = state.fish.find((f) => f.id === a.id);
     if (!fd || fd.healthState === "Dead") continue;
     let sp = fd.healthState === "Sick" ? 0.3 : 1.0;
-    if (state && !state.lightOn) sp *= 0.5;
+    if (!state.lightOn) sp *= 0.5;
     a.x += a.dx * sp;
     a.y += a.dy * sp;
-    if (a.x < bounds.xMin || a.x > bounds.xMax) {
+    if (a.x < l.fishXMin || a.x > l.fishXMax) {
       a.dx *= -1;
-      a.x = Math.max(bounds.xMin, Math.min(bounds.xMax, a.x));
+      a.x = Math.max(l.fishXMin, Math.min(l.fishXMax, a.x));
     }
-    if (a.y < bounds.yMin || a.y > bounds.yMax) {
+    if (a.y < l.fishYMin || a.y > l.fishYMax) {
       a.dy *= -1;
-      a.y = Math.max(bounds.yMin, Math.min(bounds.yMax, a.y));
+      a.y = Math.max(l.fishYMin, Math.min(l.fishYMax, a.y));
     }
     if (Math.random() < 0.02) {
       a.dx += (Math.random() - 0.5) * 0.3;
       a.dy += (Math.random() - 0.5) * 0.15;
-      a.dx = Math.max(-1.2, Math.min(1.2, a.dx));
-      a.dy = Math.max(-0.6, Math.min(0.6, a.dy));
+      a.dx = Math.max(-1.4, Math.min(1.4, a.dx));
+      a.dy = Math.max(-0.7, Math.min(0.7, a.dy));
     }
   }
 }
 
+// ── Drawing helpers (all coords in display pixels, drawn at S×) ──
+
+function fillRect(x, y, w, h) {
+  ctx.fillRect(x * S, y * S, w * S, h * S);
+}
+
+function strokeRect(x, y, w, h) {
+  ctx.strokeRect(x * S, y * S, w * S, h * S);
+}
+
+// ── Main draw ──
+
 function draw() {
   if (!ctx) return;
-  const bounds = getTankBounds();
+  const l = getTankLayout();
+  const lightOn = state ? state.lightOn : true;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Light bar at top
-  const lightOn = state ? state.lightOn : true;
-  ctx.fillStyle = lightOn ? "#e8e0c0" : "#4a4a4a";
-  ctx.fillRect(0, 0, bounds.tankWidth, LIGHT_BAR_HEIGHT);
-  // Light bar housing
-  ctx.fillStyle = "#333";
-  ctx.fillRect(0, 0, bounds.tankWidth, 4);
-  ctx.fillRect(0, LIGHT_BAR_HEIGHT - 2, bounds.tankWidth, 2);
-  // Light glow indicator
+  // ── Wall background (gradient-like with horizontal stripes) ──
+  // Base wall
+  ctx.fillStyle = COLORS.wallTop;
+  fillRect(0, 0, SCENE_W, SCENE_H);
+  // Subtle gradient via stripes
+  for (let i = 0; i < SCENE_H - DESK_H; i += 4) {
+    const t = i / (SCENE_H - DESK_H);
+    const r = Math.round(58 + t * 8);
+    const g = Math.round(58 + t * 8);
+    const b = Math.round(74 + t * 8);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    fillRect(0, i, SCENE_W, 4);
+  }
+  // Wall decorative elements — horizontal shelf line
+  ctx.fillStyle = "#50506a";
+  fillRect(0, WALL_SHELF_Y, SCENE_W, 3);
+  ctx.fillStyle = "#3a3a50";
+  fillRect(0, WALL_SHELF_Y + 3, SCENE_W, 1);
+
+  // ── Desk (full width) ──
+  // Main surface
+  ctx.fillStyle = "#8B6914";
+  fillRect(0, l.deskTop, SCENE_W, DESK_H);
+  // Wood grain
+  ctx.fillStyle = "#7A5C10";
+  fillRect(0, l.deskTop + 10, SCENE_W, 2);
+  fillRect(0, l.deskTop + 22, SCENE_W, 2);
+  fillRect(0, l.deskTop + 32, SCENE_W, 2);
+  // Top edge highlight
+  ctx.fillStyle = "#A07818";
+  fillRect(0, l.deskTop, SCENE_W, 4);
+  // Front edge shadow
+  ctx.fillStyle = "#5A4510";
+  fillRect(0, l.deskTop + DESK_H - 4, SCENE_W, 4);
+
+  // ── Light fixture (above tank, centered) ──
+  // Housing
+  ctx.fillStyle = "#2a2a2a";
+  fillRect(l.tankLeft - 4, l.lightTop, l.tw + 8, LIGHT_H);
+  // Light surface
+  ctx.fillStyle = lightOn ? "#e8e0c0" : "#3a3a3a";
+  fillRect(l.tankLeft, l.lightTop + 3, l.tw, LIGHT_H - 5);
+  // Glow
   if (lightOn) {
     ctx.fillStyle = "#fffbe0";
-    ctx.fillRect(10, 5, bounds.tankWidth - 20, LIGHT_BAR_HEIGHT - 9);
+    fillRect(l.tankLeft + 8, l.lightTop + 5, l.tw - 16, LIGHT_H - 8);
+    // Light glow on wall above
+    ctx.fillStyle = "rgba(255,250,200,0.08)";
+    fillRect(l.tankLeft - 20, l.lightTop - 40, l.tw + 40, 40);
   }
 
-  // Tank background
+  // ── Tank glass ──
+  // Tank frame (slightly larger than glass)
+  ctx.fillStyle = "#1a3050";
+  fillRect(l.tankLeft - 3, l.tankTop - 3, l.tw + 6, l.th + 6);
+
+  // Tank bg
   ctx.fillStyle = COLORS.tankBg;
-  ctx.fillRect(0, bounds.tankTop, bounds.tankWidth, bounds.tankHeight);
+  fillRect(l.tankLeft, l.tankTop, l.tw, l.th);
 
   // Water
   if (state) {
@@ -144,22 +218,35 @@ function draw() {
   } else {
     ctx.fillStyle = COLORS.waterClean;
   }
-  ctx.fillRect(3, bounds.tankTop + 3, bounds.tankWidth - 6, bounds.tankHeight - 18);
+  fillRect(l.tankLeft + 4, l.tankTop + 4, l.tw - 8, l.th - 20);
 
-  // Sand
+  // Sand layers
+  ctx.fillStyle = COLORS.sandDark;
+  fillRect(l.tankLeft + 4, l.tankBottom - 20, l.tw - 8, 4);
   ctx.fillStyle = COLORS.sand;
-  ctx.fillRect(3, bounds.tankBottom - 18, bounds.tankWidth - 6, 15);
+  fillRect(l.tankLeft + 4, l.tankBottom - 16, l.tw - 8, 12);
+  // Sand gravel detail
+  ctx.fillStyle = "#d4c888";
+  for (let gx = l.tankLeft + 8; gx < l.tankLeft + l.tw - 8; gx += 12) {
+    fillRect(gx, l.tankBottom - 14, 4, 2);
+  }
 
   // Algae
   if (state && state.tank.algaeLevel > 10) {
     const a = Math.min(state.tank.algaeLevel / 100, 0.6);
     ctx.fillStyle = `rgba(58,122,42,${a})`;
-    ctx.fillRect(3, bounds.tankTop + 3, 6, bounds.tankHeight - 18);
-    ctx.fillRect(bounds.tankWidth - 9, bounds.tankTop + 3, 6, bounds.tankHeight - 18);
-    ctx.fillRect(3, bounds.tankBottom - 22, bounds.tankWidth - 6, 4);
+    fillRect(l.tankLeft + 4, l.tankTop + 4, 8, l.th - 20);
+    fillRect(l.tankLeft + l.tw - 12, l.tankTop + 4, 8, l.th - 20);
+    fillRect(l.tankLeft + 4, l.tankBottom - 24, l.tw - 8, 4);
   }
 
-  // Fish
+  // Water surface shimmer
+  if (lightOn) {
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    fillRect(l.tankLeft + 6, l.tankTop + 4, l.tw - 12, 3);
+  }
+
+  // ── Fish ──
   if (state) {
     for (const anim of fishAnimations) {
       const fd = state.fish.find((f) => f.id === anim.id);
@@ -167,24 +254,34 @@ function draw() {
 
       const color = COLORS.fishColors[fd.speciesId] || "#ff9944";
       let alpha = 1.0;
-      let dy = anim.y;
-      if (fd.healthState === "Dead") { alpha = 0.4; dy = bounds.tankTop + 15; }
+      let fy = anim.y;
+      if (fd.healthState === "Dead") { alpha = 0.4; fy = l.tankTop + 20; }
       else if (fd.healthState === "Sick") { alpha = 0.6; }
       else if (fd.healthState === "Warning") { alpha = 0.8; }
 
       ctx.globalAlpha = alpha;
       const dir = anim.dx >= 0 ? 1 : -1;
 
-      // Body
+      // Body (larger at 2x)
       ctx.fillStyle = color;
-      ctx.fillRect(anim.x - 8, dy - 5, 16, 10);
+      fillRect(anim.x - 10, fy - 6, 20, 12);
       // Tail
-      ctx.fillRect(anim.x - 8 - dir * 5, dy - 4, 5, 8);
+      fillRect(anim.x - 10 - dir * 7, fy - 5, 7, 10);
+      // Dorsal fin
+      ctx.fillStyle = color;
+      ctx.globalAlpha = alpha * 0.7;
+      fillRect(anim.x - 2, fy - 9, 8, 4);
+      ctx.globalAlpha = alpha;
+      // Belly highlight
+      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha = alpha * 0.2;
+      fillRect(anim.x - 8, fy + 2, 16, 3);
+      ctx.globalAlpha = alpha;
       // Eye
       ctx.fillStyle = "#fff";
-      ctx.fillRect(anim.x + dir * 4, dy - 3, 3, 3);
+      fillRect(anim.x + dir * 5, fy - 4, 4, 4);
       ctx.fillStyle = "#000";
-      ctx.fillRect(anim.x + dir * 5, dy - 3, 1, 1);
+      fillRect(anim.x + dir * 6, fy - 3, 2, 2);
 
       ctx.globalAlpha = 1.0;
 
@@ -192,45 +289,51 @@ function draw() {
       if (fd.healthState !== "Dead" && fd.hungerLevel > HUNGER_CUE && frameCount % 120 < 60) {
         ctx.fillStyle = COLORS.speechBubble;
         ctx.globalAlpha = 0.9;
-        ctx.fillRect(anim.x - 12, dy - 18, 24, 12);
+        fillRect(anim.x - 14, fy - 22, 28, 14);
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = "#333";
-        ctx.font = "8px monospace";
+        ctx.font = `${10 * S}px monospace`;
         ctx.textAlign = "center";
-        ctx.fillText("...", anim.x, dy - 9);
+        ctx.fillText("...", anim.x * S, (fy - 11) * S);
       }
     }
   }
 
-  // Tank border
-  ctx.strokeStyle = COLORS.tankBorder;
-  ctx.lineWidth = 3;
-  ctx.strokeRect(1, bounds.tankTop, bounds.tankWidth - 2, bounds.tankHeight);
-
-  // Dark overlay when light is off
-  if (!lightOn) {
-    ctx.fillStyle = "rgba(0, 0, 20, 0.5)";
-    ctx.fillRect(0, bounds.tankTop, bounds.tankWidth, bounds.tankHeight);
+  // ── Ambient bubbles ──
+  if (lightOn && state) {
+    if (frameCount % 90 === 0 && Math.random() < 0.3) {
+      const bx = l.fishXMin + Math.random() * (l.fishXMax - l.fishXMin);
+      ctx.fillStyle = COLORS.bubble;
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.arc(bx * S, (l.tankBottom - 24) * S, 3 * S, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    }
   }
 
-  // Desk below tank
-  const deskTop = bounds.tankBottom;
-  // Desk surface (main wood color)
-  ctx.fillStyle = "#8B6914";
-  ctx.fillRect(0, deskTop, bounds.tankWidth, DESK_HEIGHT);
-  // Wood grain lines
-  ctx.fillStyle = "#7A5C10";
-  ctx.fillRect(0, deskTop + 8, bounds.tankWidth, 2);
-  ctx.fillRect(0, deskTop + 18, bounds.tankWidth, 2);
-  // Desk edge highlight
-  ctx.fillStyle = "#A07818";
-  ctx.fillRect(0, deskTop, bounds.tankWidth, 3);
-  // Desk bottom shadow
-  ctx.fillStyle = "#5A4510";
-  ctx.fillRect(0, deskTop + DESK_HEIGHT - 3, bounds.tankWidth, 3);
+  // ── Tank border (glass edge) ──
+  ctx.strokeStyle = COLORS.tankBorder;
+  ctx.lineWidth = 4 * S;
+  strokeRect(l.tankLeft, l.tankTop, l.tw, l.th);
+  // Glass highlight on left edge
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  fillRect(l.tankLeft + 4, l.tankTop + 4, 4, l.th - 8);
+
+  // ── Dark overlay when light is off ──
+  if (!lightOn) {
+    ctx.fillStyle = "rgba(0, 0, 20, 0.5)";
+    fillRect(l.tankLeft, l.tankTop, l.tw, l.th);
+  }
+
+  // ── Tank shadow on desk ──
+  ctx.fillStyle = "rgba(0,0,0,0.15)";
+  fillRect(l.tankLeft + 6, l.deskTop + 4, l.tw, 6);
 
   frameCount++;
 }
+
+// ── Stats & UI ──
 
 function updateStats() {
   if (!state) return;
@@ -252,7 +355,6 @@ function updateStats() {
 }
 
 function renderStore() {
-  const panel = document.getElementById("store-panel");
   const container = document.getElementById("store-items");
   if (!state || !state.store) return;
 
@@ -303,7 +405,7 @@ function render() {
   requestAnimationFrame(render);
 }
 
-// Button handlers
+// ── Button handlers ──
 document.getElementById("btn-feed").addEventListener("click", () => {
   vscode.postMessage({ type: "feedFish" });
 });
@@ -327,13 +429,12 @@ document.getElementById("btn-store").addEventListener("click", () => {
   }
 });
 
-// Message handler
+// ── Message handler ──
 window.addEventListener("message", (event) => {
   const msg = event.data;
   switch (msg.type) {
     case "stateUpdate":
       state = msg.state;
-      resizeCanvas(state.tank.sizeTier);
       updateStats();
       if (storeOpen) renderStore();
       break;
@@ -359,9 +460,6 @@ window.addEventListener("message", (event) => {
       break;
   }
 });
-
-// Initial canvas size (Nano default, will be updated on first stateUpdate)
-resizeCanvas("Nano");
 
 vscode.postMessage({ type: "ready" });
 render();

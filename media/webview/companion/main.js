@@ -8,32 +8,35 @@ const vscode = acquireVsCodeApi();
 const canvas = document.getElementById("tank-canvas");
 const ctx = canvas.getContext("2d");
 
-// State received from extension host
 let state = null;
-
-// Fish animation state
 let fishAnimations = [];
 let frameCount = 0;
 
-// Companion render sizes (scaled ~0.5 of main)
-const COMPANION_RENDER_SIZES = {
-  Nano:   { width: 100, height: 75 },
-  Small:  { width: 130, height: 98 },
-  Medium: { width: 160, height: 120 },
-  Large:  { width: 185, height: 139 },
-  XL:     { width: 200, height: 150 },
-};
-const COMPANION_DESK_HEIGHT = 15;
-const COMPANION_LIGHT_BAR_HEIGHT = 10;
+// ── Scene constants (display pixels, canvas = 2x) ──
+const S = 2;
+const SCENE_W = 220;
+const SCENE_H = 180;
+const DESK_H = 20;
+const LIGHT_H = 8;
 
-// Colors
+canvas.width = SCENE_W * S;
+canvas.height = SCENE_H * S;
+
+// Companion tank sizes (display pixels)
+const TANK_SIZES = {
+  Nano:   { width: 80, height: 60 },
+  Small:  { width: 110, height: 82 },
+  Medium: { width: 150, height: 112 },
+  Large:  { width: 185, height: 138 },
+  XL:     { width: 210, height: 150 },
+};
+
 const COLORS = {
   waterClean: "#4a90d9",
-  waterDirty: "#6b7b3a",
-  algaeGreen: "#3a7a2a",
   tankBg: "#2a5a8a",
   tankBorder: "#1a3a5a",
   sand: "#c8b878",
+  sandDark: "#b0a060",
   fishColors: {
     guppy: "#ff9944",
     neon_tetra: "#44ddff",
@@ -43,84 +46,73 @@ const COLORS = {
   },
   bubble: "#aaddff",
   speechBubble: "#ffffff",
-  healthWarning: "#ffaa44",
-  healthSick: "#999999",
 };
 
-// Health state thresholds for speech bubbles
-const HUNGER_CUE_THRESHOLD = 50;
-const DIRTINESS_CUE_THRESHOLD = 50;
-const ALGAE_CUE_THRESHOLD = 60;
+const HUNGER_CUE = 50;
 
-function resizeCompanionCanvas(sizeTier) {
-  const size = COMPANION_RENDER_SIZES[sizeTier] || COMPANION_RENDER_SIZES.Nano;
-  canvas.width = size.width;
-  canvas.height = size.height + COMPANION_DESK_HEIGHT + COMPANION_LIGHT_BAR_HEIGHT;
-}
-
-function getCompanionBounds() {
-  const size = COMPANION_RENDER_SIZES[state ? state.tank.sizeTier : "Nano"] || COMPANION_RENDER_SIZES.Nano;
+function getTankLayout() {
+  const tier = state ? state.tank.sizeTier : "Nano";
+  const size = TANK_SIZES[tier] || TANK_SIZES.Nano;
+  const tw = size.width;
+  const th = size.height;
+  const deskTop = SCENE_H - DESK_H;
+  const tankBottom = deskTop;
+  const tankTop = tankBottom - th;
+  const tankLeft = (SCENE_W - tw) / 2;
+  const lightTop = tankTop - LIGHT_H;
   return {
-    xMin: 10,
-    xMax: size.width - 10,
-    yMin: COMPANION_LIGHT_BAR_HEIGHT + 15,
-    yMax: COMPANION_LIGHT_BAR_HEIGHT + size.height - 15,
-    tankTop: COMPANION_LIGHT_BAR_HEIGHT,
-    tankBottom: COMPANION_LIGHT_BAR_HEIGHT + size.height,
-    tankWidth: size.width,
-    tankHeight: size.height,
+    tw, th, tankLeft, tankTop, tankBottom, lightTop, deskTop,
+    fishXMin: tankLeft + 10,
+    fishXMax: tankLeft + tw - 10,
+    fishYMin: tankTop + 10,
+    fishYMax: tankBottom - 10,
   };
 }
 
+function fillRect(x, y, w, h) {
+  ctx.fillRect(x * S, y * S, w * S, h * S);
+}
+
+function strokeRect(x, y, w, h) {
+  ctx.strokeRect(x * S, y * S, w * S, h * S);
+}
+
 function initFishAnimation(fish) {
-  const bounds = getCompanionBounds();
+  const l = getTankLayout();
   return {
     id: fish.id,
-    x: bounds.xMin + Math.random() * (bounds.xMax - bounds.xMin),
-    y: bounds.yMin + Math.random() * (bounds.yMax - bounds.yMin),
+    x: l.fishXMin + Math.random() * (l.fishXMax - l.fishXMin),
+    y: l.fishYMin + Math.random() * (l.fishYMax - l.fishYMin),
     dx: (Math.random() - 0.5) * 0.8,
     dy: (Math.random() - 0.5) * 0.3,
-    size: 12,
-    bubbleTimer: 0,
   };
 }
 
 function updateFishAnimations() {
   if (!state) return;
-
-  // Sync animation list with current fish
   const currentIds = new Set(state.fish.map((f) => f.id));
   fishAnimations = fishAnimations.filter((a) => currentIds.has(a.id));
-
   for (const fish of state.fish) {
     if (!fishAnimations.find((a) => a.id === fish.id)) {
       fishAnimations.push(initFishAnimation(fish));
     }
   }
-
-  // Update positions
-  const bounds = getCompanionBounds();
+  const l = getTankLayout();
   for (const anim of fishAnimations) {
-    const fishData = state.fish.find((f) => f.id === anim.id);
-    if (!fishData || fishData.healthState === "Dead") continue;
-
-    let speedMult = fishData.healthState === "Sick" ? 0.3 : 1.0;
-    if (state && !state.lightOn) speedMult *= 0.5;
-
-    anim.x += anim.dx * speedMult;
-    anim.y += anim.dy * speedMult;
-
-    // Bounce off walls
-    if (anim.x < bounds.xMin || anim.x > bounds.xMax) {
+    const fd = state.fish.find((f) => f.id === anim.id);
+    if (!fd || fd.healthState === "Dead") continue;
+    let sp = fd.healthState === "Sick" ? 0.3 : 1.0;
+    if (!state.lightOn) sp *= 0.5;
+    anim.x += anim.dx * sp;
+    anim.y += anim.dy * sp;
+    if (anim.x < l.fishXMin || anim.x > l.fishXMax) {
       anim.dx *= -1;
-      anim.x = Math.max(bounds.xMin, Math.min(bounds.xMax, anim.x));
+      anim.x = Math.max(l.fishXMin, Math.min(l.fishXMax, anim.x));
     }
-    if (anim.y < bounds.yMin || anim.y > bounds.yMax) {
+    if (anim.y < l.fishYMin || anim.y > l.fishYMax) {
       anim.dy *= -1;
-      anim.y = Math.max(bounds.yMin, Math.min(bounds.yMax, anim.y));
+      anim.y = Math.max(l.fishYMin, Math.min(l.fishYMax, anim.y));
     }
-
-    // Slight random direction change
     if (Math.random() < 0.02) {
       anim.dx += (Math.random() - 0.5) * 0.3;
       anim.dy += (Math.random() - 0.5) * 0.15;
@@ -132,145 +124,125 @@ function updateFishAnimations() {
 
 function draw() {
   if (!ctx) return;
-  const bounds = getCompanionBounds();
+  const l = getTankLayout();
+  const lightOn = state ? state.lightOn : true;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Light bar at top
-  const lightOn = state ? state.lightOn : true;
-  ctx.fillStyle = lightOn ? "#e8e0c0" : "#4a4a4a";
-  ctx.fillRect(0, 0, bounds.tankWidth, COMPANION_LIGHT_BAR_HEIGHT);
-  ctx.fillStyle = "#333";
-  ctx.fillRect(0, 0, bounds.tankWidth, 2);
-  ctx.fillRect(0, COMPANION_LIGHT_BAR_HEIGHT - 1, bounds.tankWidth, 1);
-  if (lightOn) {
-    ctx.fillStyle = "#fffbe0";
-    ctx.fillRect(5, 3, bounds.tankWidth - 10, COMPANION_LIGHT_BAR_HEIGHT - 5);
+  // Wall background
+  ctx.fillStyle = "#3a3a4a";
+  fillRect(0, 0, SCENE_W, SCENE_H);
+  for (let i = 0; i < SCENE_H - DESK_H; i += 4) {
+    const t = i / (SCENE_H - DESK_H);
+    const v = Math.round(58 + t * 8);
+    ctx.fillStyle = `rgb(${v},${v},${v + 16})`;
+    fillRect(0, i, SCENE_W, 4);
   }
 
-  // Tank background
-  ctx.fillStyle = COLORS.tankBg;
-  ctx.fillRect(0, bounds.tankTop, bounds.tankWidth, bounds.tankHeight);
+  // Desk
+  ctx.fillStyle = "#8B6914";
+  fillRect(0, l.deskTop, SCENE_W, DESK_H);
+  ctx.fillStyle = "#7A5C10";
+  fillRect(0, l.deskTop + 6, SCENE_W, 1);
+  fillRect(0, l.deskTop + 13, SCENE_W, 1);
+  ctx.fillStyle = "#A07818";
+  fillRect(0, l.deskTop, SCENE_W, 2);
+  ctx.fillStyle = "#5A4510";
+  fillRect(0, l.deskTop + DESK_H - 2, SCENE_W, 2);
 
-  // Water with dirtiness tint
+  // Light fixture
+  ctx.fillStyle = "#2a2a2a";
+  fillRect(l.tankLeft - 2, l.lightTop, l.tw + 4, LIGHT_H);
+  ctx.fillStyle = lightOn ? "#e8e0c0" : "#3a3a3a";
+  fillRect(l.tankLeft, l.lightTop + 2, l.tw, LIGHT_H - 3);
+  if (lightOn) {
+    ctx.fillStyle = "#fffbe0";
+    fillRect(l.tankLeft + 4, l.lightTop + 3, l.tw - 8, LIGHT_H - 5);
+  }
+
+  // Tank frame
+  ctx.fillStyle = "#1a3050";
+  fillRect(l.tankLeft - 2, l.tankTop - 2, l.tw + 4, l.th + 4);
+
+  // Tank bg
+  ctx.fillStyle = COLORS.tankBg;
+  fillRect(l.tankLeft, l.tankTop, l.tw, l.th);
+
+  // Water
   if (state) {
-    const dirtyFactor = state.tank.waterDirtiness / 100;
-    const r = Math.round(42 + dirtyFactor * 65);
-    const g = Math.round(144 - dirtyFactor * 80);
-    const b = Math.round(217 - dirtyFactor * 160);
-    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    const d = state.tank.waterDirtiness / 100;
+    const r = Math.round(42 + d * 65);
+    const g = Math.round(144 - d * 80);
+    const b = Math.round(217 - d * 160);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
   } else {
     ctx.fillStyle = COLORS.waterClean;
   }
-  ctx.fillRect(2, bounds.tankTop + 2, bounds.tankWidth - 4, bounds.tankHeight - 14);
+  fillRect(l.tankLeft + 2, l.tankTop + 2, l.tw - 4, l.th - 12);
 
-  // Sand bottom
+  // Sand
   ctx.fillStyle = COLORS.sand;
-  ctx.fillRect(2, bounds.tankBottom - 12, bounds.tankWidth - 4, 10);
+  fillRect(l.tankLeft + 2, l.tankBottom - 10, l.tw - 4, 8);
 
-  // Algae overlay
+  // Algae
   if (state && state.tank.algaeLevel > 10) {
-    const algaeAlpha = Math.min(state.tank.algaeLevel / 100, 0.6);
-    ctx.fillStyle = `rgba(58, 122, 42, ${algaeAlpha})`;
-    ctx.fillRect(2, bounds.tankTop + 2, 4, bounds.tankHeight - 14);
-    ctx.fillRect(bounds.tankWidth - 6, bounds.tankTop + 2, 4, bounds.tankHeight - 14);
-    ctx.fillRect(2, bounds.tankBottom - 15, bounds.tankWidth - 4, 3);
+    const a = Math.min(state.tank.algaeLevel / 100, 0.6);
+    ctx.fillStyle = `rgba(58,122,42,${a})`;
+    fillRect(l.tankLeft + 2, l.tankTop + 2, 4, l.th - 12);
+    fillRect(l.tankLeft + l.tw - 6, l.tankTop + 2, 4, l.th - 12);
   }
 
-  // Draw fish
+  // Fish
   if (state) {
     for (const anim of fishAnimations) {
-      const fishData = state.fish.find((f) => f.id === anim.id);
-      if (!fishData) continue;
-
-      const color =
-        COLORS.fishColors[fishData.speciesId] || COLORS.fishColors.guppy;
-
+      const fd = state.fish.find((f) => f.id === anim.id);
+      if (!fd) continue;
+      const color = COLORS.fishColors[fd.speciesId] || COLORS.fishColors.guppy;
       let alpha = 1.0;
-      let drawY = anim.y;
-      if (fishData.healthState === "Dead") {
-        alpha = 0.4;
-        drawY = bounds.tankTop + 10;
-      } else if (fishData.healthState === "Sick") {
-        alpha = 0.6;
-      } else if (fishData.healthState === "Warning") {
-        alpha = 0.8;
-      }
+      let fy = anim.y;
+      if (fd.healthState === "Dead") { alpha = 0.4; fy = l.tankTop + 8; }
+      else if (fd.healthState === "Sick") { alpha = 0.6; }
+      else if (fd.healthState === "Warning") { alpha = 0.8; }
 
       ctx.globalAlpha = alpha;
-
+      const dir = anim.dx >= 0 ? 1 : -1;
       ctx.fillStyle = color;
-      const facing = anim.dx >= 0 ? 1 : -1;
-      ctx.fillRect(anim.x - 6, drawY - 4, 12, 8);
-      ctx.fillRect(anim.x - 6 - facing * 4, drawY - 3, 4, 6);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(anim.x + facing * 3, drawY - 2, 2, 2);
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(anim.x + facing * 3 + (facing > 0 ? 1 : 0), drawY - 2, 1, 1);
-
+      fillRect(anim.x - 6, fy - 4, 12, 8);
+      fillRect(anim.x - 6 - dir * 4, fy - 3, 4, 6);
+      ctx.fillStyle = "#fff";
+      fillRect(anim.x + dir * 3, fy - 2, 2, 2);
+      ctx.fillStyle = "#000";
+      fillRect(anim.x + dir * 3 + (dir > 0 ? 1 : 0), fy - 2, 1, 1);
       ctx.globalAlpha = 1.0;
 
-      if (fishData.healthState !== "Dead" &&
-          fishData.hungerLevel > HUNGER_CUE_THRESHOLD &&
-          frameCount % 120 < 60) {
-        drawSpeechBubble(anim.x, drawY - 12, "...");
+      if (fd.healthState !== "Dead" && fd.hungerLevel > HUNGER_CUE && frameCount % 120 < 60) {
+        ctx.fillStyle = COLORS.speechBubble;
+        ctx.globalAlpha = 0.9;
+        fillRect(anim.x - 8, fy - 14, 16, 8);
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = "#333";
+        ctx.font = `${6 * S}px monospace`;
+        ctx.textAlign = "center";
+        ctx.fillText("...", anim.x * S, (fy - 8) * S);
       }
     }
   }
 
   // Tank border
   ctx.strokeStyle = COLORS.tankBorder;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(1, bounds.tankTop, bounds.tankWidth - 2, bounds.tankHeight);
+  ctx.lineWidth = 2 * S;
+  strokeRect(l.tankLeft, l.tankTop, l.tw, l.th);
 
-  // Dark overlay when light is off
+  // Dark overlay
   if (!lightOn) {
     ctx.fillStyle = "rgba(0, 0, 20, 0.5)";
-    ctx.fillRect(0, bounds.tankTop, bounds.tankWidth, bounds.tankHeight);
+    fillRect(l.tankLeft, l.tankTop, l.tw, l.th);
   }
 
-  // Desk below tank
-  const deskTop = bounds.tankBottom;
-  ctx.fillStyle = "#8B6914";
-  ctx.fillRect(0, deskTop, bounds.tankWidth, COMPANION_DESK_HEIGHT);
-  ctx.fillStyle = "#7A5C10";
-  ctx.fillRect(0, deskTop + 4, bounds.tankWidth, 1);
-  ctx.fillRect(0, deskTop + 9, bounds.tankWidth, 1);
-  ctx.fillStyle = "#A07818";
-  ctx.fillRect(0, deskTop, bounds.tankWidth, 2);
-  ctx.fillStyle = "#5A4510";
-  ctx.fillRect(0, deskTop + COMPANION_DESK_HEIGHT - 2, bounds.tankWidth, 2);
-
-  // Ambient bubbles
-  if (lightOn && frameCount % 60 === 0 && Math.random() < 0.3) {
-    drawBubble(
-      bounds.xMin + Math.random() * (bounds.xMax - bounds.xMin),
-      bounds.tankBottom - 15,
-    );
-  }
+  // Tank shadow on desk
+  ctx.fillStyle = "rgba(0,0,0,0.12)";
+  fillRect(l.tankLeft + 3, l.deskTop + 2, l.tw, 3);
 
   frameCount++;
-}
-
-function drawSpeechBubble(x, y, text) {
-  ctx.fillStyle = COLORS.speechBubble;
-  ctx.globalAlpha = 0.9;
-  const w = 20;
-  const h = 10;
-  ctx.fillRect(x - w / 2, y - h, w, h);
-  ctx.globalAlpha = 1.0;
-  ctx.fillStyle = "#333333";
-  ctx.font = "6px monospace";
-  ctx.textAlign = "center";
-  ctx.fillText(text, x, y - 3);
-}
-
-function drawBubble(x, y) {
-  ctx.fillStyle = COLORS.bubble;
-  ctx.globalAlpha = 0.4;
-  ctx.beginPath();
-  ctx.arc(x, y, 2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1.0;
 }
 
 function render() {
@@ -279,25 +251,16 @@ function render() {
   requestAnimationFrame(render);
 }
 
-// Click handler - open detailed tank view
 canvas.addEventListener("click", () => {
   vscode.postMessage({ type: "openTank" });
 });
 
-// Message handler from extension host
 window.addEventListener("message", (event) => {
   const message = event.data;
   if (message.type === "stateUpdate") {
     state = message.state;
-    resizeCompanionCanvas(state.tank.sizeTier);
   }
 });
 
-// Initial canvas size (Nano default)
-resizeCompanionCanvas("Nano");
-
-// Signal ready
 vscode.postMessage({ type: "ready" });
-
-// Start render loop
 render();

@@ -152,7 +152,7 @@ export class TankPanelManager {
   <body>
     <div id="app">
       <div id="tank-view">
-        <canvas id="tank-canvas" width="200" height="200"></canvas>
+        <canvas id="tank-canvas" width="960" height="760"></canvas>
       </div>
       <div id="stats-bar">
         <span id="stat-hunger">Hunger: 0%</span>
