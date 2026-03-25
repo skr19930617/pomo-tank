@@ -7,23 +7,15 @@
 body {
   background: transparent;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 100%;
 }
 
-#tank-container {
+#root {
   width: 100%;
-  display: flex;
-  justify-content: center;
-  cursor: pointer;
 }
 
-#tank-canvas {
-  width: 100%;
-  max-width: 200px;
-  height: auto;
+/* Keep pixel-art crisp when device pixel ratio differs */
+canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  border-radius: 4px;
 }

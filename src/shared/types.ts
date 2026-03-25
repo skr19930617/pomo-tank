@@ -76,3 +76,8 @@ export const TANK_RENDER_SIZES: Record<TankSizeTier, { width: number; height: nu
 
 export const DESK_HEIGHT = 30;
 export const LIGHT_BAR_HEIGHT = 20;
+
+// ── HUD constants ──
+export const HUD_HEIGHT = 16;
+export const POMO_THRESHOLD_MS = 1_200_000; // 20 minutes in ms
+export const ACTION_BAR_HEIGHT = 20;

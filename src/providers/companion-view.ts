@@ -32,6 +32,23 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         case 'openTank':
           vscode.commands.executeCommand('pomotank.openTank');
           break;
+        case 'feedFish':
+          this.engine.performAction('feedFish');
+          this.sendToWebview({ type: 'actionResult', action: 'Feed Fish', success: true });
+          break;
+        case 'changeWater':
+          this.engine.performAction('changeWater');
+          this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
+          break;
+        case 'cleanAlgae':
+          this.engine.performAction('cleanAlgae');
+          this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
+          break;
+        case 'toggleLight': {
+          const lightOn = this.engine.toggleLight();
+          this.sendToWebview({ type: 'lightToggleResult', lightOn, success: true });
+          break;
+        }
         default:
           break;
       }

@@ -2,14 +2,15 @@ import React, { useState, useMemo } from 'react';
 import { useGameState } from './hooks/useGameState';
 import { useFishAnimation } from './hooks/useFishAnimation';
 import type { FishBounds } from './hooks/useFishAnimation';
+import { useContainerSize } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
-import { StatsBar } from './components/StatsBar';
-import { Actions } from './components/Actions';
 import { Store } from './components/Store';
-import { TANK_RENDER_SIZES, DESK_HEIGHT } from '../../shared/types';
+import { TANK_RENDER_SIZES } from '../../shared/types';
 
-const SCENE_W = 480;
-const SCENE_H = 380;
+/** Aspect ratio: height / width */
+const ASPECT = 380 / 480;
+/** Default CSS width used before ResizeObserver fires */
+const FALLBACK_W = 480;
 
 const notificationStyle: React.CSSProperties = {
   position: 'absolute',
@@ -37,20 +38,22 @@ const loadingStyle: React.CSSProperties = {
 export const App: React.FC = () => {
   const { state, notification, sendMessage } = useGameState();
   const [storeOpen, setStoreOpen] = useState(false);
+  const { ref, size } = useContainerSize(ASPECT, FALLBACK_W);
 
-  // Compute fish bounds from tank layout
+  // Logical scene dimensions (Stage renders at 2× pixel scale)
+  const sceneW = Math.floor(size.width / 2);
+  const sceneH = Math.floor(size.height / 2);
+
   const fishBounds: FishBounds = useMemo(() => {
     if (!state) return { left: 0, top: 0, width: 100, height: 100 };
-    const { width: tankWidth, height: tankHeight } = TANK_RENDER_SIZES[state.tank.sizeTier];
-    const deskTop = SCENE_H - DESK_HEIGHT;
-    const tankTop = deskTop - tankHeight;
-    const tankLeft = (SCENE_W - tankWidth) / 2;
-    const frameThickness = 3;
+    const rawSize = TANK_RENDER_SIZES[state.tank.sizeTier];
+    const frame = 3;
+    const sand = 8;
     return {
-      left: tankLeft + frameThickness,
-      top: tankTop + frameThickness,
-      width: tankWidth - frameThickness * 2,
-      height: tankHeight - frameThickness * 2 - 8, // minus sand
+      left: frame,
+      top: frame,
+      width: rawSize.width - frame * 2,
+      height: rawSize.height - frame * 2 - sand,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.tank.sizeTier]);
@@ -66,19 +69,45 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div style={{ position: 'relative', background: '#181825' }}>
-      {/* Canvas scene */}
-      <TankScene state={state} animatedFish={animatedFish} frameCount={frameCount} />
-
-      {/* Stats bar */}
-      <StatsBar state={state} />
-
-      {/* Action buttons */}
-      <Actions
+    <div ref={ref} style={{ position: 'relative', background: '#181825', width: '100%' }}>
+      {/* Canvas scene with HUD + ActionBar integrated */}
+      <TankScene
+        state={state}
+        animatedFish={animatedFish}
+        frameCount={frameCount}
+        sceneWidth={sceneW}
+        sceneHeight={sceneH}
+        containerWidth={size.width}
+        containerHeight={size.height}
+        compact={false}
         sendMessage={sendMessage}
-        lightOn={state.lightOn}
-        onStoreToggle={() => setStoreOpen((o) => !o)}
+        showExpand={false}
       />
+
+      {/* Store button trigger */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '4px',
+          background: '#181825',
+        }}
+      >
+        <button
+          style={{
+            padding: '4px 16px',
+            fontSize: '11px',
+            cursor: 'pointer',
+            border: '1px solid #444466',
+            borderRadius: '3px',
+            background: '#2a2a40',
+            color: '#ccccdd',
+          }}
+          onClick={() => setStoreOpen((o) => !o)}
+        >
+          Store
+        </button>
+      </div>
 
       {/* Notification toast */}
       {notification && <div style={notificationStyle}>{notification}</div>}
