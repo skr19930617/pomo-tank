@@ -27,7 +27,29 @@ export enum StoreItemType {
 
 // ── ID union literal types ──
 
-export type FishSpeciesId = 'guppy' | 'neon_tetra' | 'corydoras' | 'betta' | 'angelfish';
+export type FishSpeciesId = 'neon_tetra' | 'corydoras' | 'gourami' | 'otocinclus' | 'shrimp';
+
+export type AnimState = 'swim' | 'weak' | 'feeding';
+
+export interface VariantConfig {
+  id: string;
+  name: string;
+  sprites: { swim: string; weak?: string; feeding?: string };
+}
+
+export interface FishSpeciesConfig {
+  id: FishSpeciesId;
+  name: string;
+  capacityCost: number;
+  minTankSize: TankSizeTier;
+  schoolingMin: number;
+  swimZone: { min: number; max: number };
+  baseSpeed: number;
+  minSize: number;
+  maxSize: number;
+  variants: VariantConfig[];
+  hasFeedingAnim: boolean;
+}
 
 export type FilterId = 'basic_sponge' | 'hang_on_back' | 'canister' | 'premium_canister';
 
@@ -41,8 +63,9 @@ export type StoreItemId =
   | 'premium_canister'
   | 'neon_tetra'
   | 'corydoras'
-  | 'betta'
-  | 'angelfish';
+  | 'gourami'
+  | 'otocinclus'
+  | 'shrimp';
 
 // ── Action type ──
 

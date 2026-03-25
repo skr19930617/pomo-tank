@@ -1,7 +1,41 @@
 import * as vscode from 'vscode';
 import type { GameEngine } from '../game/engine';
 import type { GameState } from '../game/state';
+import { FISH_SPECIES } from '../game/state';
+import type { AnimState } from '../shared/types';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
+
+export type SpriteUriMap = Record<string, Record<string, Record<string, string>>>;
+
+function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): SpriteUriMap {
+  const map: SpriteUriMap = {};
+  const states: AnimState[] = ['swim', 'weak', 'feeding'];
+
+  for (const species of Object.values(FISH_SPECIES)) {
+    map[species.id] = {};
+    for (const variant of species.variants) {
+      map[species.id][variant.id] = {};
+      for (const state of states) {
+        const filename = variant.sprites[state];
+        if (filename) {
+          const uri = webview.asWebviewUri(
+            vscode.Uri.joinPath(
+              extensionUri,
+              'media',
+              'sprites',
+              'fish',
+              species.id,
+              variant.id,
+              filename,
+            ),
+          );
+          map[species.id][variant.id][state] = uri.toString();
+        }
+      }
+    }
+  }
+  return map;
+}
 
 export class TankPanelManager {
   private panel: vscode.WebviewPanel | null = null;
@@ -105,6 +139,7 @@ export class TankPanelManager {
     );
     const nonce = getNonce();
     const cspSource = webview.cspSource;
+    const spriteUriMap = buildSpriteUriMap(webview, this.extensionUri);
 
     return `<!doctype html>
 <html lang="en">
@@ -119,6 +154,7 @@ export class TankPanelManager {
   </head>
   <body>
     <div id="root"></div>
+    <script nonce="${nonce}">window.__SPRITE_URI_MAP__ = ${JSON.stringify(spriteUriMap)};</script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
 </html>`;

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useGameState } from '../tank-panel/hooks/useGameState';
 import { useFishAnimation } from '../tank-panel/hooks/useFishAnimation';
 import type { FishBounds } from '../tank-panel/hooks/useFishAnimation';
+import { useSpriteLoader } from '../tank-panel/hooks/useSpriteLoader';
 import { useContainerSize } from '../tank-panel/hooks/useContainerSize';
 import { TankScene } from '../tank-panel/components/TankScene';
 import { TANK_RENDER_SIZES } from '../../shared/types';
@@ -12,7 +13,8 @@ const ASPECT = 180 / 220;
 const FALLBACK_W = 220;
 
 export function App() {
-  const { state, sendMessage } = useGameState();
+  const { state, sendMessage, spriteUriMap, feedingActive } = useGameState();
+  const { images: spriteImages } = useSpriteLoader(spriteUriMap);
   const { ref, size } = useContainerSize(ASPECT, FALLBACK_W);
 
   // Logical scene dimensions (Stage renders at 2× pixel scale)
@@ -57,6 +59,8 @@ export function App() {
         sendMessage={sendMessage}
         showExpand={true}
         onExpandClick={() => sendMessage({ type: 'openTank' })}
+        spriteImages={spriteImages}
+        feedingActive={feedingActive}
       />
     </div>
   );

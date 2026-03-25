@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { GameStateSnapshot } from '../../../game/state';
+import { FISH_SPECIES } from '../../../game/state';
 import { HealthState } from '../../../shared/types';
 
 export interface AnimatedFishData {
   x: number;
   y: number;
   dx: number;
+  displaySize: number;
 }
 
 interface FishAnimState {
@@ -13,6 +15,7 @@ interface FishAnimState {
   y: number;
   dx: number;
   dy: number;
+  displaySize: number;
 }
 
 export interface FishBounds {
@@ -52,14 +55,23 @@ export function useFishAnimation(
       }
     }
 
-    // Add new fish with random positions inside bounds
+    // Add new fish with random positions inside swim zone
     for (const f of fish) {
       if (!current.has(f.id)) {
+        const species = FISH_SPECIES[f.speciesId];
+        const zoneMinY = bounds.top + bounds.height * (species?.swimZone.min ?? 0.1);
+        const zoneMaxY = bounds.top + bounds.height * (species?.swimZone.max ?? 0.9);
+        const displaySize =
+          species
+            ? species.minSize + Math.random() * (species.maxSize - species.minSize)
+            : 16;
+
         current.set(f.id, {
           x: bounds.left + Math.random() * (bounds.width - 20) + 10,
-          y: bounds.top + Math.random() * (bounds.height - 20) + 10,
+          y: zoneMinY + Math.random() * (zoneMaxY - zoneMinY),
           dx: (Math.random() - 0.5) * 2,
           dy: (Math.random() - 0.5) * 1,
+          displaySize,
         });
       }
     }
@@ -83,16 +95,18 @@ export function useFishAnimation(
         if (!s) continue;
 
         const isDead = f.healthState === HealthState.Dead;
+        const species = FISH_SPECIES[f.speciesId];
 
         if (isDead) {
-          // Dead fish float to top
-          s.x += s.dx * 0.1;
-          s.y += (bounds.top + 20 - s.y) * 0.02;
-          s.dx *= 0.99;
+          // Dead fish freeze in place
+          // No movement at all
         } else {
-          const speedMul =
-            (f.healthState === HealthState.Sick ? SICK_SPEED : BASE_SPEED) *
-            (lightOn ? 1 : LIGHT_OFF_MULT);
+          const speciesSpeed = species?.baseSpeed ?? 1.0;
+          const healthMul =
+            f.healthState === HealthState.Sick || f.healthState === HealthState.Warning
+              ? SICK_SPEED
+              : BASE_SPEED;
+          const speedMul = speciesSpeed * healthMul * (lightOn ? 1 : LIGHT_OFF_MULT);
 
           // Random drift
           if (Math.random() < DRIFT_CHANCE) {
@@ -109,7 +123,7 @@ export function useFishAnimation(
           s.y += s.dy * speedMul;
 
           // Bounce off tank walls (with margin for fish body)
-          const margin = 12;
+          const margin = 6;
           if (s.x < bounds.left + margin) {
             s.x = bounds.left + margin;
             s.dx = Math.abs(s.dx);
@@ -118,17 +132,21 @@ export function useFishAnimation(
             s.x = bounds.left + bounds.width - margin;
             s.dx = -Math.abs(s.dx);
           }
-          if (s.y < bounds.top + margin) {
-            s.y = bounds.top + margin;
+
+          // Swim zone constraints
+          const zoneMinY = bounds.top + bounds.height * (species?.swimZone.min ?? 0.1);
+          const zoneMaxY = bounds.top + bounds.height * (species?.swimZone.max ?? 0.9);
+          if (s.y < zoneMinY + margin) {
+            s.y = zoneMinY + margin;
             s.dy = Math.abs(s.dy);
           }
-          if (s.y > bounds.top + bounds.height - margin) {
-            s.y = bounds.top + bounds.height - margin;
+          if (s.y > zoneMaxY - margin) {
+            s.y = zoneMaxY - margin;
             s.dy = -Math.abs(s.dy);
           }
         }
 
-        result.set(f.id, { x: s.x, y: s.y, dx: s.dx });
+        result.set(f.id, { x: s.x, y: s.y, dx: s.dx, displaySize: s.displaySize });
       }
 
       setAnimState({ fish: result, frameCount: frameCounter });

@@ -4,6 +4,7 @@ import type {
   ExtensionToWebviewMessage,
   WebviewToExtensionMessage,
 } from '../../../shared/messages';
+import type { SpriteUriMap } from './useSpriteLoader';
 
 // Acquire the VS Code API once at module level
 interface VsCodeApi {
@@ -20,12 +21,23 @@ export interface UseGameStateResult {
   state: GameStateSnapshot | null;
   notification: string | null;
   sendMessage: (msg: WebviewToExtensionMessage) => void;
+  spriteUriMap: SpriteUriMap | null;
+  feedingActive: boolean;
+}
+
+// Read sprite URI map from global set by extension host
+function getSpriteUriMap(): SpriteUriMap | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (window as any).__SPRITE_URI_MAP__ ?? null;
 }
 
 export function useGameState(): UseGameStateResult {
   const [state, setState] = useState<GameStateSnapshot | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [feedingActive, setFeedingActive] = useState(false);
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [spriteUriMap] = useState<SpriteUriMap | null>(() => getSpriteUriMap());
 
   const showNotification = useCallback((text: string) => {
     setNotification(text);
@@ -51,6 +63,14 @@ export function useGameState(): UseGameStateResult {
           break;
         case 'actionResult':
           showNotification(msg.success ? `${msg.action} done!` : `${msg.action} failed`);
+          if (msg.success && msg.action === 'Feed Fish') {
+            setFeedingActive(true);
+            if (feedingTimer.current) clearTimeout(feedingTimer.current);
+            feedingTimer.current = setTimeout(() => {
+              setFeedingActive(false);
+              feedingTimer.current = null;
+            }, 1500);
+          }
           break;
         case 'purchaseResult':
           showNotification(
@@ -78,5 +98,5 @@ export function useGameState(): UseGameStateResult {
     };
   }, [sendMessage, showNotification]);
 
-  return { state, notification, sendMessage };
+  return { state, notification, sendMessage, spriteUriMap, feedingActive };
 }

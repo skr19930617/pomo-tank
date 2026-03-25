@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGameState } from './hooks/useGameState';
 import { useFishAnimation } from './hooks/useFishAnimation';
 import type { FishBounds } from './hooks/useFishAnimation';
+import { useSpriteLoader } from './hooks/useSpriteLoader';
 import { useContainerSize } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
 import { Store } from './components/Store';
@@ -36,7 +37,8 @@ const loadingStyle: React.CSSProperties = {
 };
 
 export const App: React.FC = () => {
-  const { state, notification, sendMessage } = useGameState();
+  const { state, notification, sendMessage, spriteUriMap, feedingActive } = useGameState();
+  const { images: spriteImages } = useSpriteLoader(spriteUriMap);
   const [storeOpen, setStoreOpen] = useState(false);
   const { ref, size } = useContainerSize(ASPECT, FALLBACK_W);
 
@@ -82,6 +84,8 @@ export const App: React.FC = () => {
         compact={false}
         sendMessage={sendMessage}
         showExpand={false}
+        spriteImages={spriteImages}
+        feedingActive={feedingActive}
       />
 
       {/* Store button trigger */}

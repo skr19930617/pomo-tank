@@ -167,10 +167,17 @@ export function executePurchase(
     }
 
     case StoreItemType.FishSpecies: {
-      // Add a new fish of this species
+      // Add a new fish of this species with random variant
+      const speciesConfig = FISH_SPECIES[itemId];
+      const variants = speciesConfig?.variants ?? [];
+      const variantId =
+        variants.length > 0
+          ? variants[Math.floor(Math.random() * variants.length)].id
+          : 'standard';
       const newFish: Fish = {
         id: generateFishId(),
         speciesId: itemId,
+        variantId,
         healthState: HealthState.Healthy,
         sicknessTick: 0,
       };

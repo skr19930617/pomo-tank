@@ -1,24 +1,24 @@
-import React from 'react';
-import { Group, Rect, Text } from 'react-konva';
+import React, { useEffect, useRef } from 'react';
+import { Group, Sprite, Rect, Text } from 'react-konva';
+import Konva from 'konva';
 import { HealthState } from '../../../shared/types';
 import type { FishSpeciesId } from '../../../shared/types';
-
-const FISH_COLORS: Record<FishSpeciesId, string> = {
-  guppy: '#ff9944',
-  neon_tetra: '#44ddff',
-  corydoras: '#aa8855',
-  betta: '#dd4488',
-  angelfish: '#eedd44',
-};
+import { SPRITE_FRAMES, SPRITE_FRAME_RATE, SPRITE_WIDTH } from './sprite-sheet-utils';
+import type { SpriteImageMap } from '../hooks/useSpriteLoader';
 
 interface FishProps {
   x: number;
   y: number;
   dx: number;
   speciesId: FishSpeciesId;
+  variantId: string;
   healthState: HealthState;
   tankHunger: number;
   frameCount: number;
+  displaySize: number;
+  spriteImages: SpriteImageMap;
+  feedingActive: boolean;
+  hasFeedingAnim: boolean;
 }
 
 export const FishSprite: React.FC<FishProps> = ({
@@ -26,76 +26,103 @@ export const FishSprite: React.FC<FishProps> = ({
   y,
   dx,
   speciesId,
+  variantId,
   healthState,
   tankHunger,
   frameCount,
+  displaySize,
+  spriteImages,
+  feedingActive,
+  hasFeedingAnim,
 }) => {
-  const color = FISH_COLORS[speciesId];
+  const spriteRef = useRef<Konva.Sprite>(null);
   const isDead = healthState === HealthState.Dead;
   const isSick = healthState === HealthState.Sick;
+  const isWeak = healthState === HealthState.Warning || isSick;
   const facingLeft = dx < 0;
   const alpha = isDead ? 0.4 : 1;
 
-  // Fish body dimensions
-  const bodyW = 16;
-  const bodyH = 8;
-  const tailW = 6;
-  const tailH = 8;
-  const finW = 4;
-  const finH = 5;
+  // Determine which animation state to use
+  let animState: 'swim' | 'weak' | 'feeding' = 'swim';
+  if (isDead || isWeak) {
+    animState = 'weak';
+  }
+  if (feedingActive && hasFeedingAnim && !isDead) {
+    animState = 'feeding';
+  }
 
-  // Tail wag animation
-  const wagOffset = Math.sin(frameCount * 0.15) * 2;
+  // Get the sprite image for current state
+  const variantImages = spriteImages[speciesId]?.[variantId];
+  const spriteImage = variantImages?.[animState] ?? variantImages?.['swim'] ?? null;
+
+  // Build animations object with available states
+  const animations: Record<string, number[]> = {};
+  if (variantImages) {
+    for (const state of ['swim', 'weak', 'feeding'] as const) {
+      if (variantImages[state]) {
+        animations[state] = SPRITE_FRAMES;
+      }
+    }
+  }
+  // Fallback: if requested animState not available, use swim
+  if (!animations[animState]) {
+    animState = 'swim';
+  }
+
+  const scale = displaySize / SPRITE_WIDTH;
+  const halfSize = displaySize / 2;
+
+  // Start/stop sprite animation
+  useEffect(() => {
+    const node = spriteRef.current;
+    if (!node || !spriteImage) return;
+    if (isDead) {
+      // Freeze on last frame
+      node.stop();
+      node.frameIndex(11);
+    } else {
+      node.start();
+    }
+  }, [isDead, spriteImage, animState]);
 
   // Speech bubble for hungry/sick fish
   const showBubble = !isDead && (tankHunger > 70 || isSick) && frameCount % 120 < 80;
   const bubbleText = isSick ? '...' : '!';
-
-  // Mirror horizontally when facing left
   const scaleX = facingLeft ? -1 : 1;
 
+  if (!spriteImage || Object.keys(animations).length === 0) {
+    // Fallback: simple colored rectangle if no sprite loaded
+    return (
+      <Group x={x} y={y} scaleX={scaleX} opacity={alpha}>
+        <Rect
+          x={-halfSize / 2}
+          y={-halfSize / 4}
+          width={halfSize}
+          height={halfSize / 2}
+          fill="#888888"
+          cornerRadius={2}
+        />
+      </Group>
+    );
+  }
+
   return (
-    <Group x={x} y={y} scaleX={scaleX} opacity={alpha}>
-      {/* Tail */}
-      <Rect
-        x={-bodyW / 2 - tailW}
-        y={-tailH / 2 + wagOffset}
-        width={tailW}
-        height={tailH}
-        fill={color}
-        opacity={0.8}
-      />
-
-      {/* Body */}
-      <Rect
-        x={-bodyW / 2}
-        y={-bodyH / 2}
-        width={bodyW}
-        height={bodyH}
-        fill={color}
-        cornerRadius={2}
-      />
-
-      {/* Dorsal fin */}
-      <Rect
-        x={-2}
-        y={-bodyH / 2 - finH + 1}
-        width={finW}
-        height={finH}
-        fill={color}
-        opacity={0.7}
-      />
-
-      {/* Belly highlight */}
-      <Rect x={-bodyW / 2 + 2} y={1} width={bodyW - 4} height={3} fill="#ffffff" opacity={0.25} />
-
-      {/* Eye */}
-      <Rect x={bodyW / 2 - 4} y={-2} width={3} height={3} fill="#ffffff" />
-      <Rect x={bodyW / 2 - 3} y={-1} width={2} height={2} fill="#111111" />
+    <Group x={x} y={y} opacity={alpha}>
+      <Group scaleX={scaleX} offsetX={halfSize} offsetY={halfSize}>
+        <Sprite
+          ref={spriteRef}
+          image={spriteImage}
+          animations={animations}
+          animation={animState}
+          frameRate={SPRITE_FRAME_RATE}
+          scaleX={scale}
+          scaleY={scale}
+        />
+      </Group>
 
       {/* Speech bubble */}
       {showBubble && (
-        <Group x={0} y={-bodyH / 2 - 14} scaleX={scaleX}>
+        <Group x={0} y={-halfSize - 8}>
           <Rect
             x={-8}
             y={-6}

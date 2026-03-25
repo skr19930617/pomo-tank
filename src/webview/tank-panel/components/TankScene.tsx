@@ -8,7 +8,9 @@ import {
   HUD_HEIGHT,
 } from '../../../shared/types';
 import type { AnimatedFishData } from '../hooks/useFishAnimation';
+import type { SpriteImageMap } from '../hooks/useSpriteLoader';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
+import { FISH_SPECIES } from '../../../game/state';
 import { Wall } from './Wall';
 import { Desk } from './Desk';
 import { Light } from './Light';
@@ -75,6 +77,8 @@ interface TankSceneProps {
   sendMessage?: (msg: WebviewToExtensionMessage) => void;
   showExpand?: boolean;
   onExpandClick?: () => void;
+  spriteImages: SpriteImageMap;
+  feedingActive: boolean;
 }
 
 export const TankScene: React.FC<TankSceneProps> = ({
@@ -89,6 +93,8 @@ export const TankScene: React.FC<TankSceneProps> = ({
   sendMessage,
   showExpand = false,
   onExpandClick,
+  spriteImages,
+  feedingActive,
 }) => {
   const { width: rawTankW, height: rawTankH } = TANK_RENDER_SIZES[state.tank.sizeTier];
 
@@ -147,6 +153,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
           {state.fish.map((f) => {
             const anim = animatedFish.get(f.id);
             if (!anim) return null;
+            const speciesConfig = FISH_SPECIES[f.speciesId];
             return (
               <FishSprite
                 key={f.id}
@@ -154,9 +161,14 @@ export const TankScene: React.FC<TankSceneProps> = ({
                 y={anim.y}
                 dx={anim.dx}
                 speciesId={f.speciesId}
+                variantId={f.variantId}
                 healthState={f.healthState}
                 tankHunger={state.tank.hungerLevel}
                 frameCount={frameCount}
+                displaySize={anim.displaySize}
+                spriteImages={spriteImages}
+                feedingActive={feedingActive}
+                hasFeedingAnim={speciesConfig?.hasFeedingAnim ?? false}
               />
             );
           })}

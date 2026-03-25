@@ -5,6 +5,7 @@ import {
   HealthState,
   generateFishId,
   DEFAULT_SESSION_MINUTES,
+  migrateState,
 } from './state';
 import { applyTick } from './deterioration';
 import { evaluateHealthTick } from './health';
@@ -63,6 +64,9 @@ export class GameEngine {
     }
 
     this.state = raw as GameState;
+
+    // Migrate legacy species (guppy/betta/angelfish → new roster)
+    this.state = migrateState(this.state);
   }
 
   start(): void {
@@ -256,6 +260,7 @@ export class GameEngine {
       fish: this.state.fish.map((f) => ({
         id: f.id,
         speciesId: f.speciesId,
+        variantId: f.variantId,
         healthState: f.healthState,
       })),
       player: {
@@ -331,34 +336,41 @@ export class GameEngine {
   }
 
   private handleDeadFish(): void {
-    const hasDeadFish = this.state.fish.some((f) => f.healthState === HealthState.Dead);
-    if (!hasDeadFish) return;
+    const hasNewDeaths = this.state.fish.some((f) => f.healthState === HealthState.Dead);
+    if (!hasNewDeaths) return;
 
-    // Reset streak on death
-    const livingAfterRemoval = this.state.fish.filter((f) => f.healthState !== HealthState.Dead);
+    // Dead fish remain in tank (frozen sprite, low opacity) — no auto-removal.
+    // Reset streak on any death event.
+    const livingFish = this.state.fish.filter((f) => f.healthState !== HealthState.Dead);
 
-    let newFish = livingAfterRemoval;
-
-    // If all fish dead, auto-grant a new Guppy
-    if (newFish.length === 0) {
-      newFish = [
-        {
-          id: generateFishId(),
-          speciesId: 'guppy',
-          healthState: HealthState.Healthy,
-          sicknessTick: 0,
+    // If all fish dead, auto-grant a new neon tetra
+    if (livingFish.length === 0) {
+      this.state = {
+        ...this.state,
+        fish: [
+          ...this.state.fish,
+          {
+            id: generateFishId(),
+            speciesId: 'neon_tetra',
+            variantId: 'standard',
+            healthState: HealthState.Healthy,
+            sicknessTick: 0,
+          },
+        ],
+        player: {
+          ...this.state.player,
+          currentStreak: 0,
         },
-      ];
+      };
+    } else {
+      this.state = {
+        ...this.state,
+        player: {
+          ...this.state.player,
+          currentStreak: 0,
+        },
+      };
     }
-
-    this.state = {
-      ...this.state,
-      fish: newFish,
-      player: {
-        ...this.state.player,
-        currentStreak: 0,
-      },
-    };
   }
 
   private notifySubscribers(): void {
