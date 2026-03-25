@@ -43,9 +43,6 @@ export enum Personality {
 
 export type GenusId = 'neon_tetra' | 'corydoras' | 'gourami' | 'otocinclus' | 'shrimp';
 
-/** @deprecated Use GenusId instead */
-export type FishSpeciesId = GenusId;
-
 export type AnimState = 'swim' | 'weak' | 'feeding';
 
 // ── Genus/Species hierarchy (new) ──
@@ -78,28 +75,6 @@ export interface GenusConfig {
   capacityCost: number;
   minTankSize: TankSizeTier;
   species: SpeciesConfig[];
-}
-
-// ── Legacy types (kept for backward compatibility during migration) ──
-
-export interface VariantConfig {
-  id: string;
-  name: string;
-  sprites: { swim: string; weak?: string; feeding?: string };
-}
-
-export interface FishSpeciesConfig {
-  id: FishSpeciesId;
-  name: string;
-  capacityCost: number;
-  minTankSize: TankSizeTier;
-  schooling: boolean;
-  swimZone: { min: number; max: number };
-  baseSpeed: number;
-  minSize: number;
-  maxSize: number;
-  variants: VariantConfig[];
-  hasFeedingAnim: boolean;
 }
 
 export type FilterId = 'basic_sponge' | 'hang_on_back' | 'canister' | 'premium_canister';
@@ -156,7 +131,6 @@ export const LIGHT_BAR_HEIGHT = 20;
 // ── HUD constants ──
 export const HUD_HEIGHT = 16;
 export const DEFAULT_SESSION_MINUTES = 25;
-export const ACTION_BAR_HEIGHT = 20;
 
 // ── Swim Layer Ranges ──
 export const SWIM_LAYER_RANGES: Record<SwimLayer, { min: number; max: number }> = {

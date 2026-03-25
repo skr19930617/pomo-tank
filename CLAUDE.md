@@ -1,6 +1,6 @@
 # pomo-tank Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-25
+Auto-generated from all feature plans. Last updated: 2026-03-26
 
 ## Active Technologies
 - TypeScript 5.3+ + @types/vscode ^1.85.0, esbuild ^0.20.0 (002-tank-growth-light)
@@ -12,6 +12,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-25
 - VSCode ExtensionContext globalState (key-value persistence) (006-tank-cost-system)
 - VSCode ExtensionContext globalState (existing) (007-fish-sprite-animation)
 - TypeScript 5.3+ (strict mode) + React 18, react-konva, @types/vscode ^1.85.0, esbuild ^0.20.0 (008-debug-mode)
+- TypeScript 5.3+ (strict mode) + @types/vscode ^1.85.0, esbuild ^0.20.0, React 18, react-konva, konva (010-legacy-code-cleanup)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -31,9 +32,9 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 010-legacy-code-cleanup: Added TypeScript 5.3+ (strict mode) + @types/vscode ^1.85.0, esbuild ^0.20.0, React 18, react-konva, konva
 - 009-fish-species-config: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, konva, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 008-debug-mode: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, @types/vscode ^1.85.0, esbuild ^0.20.0
-- 007-fish-sprite-animation: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, konva, @types/vscode ^1.85.0, esbuild ^0.20.0
 
 
 <!-- MANUAL ADDITIONS START -->

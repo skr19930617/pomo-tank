@@ -6,7 +6,6 @@ import {
   generateFishId,
   createInitialState,
   DEFAULT_SESSION_MINUTES,
-  migrateState,
 } from './state';
 import { applyTick } from './deterioration';
 import { evaluateHealthTick } from './health';
@@ -40,42 +39,6 @@ export class GameEngine {
     this.state = state;
     this.activityTracker = activityTracker;
     this.sessionMinutes = sessionMinutes;
-  }
-
-  /**
-   * Migrate legacy state from old schema (per-fish hungerLevel) to new schema (tank-wide).
-   * Safe to call multiple times — only migrates if old fields are detected.
-   */
-  migrateState(): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = this.state as any;
-
-    // Migrate per-fish hungerLevel → tank.hungerLevel
-    if (raw.tank.hungerLevel === undefined) {
-      const livingFish = raw.fish.filter(
-        (f: { healthState: string }) => f.healthState !== HealthState.Dead,
-      );
-      const avgHunger =
-        livingFish.length > 0
-          ? livingFish.reduce(
-              (sum: number, f: { hungerLevel?: number }) => sum + (f.hungerLevel ?? 0),
-              0,
-            ) / livingFish.length
-          : 0;
-      raw.tank.hungerLevel = avgHunger;
-    }
-
-    // Remove per-fish hungerLevel (clean up legacy fields)
-    for (const fish of raw.fish) {
-      if ('hungerLevel' in fish) {
-        delete fish.hungerLevel;
-      }
-    }
-
-    this.state = raw as GameState;
-
-    // Migrate legacy species (guppy/betta/angelfish → new roster)
-    this.state = migrateState(this.state);
   }
 
   start(): void {

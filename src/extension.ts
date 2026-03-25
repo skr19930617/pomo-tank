@@ -40,9 +40,6 @@ export function activate(context: vscode.ExtensionContext): void {
     // Initialize game engine
     engine = new GameEngine(state, activityTracker, sessionMinutes);
 
-    // Migrate legacy state if needed
-    engine.migrateState();
-
     // Run offline catch-up
     engine.applyOfflineCatchUp();
     saveState(engine.getState());

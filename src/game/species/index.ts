@@ -35,13 +35,6 @@ export function getSpeciesWithGenus(
   return { genus, species };
 }
 
-/** Get a GenusConfig by id, throwing if not found (for use where genus must exist). */
-export function getGenusOrThrow(genusId: string): GenusConfig {
-  const genus = GENUS_REGISTRY.get(genusId);
-  if (!genus) throw new Error(`Unknown genus: ${genusId}`);
-  return genus;
-}
-
 // ── Store integration ──
 
 /** Composite store ID format: "genusId:speciesId" */

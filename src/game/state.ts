@@ -1,4 +1,4 @@
-// ── Re-export shared types for backward compatibility ──
+// ── Re-export shared types ──
 export {
   TankSizeTier,
   HealthState,
@@ -17,13 +17,10 @@ export {
 } from '../shared/types';
 export type {
   GenusId,
-  FishSpeciesId,
   FilterId,
   StoreItemId,
   ActionType,
   AnimState,
-  VariantConfig,
-  FishSpeciesConfig,
   GenusConfig,
   SpeciesConfig,
   SpriteSet,
@@ -37,7 +34,7 @@ import {
   type FilterId,
 } from '../shared/types';
 
-import { getGenus, buildFishStoreItems } from './species';
+import { buildFishStoreItems } from './species';
 
 // ── Filter Catalog ──
 
@@ -241,66 +238,6 @@ export interface GameStateSnapshot {
   };
   lightOn: boolean;
   debugMode: boolean;
-}
-
-// ── State Migration ──
-
-/** Maps legacy species names to new genus/species IDs. */
-const LEGACY_SPECIES_MAP: Record<string, { genusId: GenusId; speciesId: string }> = {
-  guppy: { genusId: 'neon_tetra', speciesId: 'standard' },
-  betta: { genusId: 'gourami', speciesId: 'dwarf' },
-  angelfish: { genusId: 'gourami', speciesId: 'cobalt_blue_dwarf' },
-};
-
-export function migrateState(state: GameState): GameState {
-  const migratedFish = state.fish.map((f) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = f as any;
-
-    // Already migrated (has genusId)
-    if (raw.genusId && raw.bodyLengthMm !== undefined) {
-      return f;
-    }
-
-    // Detect old format: had speciesId (as genus) and variantId (as species)
-    const oldSpeciesId: string = raw.speciesId ?? raw.genusId ?? 'neon_tetra';
-    const oldVariantId: string = raw.variantId ?? raw.speciesId ?? 'standard';
-
-    // Check for legacy species names (guppy, betta, angelfish)
-    const legacy = LEGACY_SPECIES_MAP[oldSpeciesId];
-    const genusId: GenusId = legacy ? legacy.genusId : (oldSpeciesId as GenusId);
-    const speciesId = legacy ? legacy.speciesId : oldVariantId;
-
-    // Look up genus/species config for defaults
-    const genus = getGenus(genusId);
-    const speciesConfig = genus?.species.find((s) => s.id === speciesId) ?? genus?.species[0];
-
-    const midpointMm = speciesConfig
-      ? (speciesConfig.minSizeMm + speciesConfig.maxSizeMm) / 2
-      : 25;
-    const lifespanWeeks = speciesConfig
-      ? Math.round(
-          (speciesConfig.minLifespanYears +
-            Math.random() * (speciesConfig.maxLifespanYears - speciesConfig.minLifespanYears)) *
-            52,
-        )
-      : 208;
-
-    const migrated: Fish = {
-      id: raw.id ?? generateFishId(),
-      genusId,
-      speciesId: speciesConfig?.id ?? speciesId,
-      healthState: raw.healthState ?? HealthState.Healthy,
-      sicknessTick: raw.sicknessTick ?? 0,
-      bodyLengthMm: midpointMm,
-      ageWeeks: 0,
-      lifespanWeeks,
-      maintenanceQuality: 0.8,
-      purchasedAt: Date.now(),
-    };
-    return migrated;
-  });
-  return { ...state, fish: migratedFish };
 }
 
 // ── Initial State Factory ──
