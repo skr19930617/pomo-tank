@@ -15,10 +15,13 @@ interface HudOverlayProps {
   isOvertime: boolean;
   isPaused: boolean;
   compact: boolean;
-  // Coin display (US3 will populate these)
+  // Coin display
   pomoBalance?: number;
+  // Cost capacity display
+  currentCost?: number;
+  maxCost?: number;
   // Non-compact stats (full panel)
-  avgHunger?: number;
+  tankHunger?: number;
   waterDirtiness?: number;
   algaeLevel?: number;
   currentStreak?: number;
@@ -39,7 +42,9 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   isPaused,
   compact,
   pomoBalance,
-  avgHunger,
+  currentCost,
+  maxCost,
+  tankHunger,
   waterDirtiness,
   algaeLevel,
   currentStreak,
@@ -118,14 +123,54 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   const coinWidth = balanceStr !== undefined ? 7 + 2 + measureText(balanceStr) : 0;
   const coinX = sceneWidth - coinWidth - 4;
 
+  // Fish icon for cost display (7×5 mini fish)
+  // prettier-ignore
+  const fishIcon = [
+    [0,0,1,0,0,0,0],
+    [1,0,0,1,1,1,0],
+    [1,1,1,1,1,1,1],
+    [1,0,0,1,1,1,0],
+    [0,0,1,0,0,0,0],
+  ];
+
+  // Cost capacity display
+  const costElements: React.ReactElement[] = [];
+  const fishIconW = 7 + 2; // icon width + gap
+  if (currentCost !== undefined && maxCost !== undefined) {
+    const timerW = measureText(timerStr);
+    const costX = 4 + timerW + 8;
+    const costStr = `${currentCost}/${maxCost}`;
+    const costRatio = maxCost > 0 ? currentCost / maxCost : 0;
+    const costColor = costRatio >= 1 ? '#ff4444' : costRatio >= 0.8 ? '#ffcc44' : '#ffffff';
+
+    // Fish icon
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (fishIcon[r][c] === 1) {
+          costElements.push(
+            <Rect key={`fi-${r}-${c}`} x={costX + c} y={5 + r} width={1} height={1} fill="#44ddff" />,
+          );
+        }
+      }
+    }
+
+    // Cost text after icon
+    costElements.push(
+      <PixelText key="cost" text={costStr} x={costX + fishIconW} y={4} color={costColor} />,
+    );
+  }
+
   // Non-compact stats
   const statsElements: React.ReactElement[] = [];
-  if (!compact && avgHunger !== undefined) {
-    // Place stats in a row after timer, centered
+  if (!compact && tankHunger !== undefined) {
     const timerW = measureText(timerStr);
-    let sx = 4 + timerW + 8;
+    const costStr = currentCost !== undefined && maxCost !== undefined
+      ? `${currentCost}/${maxCost}`
+      : '';
+    const costW = costStr ? fishIconW + measureText(costStr) + 4 : 0;
+    let sx = 4 + timerW + 8 + costW;
     const labels = [
-      `H:${Math.round(avgHunger)}%`,
+      `H:${Math.round(tankHunger)}%`,
       `W:${Math.round(waterDirtiness ?? 0)}%`,
       `A:${Math.round(algaeLevel ?? 0)}%`,
       `S:${currentStreak ?? 0}`,
@@ -146,6 +191,9 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
 
       {/* Timer (left) */}
       <PixelText text={timerStr} x={4} y={4} color={timerColor} opacity={timerOpacity} />
+
+      {/* Cost capacity */}
+      {costElements}
 
       {/* Non-compact stats */}
       {statsElements}

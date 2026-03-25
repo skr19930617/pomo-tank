@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { createInitialState, HealthState } from './game/state';
+import { createInitialState } from './game/state';
 import { initStorage, loadState, saveState } from './persistence/storage';
 import { GameEngine } from './game/engine';
 import { CompanionViewProvider } from './providers/companion-view';
@@ -27,8 +27,21 @@ export function activate(context: vscode.ExtensionContext): void {
     activityTracker = new ActivityTracker();
     context.subscriptions.push(activityTracker);
 
+    // Read configurable session duration
+    const config = vscode.workspace.getConfiguration('pomotank');
+    const rawSessionMinutes = config.get<number>('workSessionMinutes', 25);
+    const sessionMinutes = Math.max(1, Math.min(120, rawSessionMinutes));
+    if (rawSessionMinutes !== sessionMinutes) {
+      console.warn(
+        `Pomotank: workSessionMinutes (${rawSessionMinutes}) clamped to [1, 120] → ${sessionMinutes}`,
+      );
+    }
+
     // Initialize game engine
-    engine = new GameEngine(state, activityTracker);
+    engine = new GameEngine(state, activityTracker, sessionMinutes);
+
+    // Migrate legacy state if needed
+    engine.migrateState();
 
     // Run offline catch-up
     engine.applyOfflineCatchUp();
@@ -53,15 +66,14 @@ export function activate(context: vscode.ExtensionContext): void {
       statusBar.update(newState);
       saveState(newState);
 
-      // Optional notifications (T050)
-      const config = vscode.workspace.getConfiguration('pomotank');
-      if (config.get<boolean>('enableNotifications', false)) {
-        const livingFish = newState.fish.filter((f) => f.healthState !== HealthState.Dead);
-        const avgHunger =
-          livingFish.length > 0
-            ? livingFish.reduce((s, f) => s + f.hungerLevel, 0) / livingFish.length
-            : 0;
-        if (avgHunger > 70 || newState.tank.waterDirtiness > 70 || newState.tank.algaeLevel > 80) {
+      // Optional notifications
+      const notifConfig = vscode.workspace.getConfiguration('pomotank');
+      if (notifConfig.get<boolean>('enableNotifications', false)) {
+        if (
+          newState.tank.hungerLevel > 70 ||
+          newState.tank.waterDirtiness > 70 ||
+          newState.tank.algaeLevel > 80
+        ) {
           vscode.window.showInformationMessage(
             'Pomotank: Your fish need attention! Time for a break?',
           );
@@ -100,7 +112,7 @@ export function activate(context: vscode.ExtensionContext): void {
           saveState(fresh);
           // Restart engine with fresh state
           engine.stop();
-          engine = new GameEngine(fresh, activityTracker!);
+          engine = new GameEngine(fresh, activityTracker!, sessionMinutes);
           companionProvider.updateState(fresh);
           tankPanel.updateState(fresh);
           statusBar.update(fresh);

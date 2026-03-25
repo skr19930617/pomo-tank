@@ -1,5 +1,5 @@
 import { useMemo, useRef, useSyncExternalStore } from 'react';
-import { POMO_THRESHOLD_MS } from '../../../shared/types';
+import { DEFAULT_SESSION_MINUTES } from '../../../shared/types';
 
 interface TimerState {
   displaySeconds: number;
@@ -16,6 +16,7 @@ interface TimerState {
 export function useTimer(
   timeSinceLastMaintenance: number,
   lightOn: boolean,
+  sessionMinutes: number = DEFAULT_SESSION_MINUTES,
 ): TimerState {
   const baseRef = useRef({ serverMs: 0, clientTs: 0 });
   const lastServerMs = useRef(-1);
@@ -77,7 +78,8 @@ export function useTimer(
 
   const displaySeconds = useSyncExternalStore(subscribe, getSnapshot);
   const isPaused = !lightOn;
-  const isOvertime = displaySeconds * 1000 >= POMO_THRESHOLD_MS;
+  const overtimeThresholdMs = sessionMinutes * 60 * 1000;
+  const isOvertime = displaySeconds * 1000 >= overtimeThresholdMs;
 
   return { displaySeconds, isOvertime, isPaused };
 }

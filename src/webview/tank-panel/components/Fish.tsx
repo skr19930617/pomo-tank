@@ -17,7 +17,7 @@ interface FishProps {
   dx: number;
   speciesId: FishSpeciesId;
   healthState: HealthState;
-  hungerLevel: number;
+  tankHunger: number;
   frameCount: number;
 }
 
@@ -27,7 +27,7 @@ export const FishSprite: React.FC<FishProps> = ({
   dx,
   speciesId,
   healthState,
-  hungerLevel,
+  tankHunger,
   frameCount,
 }) => {
   const color = FISH_COLORS[speciesId];
@@ -48,7 +48,7 @@ export const FishSprite: React.FC<FishProps> = ({
   const wagOffset = Math.sin(frameCount * 0.15) * 2;
 
   // Speech bubble for hungry/sick fish
-  const showBubble = !isDead && (hungerLevel > 70 || isSick) && frameCount % 120 < 80;
+  const showBubble = !isDead && (tankHunger > 70 || isSick) && frameCount % 120 < 80;
   const bubbleText = isSick ? '...' : '!';
 
   // Mirror horizontally when facing left

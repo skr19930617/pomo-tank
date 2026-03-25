@@ -50,13 +50,15 @@ export type ActionType = 'feedFish' | 'changeWater' | 'cleanAlgae';
 
 // ── Constants ──
 
-export const TANK_CAPACITY: Record<TankSizeTier, number> = {
-  [TankSizeTier.Nano]: 3,
-  [TankSizeTier.Small]: 5,
-  [TankSizeTier.Medium]: 8,
-  [TankSizeTier.Large]: 12,
-  [TankSizeTier.XL]: 18,
+export const TANK_BASE_CAPACITY: Record<TankSizeTier, number> = {
+  [TankSizeTier.Nano]: 4,
+  [TankSizeTier.Small]: 8,
+  [TankSizeTier.Medium]: 14,
+  [TankSizeTier.Large]: 22,
+  [TankSizeTier.XL]: 32,
 };
+
+export const DETERIORATION_THRESHOLD = 70;
 
 export const TANK_SIZE_ORDER: TankSizeTier[] = [
   TankSizeTier.Nano,
@@ -79,5 +81,5 @@ export const LIGHT_BAR_HEIGHT = 20;
 
 // ── HUD constants ──
 export const HUD_HEIGHT = 16;
-export const POMO_THRESHOLD_MS = 1_200_000; // 20 minutes in ms
+export const DEFAULT_SESSION_MINUTES = 25;
 export const ACTION_BAR_HEIGHT = 20;

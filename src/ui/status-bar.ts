@@ -49,9 +49,7 @@ export class StatusBarManager implements vscode.Disposable {
   }
 
   private getAvgHunger(state: GameState): number {
-    const living = state.fish.filter((f) => f.healthState !== HealthState.Dead);
-    if (living.length === 0) return 0;
-    return living.reduce((sum, f) => sum + f.hungerLevel, 0) / living.length;
+    return state.tank.hungerLevel;
   }
 
   private getWorstHealth(state: GameState): HealthState {

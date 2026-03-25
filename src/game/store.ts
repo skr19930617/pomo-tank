@@ -1,9 +1,11 @@
 import {
   type GameState,
   type Fish,
+  type Tank,
   STORE_ITEMS,
   FISH_SPECIES,
-  TANK_CAPACITY,
+  TANK_BASE_CAPACITY,
+  FILTERS,
   TANK_SIZE_ORDER,
   TankSizeTier,
   StoreItemType,
@@ -16,6 +18,26 @@ export interface PurchaseResult {
   message?: string;
   warning?: string;
 }
+
+// ── Capacity Helpers ──
+
+export function calculateCurrentCost(fish: Fish[]): number {
+  return fish
+    .filter((f) => f.healthState !== HealthState.Dead)
+    .reduce((sum, f) => {
+      const species = FISH_SPECIES[f.speciesId];
+      return sum + (species ? species.capacityCost : 0);
+    }, 0);
+}
+
+export function calculateMaxCapacity(tank: Tank): number {
+  const base = TANK_BASE_CAPACITY[tank.sizeTier];
+  const filter = tank.filterId ? FILTERS[tank.filterId] : null;
+  const bonus = filter ? filter.capacityBonus : 0;
+  return base + bonus;
+}
+
+// ── Purchase Logic ──
 
 export function canPurchase(
   state: GameState,
@@ -71,15 +93,20 @@ export function canPurchase(
   }
 
   if (item.type === StoreItemType.FishSpecies) {
-    // Check tank capacity
-    const livingFish = state.fish.filter((f) => f.healthState !== HealthState.Dead);
-    const capacity = TANK_CAPACITY[state.tank.sizeTier];
-    if (livingFish.length >= capacity) {
-      return { allowed: false, reason: 'Tank is full.' };
+    // Check cost-based capacity
+    const currentCost = calculateCurrentCost(state.fish);
+    const maxCapacity = calculateMaxCapacity(state.tank);
+    const species = FISH_SPECIES[itemId];
+    const addCost = species ? species.capacityCost : 1;
+
+    if (currentCost + addCost > maxCapacity) {
+      return {
+        allowed: false,
+        reason: `Not enough capacity (${currentCost}/${maxCapacity}).`,
+      };
     }
 
     // Check species min tank size
-    const species = FISH_SPECIES[itemId];
     if (species) {
       const currentIdx = TANK_SIZE_ORDER.indexOf(state.tank.sizeTier);
       const requiredIdx = TANK_SIZE_ORDER.indexOf(species.minTankSize);
@@ -144,7 +171,6 @@ export function executePurchase(
       const newFish: Fish = {
         id: generateFishId(),
         speciesId: itemId,
-        hungerLevel: 0,
         healthState: HealthState.Healthy,
         sicknessTick: 0,
       };
@@ -174,14 +200,6 @@ export function executePurchase(
   };
 }
 
-export function getCurrentLoad(state: GameState): number {
-  return state.fish.filter((f) => f.healthState !== HealthState.Dead).length;
-}
-
-export function getCapacity(sizeTier: TankSizeTier): number {
-  return TANK_CAPACITY[sizeTier];
-}
-
 export function getStoreSnapshot(state: GameState): Array<{
   id: string;
   name: string;
@@ -189,9 +207,11 @@ export function getStoreSnapshot(state: GameState): Array<{
   pomoCost: number;
   affordable: boolean;
   meetsPrerequisites: boolean;
+  capacityCost?: number;
 }> {
   return Object.values(STORE_ITEMS).map((item) => {
     const check = canPurchase(state, item.id);
+    const species = item.type === StoreItemType.FishSpecies ? FISH_SPECIES[item.id] : null;
     return {
       id: item.id,
       name: item.name,
@@ -199,6 +219,7 @@ export function getStoreSnapshot(state: GameState): Array<{
       pomoCost: item.pomoCost,
       affordable: state.player.pomoBalance >= item.pomoCost,
       meetsPrerequisites: check.allowed,
+      capacityCost: species ? species.capacityCost : undefined,
     };
   });
 }

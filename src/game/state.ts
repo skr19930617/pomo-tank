@@ -3,11 +3,13 @@ export {
   TankSizeTier,
   HealthState,
   StoreItemType,
-  TANK_CAPACITY,
+  TANK_BASE_CAPACITY,
   TANK_SIZE_ORDER,
   TANK_RENDER_SIZES,
   DESK_HEIGHT,
   LIGHT_BAR_HEIGHT,
+  DETERIORATION_THRESHOLD,
+  DEFAULT_SESSION_MINUTES,
 } from '../shared/types';
 export type { FishSpeciesId, FilterId, StoreItemId, ActionType } from '../shared/types';
 
@@ -24,8 +26,7 @@ import {
 export interface FishSpeciesData {
   id: FishSpeciesId;
   name: string;
-  hungerRate: number;
-  dirtinessLoad: number;
+  capacityCost: number;
   minTankSize: TankSizeTier;
   schoolingMin: number;
 }
@@ -34,40 +35,35 @@ export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesData> = {
   guppy: {
     id: 'guppy',
     name: 'Guppy',
-    hungerRate: 2,
-    dirtinessLoad: 1,
+    capacityCost: 1,
     minTankSize: TankSizeTier.Nano,
     schoolingMin: 1,
   },
   neon_tetra: {
     id: 'neon_tetra',
     name: 'Neon Tetra',
-    hungerRate: 2,
-    dirtinessLoad: 1,
+    capacityCost: 1,
     minTankSize: TankSizeTier.Nano,
     schoolingMin: 3,
   },
   corydoras: {
     id: 'corydoras',
     name: 'Corydoras',
-    hungerRate: 3,
-    dirtinessLoad: 2,
+    capacityCost: 2,
     minTankSize: TankSizeTier.Small,
     schoolingMin: 3,
   },
   betta: {
     id: 'betta',
     name: 'Betta',
-    hungerRate: 3,
-    dirtinessLoad: 1,
+    capacityCost: 2,
     minTankSize: TankSizeTier.Small,
     schoolingMin: 1,
   },
   angelfish: {
     id: 'angelfish',
     name: 'Angelfish',
-    hungerRate: 5,
-    dirtinessLoad: 3,
+    capacityCost: 4,
     minTankSize: TankSizeTier.Medium,
     schoolingMin: 1,
   },
@@ -78,29 +74,29 @@ export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesData> = {
 export interface FilterData {
   id: FilterId;
   name: string;
-  efficiency: number;
+  capacityBonus: number;
 }
 
 export const FILTERS: Record<FilterId, FilterData> = {
   basic_sponge: {
     id: 'basic_sponge',
     name: 'Basic Sponge',
-    efficiency: 0.15,
+    capacityBonus: 0,
   },
   hang_on_back: {
     id: 'hang_on_back',
     name: 'Hang-On-Back',
-    efficiency: 0.3,
+    capacityBonus: 3,
   },
   canister: {
     id: 'canister',
     name: 'Canister',
-    efficiency: 0.5,
+    capacityBonus: 6,
   },
   premium_canister: {
     id: 'premium_canister',
     name: 'Premium Canister',
-    efficiency: 0.7,
+    capacityBonus: 10,
   },
 };
 
@@ -127,7 +123,7 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     type: StoreItemType.TankUpgrade,
     pomoCost: 30,
     prerequisite: {},
-    description: 'A cozy upgrade. Holds up to 5 fish.',
+    description: 'A cozy upgrade. Base capacity: 8.',
   },
   tank_medium: {
     id: 'tank_medium',
@@ -135,7 +131,7 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     type: StoreItemType.TankUpgrade,
     pomoCost: 100,
     prerequisite: { requiredUnlocks: ['tank_small'] },
-    description: 'Room to grow. Holds up to 8 fish.',
+    description: 'Room to grow. Base capacity: 14.',
   },
   tank_large: {
     id: 'tank_large',
@@ -143,7 +139,7 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     type: StoreItemType.TankUpgrade,
     pomoCost: 250,
     prerequisite: { requiredUnlocks: ['tank_medium'] },
-    description: 'A proper aquarium. Holds up to 12 fish.',
+    description: 'A proper aquarium. Base capacity: 22.',
   },
   tank_xl: {
     id: 'tank_xl',
@@ -151,7 +147,7 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     type: StoreItemType.TankUpgrade,
     pomoCost: 500,
     prerequisite: { requiredUnlocks: ['tank_large'] },
-    description: 'The ultimate tank. Holds up to 18 fish.',
+    description: 'The ultimate tank. Base capacity: 32.',
   },
   hang_on_back: {
     id: 'hang_on_back',
@@ -159,7 +155,7 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     type: StoreItemType.Filter,
     pomoCost: 50,
     prerequisite: {},
-    description: 'A solid upgrade. Reduces dirtiness by 30%.',
+    description: 'A solid upgrade. Capacity bonus: +3.',
   },
   canister: {
     id: 'canister',
@@ -167,7 +163,7 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     type: StoreItemType.Filter,
     pomoCost: 150,
     prerequisite: {},
-    description: 'Professional-grade filtration. Reduces dirtiness by 50%.',
+    description: 'Professional-grade filtration. Capacity bonus: +6.',
   },
   premium_canister: {
     id: 'premium_canister',
@@ -175,7 +171,7 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     type: StoreItemType.Filter,
     pomoCost: 400,
     prerequisite: {},
-    description: 'The best money can buy. Reduces dirtiness by 70%.',
+    description: 'The best money can buy. Capacity bonus: +10.',
   },
   neon_tetra: {
     id: 'neon_tetra',
@@ -216,13 +212,13 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
 export interface Fish {
   id: string;
   speciesId: FishSpeciesId;
-  hungerLevel: number;
   healthState: HealthState;
   sicknessTick: number;
 }
 
 export interface Tank {
   sizeTier: TankSizeTier;
+  hungerLevel: number;
   waterDirtiness: number;
   algaeLevel: number;
   filterId: FilterId | null;
@@ -252,6 +248,7 @@ export interface GameState {
 export interface GameStateSnapshot {
   tank: {
     sizeTier: TankSizeTier;
+    hungerLevel: number;
     waterDirtiness: number;
     algaeLevel: number;
     filterId: FilterId | null;
@@ -259,7 +256,6 @@ export interface GameStateSnapshot {
   fish: Array<{
     id: string;
     speciesId: FishSpeciesId;
-    hungerLevel: number;
     healthState: HealthState;
   }>;
   player: {
@@ -271,6 +267,11 @@ export interface GameStateSnapshot {
     timeSinceLastMaintenance: number;
     isInBreakWindow: boolean;
     isActivelyCoding: boolean;
+    sessionMinutes: number;
+  };
+  capacity: {
+    current: number;
+    max: number;
   };
   store: {
     items: Array<{
@@ -280,6 +281,7 @@ export interface GameStateSnapshot {
       pomoCost: number;
       affordable: boolean;
       meetsPrerequisites: boolean;
+      capacityCost?: number;
     }>;
   };
   lightOn: boolean;
@@ -308,6 +310,7 @@ export function createInitialState(): GameState {
     },
     tank: {
       sizeTier: TankSizeTier.Nano,
+      hungerLevel: 0,
       waterDirtiness: 0,
       algaeLevel: 0,
       filterId: 'basic_sponge',
@@ -316,7 +319,6 @@ export function createInitialState(): GameState {
       {
         id: generateFishId(),
         speciesId: 'guppy',
-        hungerLevel: 0,
         healthState: HealthState.Healthy,
         sicknessTick: 0,
       },

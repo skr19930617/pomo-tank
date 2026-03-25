@@ -104,6 +104,11 @@ export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible }) => 
                 <div key={item.id} style={itemRowStyle}>
                   <span>
                     {item.name} — {item.pomoCost} pomo
+                    {item.capacityCost !== undefined && (
+                      <span style={{ color: '#88aacc', marginLeft: '4px' }}>
+                        (cost: {item.capacityCost})
+                      </span>
+                    )}
                   </span>
                   <button
                     style={canBuy ? buyBtnStyle : lockedBtnStyle}

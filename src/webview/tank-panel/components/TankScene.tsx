@@ -108,12 +108,8 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const { displaySeconds, isOvertime, isPaused } = useTimer(
     state.session.timeSinceLastMaintenance,
     state.lightOn,
+    state.session.sessionMinutes,
   );
-
-  const avgHunger =
-    state.fish.length > 0
-      ? state.fish.reduce((sum, f) => sum + f.hungerLevel, 0) / state.fish.length
-      : 0;
 
   const lightTopRaw = -LIGHT_BAR_HEIGHT;
 
@@ -159,7 +155,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
                 dx={anim.dx}
                 speciesId={f.speciesId}
                 healthState={f.healthState}
-                hungerLevel={f.hungerLevel}
+                tankHunger={state.tank.hungerLevel}
                 frameCount={frameCount}
               />
             );
@@ -175,7 +171,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
             lightOn={state.lightOn}
             showExpand={showExpand}
             onExpandClick={onExpandClick}
-            avgHunger={avgHunger}
+            avgHunger={state.tank.hungerLevel}
             waterDirtiness={state.tank.waterDirtiness}
             algaeLevel={state.tank.algaeLevel}
           />
@@ -189,7 +185,9 @@ export const TankScene: React.FC<TankSceneProps> = ({
           isPaused={isPaused}
           compact={compact}
           pomoBalance={state.player.pomoBalance}
-          avgHunger={avgHunger}
+          currentCost={state.capacity.current}
+          maxCost={state.capacity.max}
+          tankHunger={state.tank.hungerLevel}
           waterDirtiness={state.tank.waterDirtiness}
           algaeLevel={state.tank.algaeLevel}
           currentStreak={state.player.currentStreak}

@@ -1,20 +1,30 @@
 // Pomo points calculation system
 // No vscode imports — pure computation only.
 
+import { DEFAULT_SESSION_MINUTES } from './state';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 export const BASE_POINTS = 10;
 
-export const PERFECT_WINDOW_MIN_MS = 20 * 60 * 1000;
-export const PERFECT_WINDOW_MAX_MS = 30 * 60 * 1000;
-
-export const GOOD_WINDOW_MIN_MS = 15 * 60 * 1000;
-export const GOOD_WINDOW_MAX_MS = 35 * 60 * 1000;
-
 export const MAX_STREAK_MULTIPLIER = 2.0;
 export const MAX_DAILY_BONUS = 50;
+
+// ---------------------------------------------------------------------------
+// Session-relative timing windows
+// ---------------------------------------------------------------------------
+
+function getPerfectWindowMs(sessionMinutes: number): { min: number; max: number } {
+  const sessionMs = sessionMinutes * 60 * 1000;
+  return { min: sessionMs * 0.8, max: sessionMs * 1.2 };
+}
+
+function getGoodWindowMs(sessionMinutes: number): { min: number; max: number } {
+  const sessionMs = sessionMinutes * 60 * 1000;
+  return { min: sessionMs * 0.6, max: sessionMs * 1.4 };
+}
 
 // ---------------------------------------------------------------------------
 // Functions
@@ -22,22 +32,27 @@ export const MAX_DAILY_BONUS = 50;
 
 /**
  * Returns the timing-bonus multiplier based on how long since last maintenance.
- *
- *  - [20 min, 30 min] → 1.5  (perfect window)
- *  - [15 min, 35 min] → 1.2  (good window, excluding perfect)
- *  - otherwise         → 1.0
+ * Windows are relative to configured session duration:
+ *  - [0.8×session, 1.2×session] → 1.5  (perfect window)
+ *  - [0.6×session, 1.4×session] → 1.2  (good window, excluding perfect)
+ *  - otherwise                   → 1.0
  */
-export function calculateTimingBonus(timeSinceLastMaintenanceMs: number): number {
+export function calculateTimingBonus(
+  timeSinceLastMaintenanceMs: number,
+  sessionMinutes: number = DEFAULT_SESSION_MINUTES,
+): number {
+  const perfect = getPerfectWindowMs(sessionMinutes);
   if (
-    timeSinceLastMaintenanceMs >= PERFECT_WINDOW_MIN_MS &&
-    timeSinceLastMaintenanceMs <= PERFECT_WINDOW_MAX_MS
+    timeSinceLastMaintenanceMs >= perfect.min &&
+    timeSinceLastMaintenanceMs <= perfect.max
   ) {
     return 1.5;
   }
 
+  const good = getGoodWindowMs(sessionMinutes);
   if (
-    timeSinceLastMaintenanceMs >= GOOD_WINDOW_MIN_MS &&
-    timeSinceLastMaintenanceMs <= GOOD_WINDOW_MAX_MS
+    timeSinceLastMaintenanceMs >= good.min &&
+    timeSinceLastMaintenanceMs <= good.max
   ) {
     return 1.2;
   }
@@ -70,8 +85,9 @@ export function calculatePoints(
   currentStreak: number,
   isFirstMaintenanceToday: boolean,
   dailyContinuityDays: number,
+  sessionMinutes: number = DEFAULT_SESSION_MINUTES,
 ): { points: number; timingBonus: number; streakMultiplier: number; dailyBonus: number } {
-  const timingBonus = calculateTimingBonus(timeSinceLastMaintenanceMs);
+  const timingBonus = calculateTimingBonus(timeSinceLastMaintenanceMs, sessionMinutes);
   const streakMultiplier = calculateStreakMultiplier(currentStreak);
   const dailyBonus = isFirstMaintenanceToday
     ? calculateDailyContinuityBonus(dailyContinuityDays)
@@ -83,12 +99,16 @@ export function calculatePoints(
 }
 
 /**
- * Returns true if the timing falls within the 20–30 minute perfect window.
+ * Returns true if the timing falls within the perfect window (session-relative).
  */
-export function isWellTimed(timeSinceLastMaintenanceMs: number): boolean {
+export function isWellTimed(
+  timeSinceLastMaintenanceMs: number,
+  sessionMinutes: number = DEFAULT_SESSION_MINUTES,
+): boolean {
+  const perfect = getPerfectWindowMs(sessionMinutes);
   return (
-    timeSinceLastMaintenanceMs >= PERFECT_WINDOW_MIN_MS &&
-    timeSinceLastMaintenanceMs <= PERFECT_WINDOW_MAX_MS
+    timeSinceLastMaintenanceMs >= perfect.min &&
+    timeSinceLastMaintenanceMs <= perfect.max
   );
 }
 

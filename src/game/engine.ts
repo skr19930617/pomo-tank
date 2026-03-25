@@ -4,11 +4,12 @@ import {
   type ActionType,
   HealthState,
   generateFishId,
+  DEFAULT_SESSION_MINUTES,
 } from './state';
 import { applyTick } from './deterioration';
 import { evaluateHealthTick } from './health';
 import { calculatePoints, isWellTimed, updateStreak } from './points';
-import { executePurchase, getStoreSnapshot } from './store';
+import { executePurchase, getStoreSnapshot, calculateCurrentCost, calculateMaxCapacity } from './store';
 
 export interface IActivityTracker {
   isActivelyCoding(): boolean;
@@ -17,12 +18,51 @@ export interface IActivityTracker {
 export class GameEngine {
   private state: GameState;
   private activityTracker: IActivityTracker;
+  private sessionMinutes: number;
   private intervalId: ReturnType<typeof setTimeout> | null = null;
   private subscribers: Array<(state: GameState) => void> = [];
 
-  constructor(state: GameState, activityTracker: IActivityTracker) {
+  constructor(
+    state: GameState,
+    activityTracker: IActivityTracker,
+    sessionMinutes: number = DEFAULT_SESSION_MINUTES,
+  ) {
     this.state = state;
     this.activityTracker = activityTracker;
+    this.sessionMinutes = sessionMinutes;
+  }
+
+  /**
+   * Migrate legacy state from old schema (per-fish hungerLevel) to new schema (tank-wide).
+   * Safe to call multiple times — only migrates if old fields are detected.
+   */
+  migrateState(): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = this.state as any;
+
+    // Migrate per-fish hungerLevel → tank.hungerLevel
+    if (raw.tank.hungerLevel === undefined) {
+      const livingFish = raw.fish.filter(
+        (f: { healthState: string }) => f.healthState !== HealthState.Dead,
+      );
+      const avgHunger =
+        livingFish.length > 0
+          ? livingFish.reduce(
+              (sum: number, f: { hungerLevel?: number }) => sum + (f.hungerLevel ?? 0),
+              0,
+            ) / livingFish.length
+          : 0;
+      raw.tank.hungerLevel = avgHunger;
+    }
+
+    // Remove per-fish hungerLevel (clean up legacy fields)
+    for (const fish of raw.fish) {
+      if ('hungerLevel' in fish) {
+        delete fish.hungerLevel;
+      }
+    }
+
+    this.state = raw as GameState;
   }
 
   start(): void {
@@ -58,7 +98,7 @@ export class GameEngine {
     const isActive = this.activityTracker.isActivelyCoding();
 
     // Apply deterioration (returns new state)
-    this.state = applyTick(this.state, isActive);
+    this.state = applyTick(this.state, isActive, this.sessionMinutes);
 
     // Evaluate health for each living fish
     this.state = {
@@ -91,7 +131,7 @@ export class GameEngine {
     const ticksToApply = Math.floor(cappedElapsed / 60_000);
 
     for (let i = 0; i < ticksToApply; i++) {
-      this.state = applyTick(this.state, false);
+      this.state = applyTick(this.state, false, this.sessionMinutes);
 
       this.state = {
         ...this.state,
@@ -125,11 +165,10 @@ export class GameEngine {
       case 'feedFish':
         this.state = {
           ...this.state,
-          fish: this.state.fish.map((f) =>
-            f.healthState !== HealthState.Dead
-              ? { ...f, hungerLevel: Math.max(0, f.hungerLevel - 60) }
-              : f,
-          ),
+          tank: {
+            ...this.state.tank,
+            hungerLevel: Math.max(0, this.state.tank.hungerLevel - 60),
+          },
         };
         break;
       case 'changeWater':
@@ -161,10 +200,11 @@ export class GameEngine {
           this.state.player.currentStreak,
           isFirstToday,
           this.state.player.dailyContinuityDays,
+          this.sessionMinutes,
         );
 
     // Update streak
-    const wellTimed = isWellTimed(timeSinceLastMaintenance);
+    const wellTimed = isWellTimed(timeSinceLastMaintenance, this.sessionMinutes);
     const newStreak = updateStreak(this.state.player.currentStreak, wellTimed);
 
     // Update daily continuity
@@ -208,6 +248,7 @@ export class GameEngine {
     return {
       tank: {
         sizeTier: this.state.tank.sizeTier,
+        hungerLevel: this.state.tank.hungerLevel,
         waterDirtiness: this.state.tank.waterDirtiness,
         algaeLevel: this.state.tank.algaeLevel,
         filterId: this.state.tank.filterId,
@@ -215,7 +256,6 @@ export class GameEngine {
       fish: this.state.fish.map((f) => ({
         id: f.id,
         speciesId: f.speciesId,
-        hungerLevel: f.hungerLevel,
         healthState: f.healthState,
       })),
       player: {
@@ -227,6 +267,11 @@ export class GameEngine {
         timeSinceLastMaintenance,
         isInBreakWindow: this.isInBreakWindow(),
         isActivelyCoding: isActiveCoding,
+        sessionMinutes: this.sessionMinutes,
+      },
+      capacity: {
+        current: calculateCurrentCost(this.state.fish),
+        max: calculateMaxCapacity(this.state.tank),
       },
       store: {
         items: getStoreSnapshot(this.state),
@@ -270,15 +315,14 @@ export class GameEngine {
 
   isInBreakWindow(): boolean {
     const elapsed = this.getTimeSinceLastMaintenance();
-    return elapsed >= 20 * 60 * 1000 && elapsed <= 30 * 60 * 1000;
+    const sessionMs = this.sessionMinutes * 60 * 1000;
+    return elapsed >= sessionMs * 0.8 && elapsed <= sessionMs * 1.2;
   }
 
   private isTankHealthy(action: ActionType): boolean {
     switch (action) {
-      case 'feedFish': {
-        const living = this.state.fish.filter((f) => f.healthState !== HealthState.Dead);
-        return living.every((f) => f.hungerLevel < 10);
-      }
+      case 'feedFish':
+        return this.state.tank.hungerLevel < 10;
       case 'changeWater':
         return this.state.tank.waterDirtiness < 10;
       case 'cleanAlgae':
@@ -301,7 +345,6 @@ export class GameEngine {
         {
           id: generateFishId(),
           speciesId: 'guppy',
-          hungerLevel: 0,
           healthState: HealthState.Healthy,
           sicknessTick: 0,
         },
