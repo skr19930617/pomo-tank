@@ -45,9 +45,21 @@ export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesConfig> = {
     maxSize: 22,
     hasFeedingAnim: false,
     variants: [
-      { id: 'standard', name: 'Standard', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
-      { id: 'albino', name: 'Albino', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
-      { id: 'green', name: 'Green', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
+      {
+        id: 'standard',
+        name: 'Standard',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
+      {
+        id: 'albino',
+        name: 'Albino',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
+      {
+        id: 'green',
+        name: 'Green',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
     ],
   },
   corydoras: {
@@ -62,9 +74,21 @@ export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesConfig> = {
     maxSize: 24,
     hasFeedingAnim: false,
     variants: [
-      { id: 'albino', name: 'Albino', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
-      { id: 'panda', name: 'Panda', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
-      { id: 'sterbai', name: 'Sterbai', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
+      {
+        id: 'albino',
+        name: 'Albino',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
+      {
+        id: 'panda',
+        name: 'Panda',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
+      {
+        id: 'sterbai',
+        name: 'Sterbai',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
     ],
   },
   gourami: {
@@ -79,8 +103,16 @@ export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesConfig> = {
     maxSize: 30,
     hasFeedingAnim: false,
     variants: [
-      { id: 'dwarf', name: 'Dwarf', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
-      { id: 'cobalt_blue_dwarf', name: 'Cobalt Blue Dwarf', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' } },
+      {
+        id: 'dwarf',
+        name: 'Dwarf',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
+      {
+        id: 'cobalt_blue_dwarf',
+        name: 'Cobalt Blue Dwarf',
+        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      },
     ],
   },
   otocinclus: {
@@ -95,7 +127,15 @@ export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesConfig> = {
     maxSize: 18,
     hasFeedingAnim: true,
     variants: [
-      { id: 'standard', name: 'Standard', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png', feeding: 'feeding_64x64_6x2_12f.png' } },
+      {
+        id: 'standard',
+        name: 'Standard',
+        sprites: {
+          swim: 'swim_64x64_6x2_12f.png',
+          weak: 'weak_64x64_6x2_12f.png',
+          feeding: 'feeding_64x64_6x2_12f.png',
+        },
+      },
     ],
   },
   shrimp: {
@@ -110,7 +150,15 @@ export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesConfig> = {
     maxSize: 16,
     hasFeedingAnim: true,
     variants: [
-      { id: 'amano', name: 'Amano', sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png', feeding: 'feeding_64x64_6x2_12f.png' } },
+      {
+        id: 'amano',
+        name: 'Amano',
+        sprites: {
+          swim: 'swim_64x64_6x2_12f.png',
+          weak: 'weak_64x64_6x2_12f.png',
+          feeding: 'feeding_64x64_6x2_12f.png',
+        },
+      },
     ],
   },
 };
@@ -341,6 +389,7 @@ export interface GameStateSnapshot {
     }>;
   };
   lightOn: boolean;
+  debugMode: boolean;
 }
 
 // ── State Migration ──

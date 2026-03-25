@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 export type SpriteUriMap = Record<string, Record<string, Record<string, string>>>;
-export type SpriteImageMap = Record<string, Record<string, Record<string, HTMLImageElement | null>>>;
+export type SpriteImageMap = Record<
+  string,
+  Record<string, Record<string, HTMLImageElement | null>>
+>;
 
 /**
  * Preload all sprite sheet images from the URI map.

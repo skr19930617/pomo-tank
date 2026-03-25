@@ -90,11 +90,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
 
   // Coin display
   const balanceStr =
-    pomoBalance !== undefined
-      ? pomoBalance >= 10000
-        ? '9999+'
-        : String(pomoBalance)
-      : undefined;
+    pomoBalance !== undefined ? (pomoBalance >= 10000 ? '9999+' : String(pomoBalance)) : undefined;
 
   // Coin icon: 7×7 circle with P
   // prettier-ignore
@@ -148,7 +144,14 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
       for (let c = 0; c < 7; c++) {
         if (fishIcon[r][c] === 1) {
           costElements.push(
-            <Rect key={`fi-${r}-${c}`} x={costX + c} y={5 + r} width={1} height={1} fill="#44ddff" />,
+            <Rect
+              key={`fi-${r}-${c}`}
+              x={costX + c}
+              y={5 + r}
+              width={1}
+              height={1}
+              fill="#44ddff"
+            />,
           );
         }
       }
@@ -164,9 +167,8 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   const statsElements: React.ReactElement[] = [];
   if (!compact && tankHunger !== undefined) {
     const timerW = measureText(timerStr);
-    const costStr = currentCost !== undefined && maxCost !== undefined
-      ? `${currentCost}/${maxCost}`
-      : '';
+    const costStr =
+      currentCost !== undefined && maxCost !== undefined ? `${currentCost}/${maxCost}` : '';
     const costW = costStr ? fishIconW + measureText(costStr) + 4 : 0;
     let sx = 4 + timerW + 8 + costW;
     const labels = [

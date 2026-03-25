@@ -6,6 +6,7 @@ import { useSpriteLoader } from './hooks/useSpriteLoader';
 import { useContainerSize } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
 import { Store } from './components/Store';
+import { DebugPanel } from './components/DebugPanel';
 import { TANK_RENDER_SIZES } from '../../shared/types';
 
 /** Aspect ratio: height / width */
@@ -115,6 +116,15 @@ export const App: React.FC = () => {
 
       {/* Notification toast */}
       {notification && <div style={notificationStyle}>{notification}</div>}
+
+      {/* Debug panel (only visible when debugMode enabled) */}
+      {state.debugMode && (
+        <DebugPanel
+          pomoBalance={state.player.pomoBalance}
+          onSetPomo={(amount) => sendMessage({ type: 'debugSetPomo', amount })}
+          onResetState={() => sendMessage({ type: 'debugResetState' })}
+        />
+      )}
 
       {/* Store overlay */}
       <Store items={state.store.items} sendMessage={sendMessage} visible={storeOpen} />

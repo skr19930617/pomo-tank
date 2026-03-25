@@ -4,13 +4,19 @@ import {
   type ActionType,
   HealthState,
   generateFishId,
+  createInitialState,
   DEFAULT_SESSION_MINUTES,
   migrateState,
 } from './state';
 import { applyTick } from './deterioration';
 import { evaluateHealthTick } from './health';
 import { calculatePoints, isWellTimed, updateStreak } from './points';
-import { executePurchase, getStoreSnapshot, calculateCurrentCost, calculateMaxCapacity } from './store';
+import {
+  executePurchase,
+  getStoreSnapshot,
+  calculateCurrentCost,
+  calculateMaxCapacity,
+} from './store';
 
 export interface IActivityTracker {
   isActivelyCoding(): boolean;
@@ -246,7 +252,24 @@ export class GameEngine {
     this.subscribers.push(callback);
   }
 
-  createSnapshot(isActiveCoding: boolean): GameStateSnapshot {
+  resetState(): void {
+    const fresh = createInitialState();
+    this.state = fresh;
+    this.notifySubscribers();
+  }
+
+  setPomo(amount: number): void {
+    this.state = {
+      ...this.state,
+      player: {
+        ...this.state.player,
+        pomoBalance: Math.max(0, Math.floor(amount)),
+      },
+    };
+    this.notifySubscribers();
+  }
+
+  createSnapshot(isActiveCoding: boolean, debugMode: boolean = false): GameStateSnapshot {
     const timeSinceLastMaintenance = Date.now() - this.state.player.sessionStartTime;
 
     return {
@@ -282,6 +305,7 @@ export class GameEngine {
         items: getStoreSnapshot(this.state),
       },
       lightOn: this.state.lightOn,
+      debugMode,
     };
   }
 

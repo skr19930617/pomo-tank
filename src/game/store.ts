@@ -171,9 +171,7 @@ export function executePurchase(
       const speciesConfig = FISH_SPECIES[itemId];
       const variants = speciesConfig?.variants ?? [];
       const variantId =
-        variants.length > 0
-          ? variants[Math.floor(Math.random() * variants.length)].id
-          : 'standard';
+        variants.length > 0 ? variants[Math.floor(Math.random() * variants.length)].id : 'standard';
       const newFish: Fish = {
         id: generateFishId(),
         speciesId: itemId,

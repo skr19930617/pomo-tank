@@ -20,4 +20,6 @@ export type WebviewToExtensionMessage =
   | { type: 'cleanAlgae' }
   | { type: 'toggleLight' }
   | { type: 'purchaseItem'; itemId: string }
-  | { type: 'openTank' };
+  | { type: 'openTank' }
+  | { type: 'debugSetPomo'; amount: number }
+  | { type: 'debugResetState' };

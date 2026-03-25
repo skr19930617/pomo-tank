@@ -7,6 +7,10 @@ import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../sh
 
 export type SpriteUriMap = Record<string, Record<string, Record<string, string>>>;
 
+function isDebugMode(): boolean {
+  return vscode.workspace.getConfiguration('pomotank').get<boolean>('debugMode', false);
+}
+
 function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): SpriteUriMap {
   const map: SpriteUriMap = {};
   const states: AnimState[] = ['swim', 'weak', 'feeding'];
@@ -80,7 +84,7 @@ export class TankPanelManager {
     if (this.panel) {
       const msg: ExtensionToWebviewMessage = {
         type: 'stateUpdate',
-        state: this.engine.createSnapshot(false),
+        state: this.engine.createSnapshot(false, isDebugMode()),
       };
       this.panel.webview.postMessage(msg);
     }
@@ -95,7 +99,7 @@ export class TankPanelManager {
       case 'ready':
         this.sendToWebview({
           type: 'stateUpdate',
-          state: this.engine.createSnapshot(false),
+          state: this.engine.createSnapshot(false, isDebugMode()),
         });
         break;
       case 'feedFish':
@@ -126,6 +130,24 @@ export class TankPanelManager {
         break;
       }
       case 'openTank':
+        break;
+      case 'debugSetPomo':
+        if (isDebugMode()) {
+          this.engine.setPomo(message.amount);
+          this.sendToWebview({
+            type: 'stateUpdate',
+            state: this.engine.createSnapshot(false, isDebugMode()),
+          });
+        }
+        break;
+      case 'debugResetState':
+        if (isDebugMode()) {
+          this.engine.resetState();
+          this.sendToWebview({
+            type: 'stateUpdate',
+            state: this.engine.createSnapshot(false, isDebugMode()),
+          });
+        }
         break;
     }
   }

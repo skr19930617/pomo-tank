@@ -48,6 +48,20 @@ export function useFishAnimation(
     const current = stateRef.current;
     const ids = new Set(fish.map((f) => f.id));
 
+    // If no overlap between current and new fish IDs, clear entirely (handles reset)
+    if (current.size > 0) {
+      let hasOverlap = false;
+      for (const id of ids) {
+        if (current.has(id)) {
+          hasOverlap = true;
+          break;
+        }
+      }
+      if (!hasOverlap) {
+        current.clear();
+      }
+    }
+
     // Remove fish no longer present
     for (const key of current.keys()) {
       if (!ids.has(key)) {
@@ -61,10 +75,9 @@ export function useFishAnimation(
         const species = FISH_SPECIES[f.speciesId];
         const zoneMinY = bounds.top + bounds.height * (species?.swimZone.min ?? 0.1);
         const zoneMaxY = bounds.top + bounds.height * (species?.swimZone.max ?? 0.9);
-        const displaySize =
-          species
-            ? species.minSize + Math.random() * (species.maxSize - species.minSize)
-            : 16;
+        const displaySize = species
+          ? species.minSize + Math.random() * (species.maxSize - species.minSize)
+          : 16;
 
         current.set(f.id, {
           x: bounds.left + Math.random() * (bounds.width - 20) + 10,

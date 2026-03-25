@@ -108,21 +108,8 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
       vscode.commands.registerCommand('pomotank.debugReset', () => {
         if (engine) {
-          const fresh = createInitialState();
-          saveState(fresh);
-          // Restart engine with fresh state
-          engine.stop();
-          engine = new GameEngine(fresh, activityTracker!, sessionMinutes);
-          companionProvider.updateState(fresh);
-          tankPanel.updateState(fresh);
-          statusBar.update(fresh);
-          engine.onStateChange((newState) => {
-            companionProvider.updateState(newState);
-            tankPanel.updateState(newState);
-            statusBar.update(newState);
-            saveState(newState);
-          });
-          engine.start();
+          engine.resetState();
+          saveState(engine.getState());
           vscode.window.showInformationMessage('Pomotank: State reset');
         }
       }),

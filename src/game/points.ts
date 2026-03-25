@@ -42,18 +42,12 @@ export function calculateTimingBonus(
   sessionMinutes: number = DEFAULT_SESSION_MINUTES,
 ): number {
   const perfect = getPerfectWindowMs(sessionMinutes);
-  if (
-    timeSinceLastMaintenanceMs >= perfect.min &&
-    timeSinceLastMaintenanceMs <= perfect.max
-  ) {
+  if (timeSinceLastMaintenanceMs >= perfect.min && timeSinceLastMaintenanceMs <= perfect.max) {
     return 1.5;
   }
 
   const good = getGoodWindowMs(sessionMinutes);
-  if (
-    timeSinceLastMaintenanceMs >= good.min &&
-    timeSinceLastMaintenanceMs <= good.max
-  ) {
+  if (timeSinceLastMaintenanceMs >= good.min && timeSinceLastMaintenanceMs <= good.max) {
     return 1.2;
   }
 
@@ -106,10 +100,7 @@ export function isWellTimed(
   sessionMinutes: number = DEFAULT_SESSION_MINUTES,
 ): boolean {
   const perfect = getPerfectWindowMs(sessionMinutes);
-  return (
-    timeSinceLastMaintenanceMs >= perfect.min &&
-    timeSinceLastMaintenanceMs <= perfect.max
-  );
+  return timeSinceLastMaintenanceMs >= perfect.min && timeSinceLastMaintenanceMs <= perfect.max;
 }
 
 /**

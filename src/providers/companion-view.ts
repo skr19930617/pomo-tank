@@ -6,6 +6,10 @@ import type { AnimState } from '../shared/types';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
 import type { SpriteUriMap } from './tank-panel';
 
+function isDebugMode(): boolean {
+  return vscode.workspace.getConfiguration('pomotank').get<boolean>('debugMode', false);
+}
+
 function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): SpriteUriMap {
   const map: SpriteUriMap = {};
   const states: AnimState[] = ['swim', 'weak', 'feeding'];
@@ -17,7 +21,15 @@ function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): S
         const filename = variant.sprites[state];
         if (filename) {
           const uri = webview.asWebviewUri(
-            vscode.Uri.joinPath(extensionUri, 'media', 'sprites', 'fish', species.id, variant.id, filename),
+            vscode.Uri.joinPath(
+              extensionUri,
+              'media',
+              'sprites',
+              'fish',
+              species.id,
+              variant.id,
+              filename,
+            ),
           );
           map[species.id][variant.id][state] = uri.toString();
         }
@@ -73,6 +85,24 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           this.sendToWebview({ type: 'lightToggleResult', lightOn, success: true });
           break;
         }
+        case 'debugSetPomo':
+          if (isDebugMode()) {
+            this.engine.setPomo(message.amount);
+            this.sendToWebview({
+              type: 'stateUpdate',
+              state: this.engine.createSnapshot(false, isDebugMode()),
+            });
+          }
+          break;
+        case 'debugResetState':
+          if (isDebugMode()) {
+            this.engine.resetState();
+            this.sendToWebview({
+              type: 'stateUpdate',
+              state: this.engine.createSnapshot(false, isDebugMode()),
+            });
+          }
+          break;
         default:
           break;
       }
@@ -86,7 +116,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
   updateState(_state: GameState): void {
     this.sendToWebview({
       type: 'stateUpdate',
-      state: this.engine.createSnapshot(false),
+      state: this.engine.createSnapshot(false, isDebugMode()),
     });
   }
 
@@ -97,7 +127,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
   private sendState(_state: GameState): void {
     this.sendToWebview({
       type: 'stateUpdate',
-      state: this.engine.createSnapshot(false),
+      state: this.engine.createSnapshot(false, isDebugMode()),
     });
   }
 

@@ -12,7 +12,9 @@ const RECOVERY_RATE = 2; // sicknessTick decrease per tick when conditions are g
  * Poor conditions: fish hunger > 70, water dirtiness > 70, or algae level > 80.
  */
 export function isPoorConditions(_fish: Fish, state: GameState): boolean {
-  return state.tank.hungerLevel > 70 || state.tank.waterDirtiness > 70 || state.tank.algaeLevel > 80;
+  return (
+    state.tank.hungerLevel > 70 || state.tank.waterDirtiness > 70 || state.tank.algaeLevel > 80
+  );
 }
 
 function healthStateFromTick(sicknessTick: number, currentState: HealthState): HealthState {

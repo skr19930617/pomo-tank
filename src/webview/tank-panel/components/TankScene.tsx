@@ -131,12 +131,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
         {/* Tank cluster: scaled & positioned group */}
         <Group x={tankX} y={tankY} scaleX={contentScale} scaleY={contentScale}>
           {/* Light bar */}
-          <Light
-            tankLeft={0}
-            tankWidth={rawTankW}
-            lightTop={lightTopRaw}
-            lightOn={state.lightOn}
-          />
+          <Light tankLeft={0} tankWidth={rawTankW} lightTop={lightTopRaw} lightOn={state.lightOn} />
 
           {/* Tank body */}
           <Tank
