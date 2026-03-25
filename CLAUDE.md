@@ -31,9 +31,9 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 009-fish-species-config: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, konva, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 008-debug-mode: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 007-fish-sprite-animation: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, konva, @types/vscode ^1.85.0, esbuild ^0.20.0
-- 006-tank-cost-system: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, konva, @types/vscode ^1.85.0, esbuild ^0.20.0
 
 
 <!-- MANUAL ADDITIONS START -->

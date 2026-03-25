@@ -3,6 +3,8 @@ export {
   TankSizeTier,
   HealthState,
   StoreItemType,
+  SwimLayer,
+  Personality,
   TANK_BASE_CAPACITY,
   TANK_SIZE_ORDER,
   TANK_RENDER_SIZES,
@@ -10,8 +12,11 @@ export {
   LIGHT_BAR_HEIGHT,
   DETERIORATION_THRESHOLD,
   DEFAULT_SESSION_MINUTES,
+  SWIM_LAYER_RANGES,
+  TANK_DIMENSIONS_MM,
 } from '../shared/types';
 export type {
+  GenusId,
   FishSpeciesId,
   FilterId,
   StoreItemId,
@@ -19,149 +24,20 @@ export type {
   AnimState,
   VariantConfig,
   FishSpeciesConfig,
+  GenusConfig,
+  SpeciesConfig,
+  SpriteSet,
 } from '../shared/types';
 
 import {
   TankSizeTier,
   HealthState,
   StoreItemType,
-  type FishSpeciesId,
+  type GenusId,
   type FilterId,
-  type FishSpeciesConfig,
 } from '../shared/types';
 
-// ── Fish Species Catalog ──
-
-export const FISH_SPECIES: Record<FishSpeciesId, FishSpeciesConfig> = {
-  neon_tetra: {
-    id: 'neon_tetra',
-    name: 'Neon Tetra',
-    capacityCost: 1,
-    minTankSize: TankSizeTier.Nano,
-    schoolingMin: 3,
-    swimZone: { min: 0.2, max: 0.7 },
-    baseSpeed: 1.2,
-    minSize: 16,
-    maxSize: 22,
-    hasFeedingAnim: false,
-    variants: [
-      {
-        id: 'standard',
-        name: 'Standard',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-      {
-        id: 'albino',
-        name: 'Albino',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-      {
-        id: 'green',
-        name: 'Green',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-    ],
-  },
-  corydoras: {
-    id: 'corydoras',
-    name: 'Corydoras',
-    capacityCost: 2,
-    minTankSize: TankSizeTier.Small,
-    schoolingMin: 3,
-    swimZone: { min: 0.65, max: 0.95 },
-    baseSpeed: 0.8,
-    minSize: 18,
-    maxSize: 24,
-    hasFeedingAnim: false,
-    variants: [
-      {
-        id: 'albino',
-        name: 'Albino',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-      {
-        id: 'panda',
-        name: 'Panda',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-      {
-        id: 'sterbai',
-        name: 'Sterbai',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-    ],
-  },
-  gourami: {
-    id: 'gourami',
-    name: 'Gourami',
-    capacityCost: 3,
-    minTankSize: TankSizeTier.Small,
-    schoolingMin: 1,
-    swimZone: { min: 0.15, max: 0.55 },
-    baseSpeed: 0.7,
-    minSize: 22,
-    maxSize: 30,
-    hasFeedingAnim: false,
-    variants: [
-      {
-        id: 'dwarf',
-        name: 'Dwarf',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-      {
-        id: 'cobalt_blue_dwarf',
-        name: 'Cobalt Blue Dwarf',
-        sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
-      },
-    ],
-  },
-  otocinclus: {
-    id: 'otocinclus',
-    name: 'Otocinclus',
-    capacityCost: 2,
-    minTankSize: TankSizeTier.Small,
-    schoolingMin: 3,
-    swimZone: { min: 0.6, max: 0.9 },
-    baseSpeed: 0.9,
-    minSize: 14,
-    maxSize: 18,
-    hasFeedingAnim: true,
-    variants: [
-      {
-        id: 'standard',
-        name: 'Standard',
-        sprites: {
-          swim: 'swim_64x64_6x2_12f.png',
-          weak: 'weak_64x64_6x2_12f.png',
-          feeding: 'feeding_64x64_6x2_12f.png',
-        },
-      },
-    ],
-  },
-  shrimp: {
-    id: 'shrimp',
-    name: 'Amano Shrimp',
-    capacityCost: 1,
-    minTankSize: TankSizeTier.Nano,
-    schoolingMin: 3,
-    swimZone: { min: 0.7, max: 0.95 },
-    baseSpeed: 0.6,
-    minSize: 12,
-    maxSize: 16,
-    hasFeedingAnim: true,
-    variants: [
-      {
-        id: 'amano',
-        name: 'Amano',
-        sprites: {
-          swim: 'swim_64x64_6x2_12f.png',
-          weak: 'weak_64x64_6x2_12f.png',
-          feeding: 'feeding_64x64_6x2_12f.png',
-        },
-      },
-    ],
-  },
-};
+import { getGenus, buildFishStoreItems } from './species';
 
 // ── Filter Catalog ──
 
@@ -210,7 +86,7 @@ export interface StoreItemData {
   description: string;
 }
 
-export const STORE_ITEMS: Record<string, StoreItemData> = {
+const BASE_STORE_ITEMS: Record<string, StoreItemData> = {
   tank_small: {
     id: 'tank_small',
     name: 'Small Tank',
@@ -267,56 +143,27 @@ export const STORE_ITEMS: Record<string, StoreItemData> = {
     prerequisite: {},
     description: 'The best money can buy. Capacity bonus: +10.',
   },
-  neon_tetra: {
-    id: 'neon_tetra',
-    name: 'Neon Tetra',
-    type: StoreItemType.FishSpecies,
-    pomoCost: 15,
-    prerequisite: {},
-    description: 'A tiny glowing schooling fish. Prefers groups of 3+.',
-  },
-  corydoras: {
-    id: 'corydoras',
-    name: 'Corydoras',
-    type: StoreItemType.FishSpecies,
-    pomoCost: 25,
-    prerequisite: { minTankSize: TankSizeTier.Small },
-    description: 'A friendly bottom-dweller. Prefers groups of 3+.',
-  },
-  gourami: {
-    id: 'gourami',
-    name: 'Gourami',
-    type: StoreItemType.FishSpecies,
-    pomoCost: 40,
-    prerequisite: { minTankSize: TankSizeTier.Small },
-    description: 'A graceful upper-water swimmer with vivid colors.',
-  },
-  otocinclus: {
-    id: 'otocinclus',
-    name: 'Otocinclus',
-    type: StoreItemType.FishSpecies,
-    pomoCost: 30,
-    prerequisite: { minTankSize: TankSizeTier.Small },
-    description: 'A tiny algae eater. Prefers groups of 3+.',
-  },
-  shrimp: {
-    id: 'shrimp',
-    name: 'Amano Shrimp',
-    type: StoreItemType.FishSpecies,
-    pomoCost: 10,
-    prerequisite: {},
-    description: 'A hardworking cleaner shrimp. Prefers groups of 3+.',
-  },
+};
+
+// Fish store items are generated dynamically from species configs
+export const STORE_ITEMS: Record<string, StoreItemData> = {
+  ...BASE_STORE_ITEMS,
+  ...buildFishStoreItems(),
 };
 
 // ── Game State Interfaces ──
 
 export interface Fish {
   id: string;
-  speciesId: FishSpeciesId;
-  variantId: string;
+  genusId: GenusId;
+  speciesId: string;
   healthState: HealthState;
   sicknessTick: number;
+  bodyLengthMm: number;
+  ageWeeks: number;
+  lifespanWeeks: number;
+  maintenanceQuality: number;
+  purchasedAt: number;
 }
 
 export interface Tank {
@@ -358,9 +205,13 @@ export interface GameStateSnapshot {
   };
   fish: Array<{
     id: string;
-    speciesId: FishSpeciesId;
-    variantId: string;
+    genusId: GenusId;
+    speciesId: string;
     healthState: HealthState;
+    bodyLengthMm: number;
+    ageWeeks: number;
+    lifespanWeeks: number;
+    maintenanceQuality: number;
   }>;
   player: {
     pomoBalance: number;
@@ -394,22 +245,60 @@ export interface GameStateSnapshot {
 
 // ── State Migration ──
 
-const LEGACY_SPECIES_MAP: Record<string, { speciesId: FishSpeciesId; variantId: string }> = {
-  guppy: { speciesId: 'neon_tetra', variantId: 'standard' },
-  betta: { speciesId: 'gourami', variantId: 'dwarf' },
-  angelfish: { speciesId: 'gourami', variantId: 'cobalt_blue_dwarf' },
+/** Maps legacy species names to new genus/species IDs. */
+const LEGACY_SPECIES_MAP: Record<string, { genusId: GenusId; speciesId: string }> = {
+  guppy: { genusId: 'neon_tetra', speciesId: 'standard' },
+  betta: { genusId: 'gourami', speciesId: 'dwarf' },
+  angelfish: { genusId: 'gourami', speciesId: 'cobalt_blue_dwarf' },
 };
 
 export function migrateState(state: GameState): GameState {
   const migratedFish = state.fish.map((f) => {
-    const legacy = LEGACY_SPECIES_MAP[f.speciesId];
-    const speciesId = legacy ? legacy.speciesId : f.speciesId;
-    const species = FISH_SPECIES[speciesId];
-    let variantId = (f as Fish).variantId;
-    if (!variantId) {
-      variantId = legacy ? legacy.variantId : (species?.variants[0]?.id ?? 'standard');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = f as any;
+
+    // Already migrated (has genusId)
+    if (raw.genusId && raw.bodyLengthMm !== undefined) {
+      return f;
     }
-    return { ...f, speciesId, variantId };
+
+    // Detect old format: had speciesId (as genus) and variantId (as species)
+    const oldSpeciesId: string = raw.speciesId ?? raw.genusId ?? 'neon_tetra';
+    const oldVariantId: string = raw.variantId ?? raw.speciesId ?? 'standard';
+
+    // Check for legacy species names (guppy, betta, angelfish)
+    const legacy = LEGACY_SPECIES_MAP[oldSpeciesId];
+    const genusId: GenusId = legacy ? legacy.genusId : (oldSpeciesId as GenusId);
+    const speciesId = legacy ? legacy.speciesId : oldVariantId;
+
+    // Look up genus/species config for defaults
+    const genus = getGenus(genusId);
+    const speciesConfig = genus?.species.find((s) => s.id === speciesId) ?? genus?.species[0];
+
+    const midpointMm = speciesConfig
+      ? (speciesConfig.minSizeMm + speciesConfig.maxSizeMm) / 2
+      : 25;
+    const lifespanWeeks = speciesConfig
+      ? Math.round(
+          (speciesConfig.minLifespanYears +
+            Math.random() * (speciesConfig.maxLifespanYears - speciesConfig.minLifespanYears)) *
+            52,
+        )
+      : 208;
+
+    const migrated: Fish = {
+      id: raw.id ?? generateFishId(),
+      genusId,
+      speciesId: speciesConfig?.id ?? speciesId,
+      healthState: raw.healthState ?? HealthState.Healthy,
+      sicknessTick: raw.sicknessTick ?? 0,
+      bodyLengthMm: midpointMm,
+      ageWeeks: 0,
+      lifespanWeeks,
+      maintenanceQuality: 0.8,
+      purchasedAt: Date.now(),
+    };
+    return migrated;
   });
   return { ...state, fish: migratedFish };
 }
@@ -445,10 +334,15 @@ export function createInitialState(): GameState {
     fish: [
       {
         id: generateFishId(),
-        speciesId: 'neon_tetra',
-        variantId: 'standard',
+        genusId: 'neon_tetra',
+        speciesId: 'standard',
         healthState: HealthState.Healthy,
         sicknessTick: 0,
+        bodyLengthMm: 20 + Math.random() * 4,
+        ageWeeks: 0,
+        lifespanWeeks: Math.round((3 + Math.random() * 2) * 52),
+        maintenanceQuality: 1.0,
+        purchasedAt: now,
       },
     ],
     lightOn: true,

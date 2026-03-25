@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { GameEngine } from '../game/engine';
 import type { GameState } from '../game/state';
-import { FISH_SPECIES } from '../game/state';
+import { getAllGenera } from '../game/species';
 import type { AnimState } from '../shared/types';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
 
@@ -15,12 +15,12 @@ function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): S
   const map: SpriteUriMap = {};
   const states: AnimState[] = ['swim', 'weak', 'feeding'];
 
-  for (const species of Object.values(FISH_SPECIES)) {
-    map[species.id] = {};
-    for (const variant of species.variants) {
-      map[species.id][variant.id] = {};
+  for (const genus of getAllGenera()) {
+    map[genus.id] = {};
+    for (const species of genus.species) {
+      map[genus.id][species.id] = {};
       for (const state of states) {
-        const filename = variant.sprites[state];
+        const filename = species.sprites[state];
         if (filename) {
           const uri = webview.asWebviewUri(
             vscode.Uri.joinPath(
@@ -28,12 +28,12 @@ function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): S
               'media',
               'sprites',
               'fish',
+              genus.id,
               species.id,
-              variant.id,
               filename,
             ),
           );
-          map[species.id][variant.id][state] = uri.toString();
+          map[genus.id][species.id][state] = uri.toString();
         }
       }
     }

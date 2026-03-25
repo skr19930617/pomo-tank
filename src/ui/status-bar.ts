@@ -28,7 +28,7 @@ export class StatusBarManager implements vscode.Disposable {
     this.item.text = `${lightPrefix}$(beaker) ${icon}`;
 
     const livingFish = state.fish.filter((f) => f.healthState !== HealthState.Dead);
-    const fishSummary = livingFish.map((f) => `${f.speciesId}: ${f.healthState}`).join(', ');
+    const fishSummary = livingFish.map((f) => `${f.genusId}: ${f.healthState}`).join(', ');
 
     const timeSince = Date.now() - state.player.sessionStartTime;
     const minutesSince = Math.floor(timeSince / 60000);

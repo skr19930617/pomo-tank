@@ -17,6 +17,9 @@ import {
   calculateCurrentCost,
   calculateMaxCapacity,
 } from './store';
+import { computeQualitySnapshot, updateQuality } from './maintenance-quality';
+import { growFish } from './growth';
+import { getSpeciesWithGenus } from './species';
 
 export interface IActivityTracker {
   isActivelyCoding(): boolean;
@@ -236,6 +239,35 @@ export class GameEngine {
       },
     };
 
+    // ── Per-pomo fish progression: quality update + growth + aging ──
+    const qualitySnapshot = computeQualitySnapshot(
+      this.state.tank.hungerLevel,
+      this.state.tank.waterDirtiness,
+      this.state.tank.algaeLevel,
+    );
+
+    this.state = {
+      ...this.state,
+      fish: this.state.fish.map((fish) => {
+        if (fish.healthState === HealthState.Dead) return fish;
+
+        // Update maintenance quality (EMA)
+        const newQuality = updateQuality(fish.maintenanceQuality, qualitySnapshot);
+
+        // Apply growth and aging
+        const pair = getSpeciesWithGenus(fish.genusId, fish.speciesId);
+        if (!pair) return { ...fish, maintenanceQuality: newQuality };
+
+        const growthUpdates = growFish(
+          { ...fish, maintenanceQuality: newQuality },
+          pair.genus,
+          pair.species,
+        );
+
+        return { ...fish, maintenanceQuality: newQuality, ...growthUpdates };
+      }),
+    };
+
     this.notifySubscribers();
   }
 
@@ -282,9 +314,13 @@ export class GameEngine {
       },
       fish: this.state.fish.map((f) => ({
         id: f.id,
+        genusId: f.genusId,
         speciesId: f.speciesId,
-        variantId: f.variantId,
         healthState: f.healthState,
+        bodyLengthMm: f.bodyLengthMm,
+        ageWeeks: f.ageWeeks,
+        lifespanWeeks: f.lifespanWeeks,
+        maintenanceQuality: f.maintenanceQuality,
       })),
       player: {
         pomoBalance: this.state.player.pomoBalance,
@@ -369,16 +405,22 @@ export class GameEngine {
 
     // If all fish dead, auto-grant a new neon tetra
     if (livingFish.length === 0) {
+      const now = Date.now();
       this.state = {
         ...this.state,
         fish: [
           ...this.state.fish,
           {
             id: generateFishId(),
-            speciesId: 'neon_tetra',
-            variantId: 'standard',
+            genusId: 'neon_tetra',
+            speciesId: 'standard',
             healthState: HealthState.Healthy,
             sicknessTick: 0,
+            bodyLengthMm: 20 + Math.random() * 4,
+            ageWeeks: 0,
+            lifespanWeeks: Math.round((3 + Math.random() * 2) * 52),
+            maintenanceQuality: 1.0,
+            purchasedAt: now,
           },
         ],
         player: {

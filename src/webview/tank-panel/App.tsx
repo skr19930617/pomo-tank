@@ -65,6 +65,7 @@ export const App: React.FC = () => {
     state?.fish,
     state?.lightOn ?? true,
     fishBounds,
+    state?.tank.sizeTier,
   );
 
   if (!state) {

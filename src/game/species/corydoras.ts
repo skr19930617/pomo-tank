@@ -1,0 +1,45 @@
+import { type GenusConfig, TankSizeTier, SwimLayer, Personality } from '../../shared/types';
+
+export const corydoras: GenusConfig = {
+  id: 'corydoras',
+  displayName: 'Corydoras',
+  swimLayer: SwimLayer.lower,
+  personality: Personality.social,
+  schooling: true,
+  baseSpeed: 0.8,
+  hasFeedingAnim: false,
+  capacityCost: 2,
+  minTankSize: TankSizeTier.Small,
+  species: [
+    {
+      id: 'albino',
+      displayName: 'Albino Corydoras',
+      sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      minSizeMm: 30,
+      maxSizeMm: 55,
+      minLifespanYears: 5,
+      maxLifespanYears: 8,
+      pomoCost: 25,
+    },
+    {
+      id: 'panda',
+      displayName: 'Panda Corydoras',
+      sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      minSizeMm: 25,
+      maxSizeMm: 45,
+      minLifespanYears: 5,
+      maxLifespanYears: 8,
+      pomoCost: 30,
+    },
+    {
+      id: 'sterbai',
+      displayName: 'Sterbai Corydoras',
+      sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      minSizeMm: 30,
+      maxSizeMm: 60,
+      minLifespanYears: 5,
+      maxLifespanYears: 8,
+      pomoCost: 35,
+    },
+  ],
+};

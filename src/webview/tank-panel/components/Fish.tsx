@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Group, Sprite, Rect, Text } from 'react-konva';
 import Konva from 'konva';
 import { HealthState } from '../../../shared/types';
-import type { FishSpeciesId } from '../../../shared/types';
+import type { GenusId } from '../../../shared/types';
 import { SPRITE_FRAMES, SPRITE_FRAME_RATE, SPRITE_WIDTH } from './sprite-sheet-utils';
 import type { SpriteImageMap } from '../hooks/useSpriteLoader';
 
@@ -10,8 +10,8 @@ interface FishProps {
   x: number;
   y: number;
   dx: number;
-  speciesId: FishSpeciesId;
-  variantId: string;
+  genusId: GenusId;
+  speciesId: string;
   healthState: HealthState;
   tankHunger: number;
   frameCount: number;
@@ -19,14 +19,15 @@ interface FishProps {
   spriteImages: SpriteImageMap;
   feedingActive: boolean;
   hasFeedingAnim: boolean;
+  onClick?: () => void;
 }
 
 export const FishSprite: React.FC<FishProps> = ({
   x,
   y,
   dx,
+  genusId,
   speciesId,
-  variantId,
   healthState,
   tankHunger,
   frameCount,
@@ -34,6 +35,7 @@ export const FishSprite: React.FC<FishProps> = ({
   spriteImages,
   feedingActive,
   hasFeedingAnim,
+  onClick,
 }) => {
   const spriteRef = useRef<Konva.Sprite>(null);
   const isDead = healthState === HealthState.Dead;
@@ -52,7 +54,7 @@ export const FishSprite: React.FC<FishProps> = ({
   }
 
   // Get the sprite image for current state
-  const variantImages = spriteImages[speciesId]?.[variantId];
+  const variantImages = spriteImages[genusId]?.[speciesId];
   const spriteImage = variantImages?.[animState] ?? variantImages?.['swim'] ?? null;
 
   // Build animations object with available states
@@ -107,7 +109,7 @@ export const FishSprite: React.FC<FishProps> = ({
   }
 
   return (
-    <Group x={x} y={y} opacity={alpha}>
+    <Group x={x} y={y} opacity={alpha} onClick={onClick} onTap={onClick}>
       <Group scaleX={scaleX} offsetX={halfSize} offsetY={halfSize}>
         <Sprite
           ref={spriteRef}

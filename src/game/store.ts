@@ -3,7 +3,6 @@ import {
   type Fish,
   type Tank,
   STORE_ITEMS,
-  FISH_SPECIES,
   TANK_BASE_CAPACITY,
   FILTERS,
   TANK_SIZE_ORDER,
@@ -12,11 +11,11 @@ import {
   HealthState,
   generateFishId,
 } from './state';
+import { getGenus, getSpecies, parseSpeciesStoreId } from './species';
 
 export interface PurchaseResult {
   success: boolean;
   message?: string;
-  warning?: string;
 }
 
 // ── Capacity Helpers ──
@@ -25,8 +24,8 @@ export function calculateCurrentCost(fish: Fish[]): number {
   return fish
     .filter((f) => f.healthState !== HealthState.Dead)
     .reduce((sum, f) => {
-      const species = FISH_SPECIES[f.speciesId];
-      return sum + (species ? species.capacityCost : 0);
+      const genus = getGenus(f.genusId);
+      return sum + (genus ? genus.capacityCost : 0);
     }, 0);
 }
 
@@ -93,11 +92,13 @@ export function canPurchase(
   }
 
   if (item.type === StoreItemType.FishSpecies) {
-    // Check cost-based capacity
+    // Parse composite ID to get genus for capacity check
+    const parsed = parseSpeciesStoreId(itemId);
+    const genus = parsed ? getGenus(parsed.genusId) : undefined;
+    const addCost = genus ? genus.capacityCost : 1;
+
     const currentCost = calculateCurrentCost(state.fish);
     const maxCapacity = calculateMaxCapacity(state.tank);
-    const species = FISH_SPECIES[itemId];
-    const addCost = species ? species.capacityCost : 1;
 
     if (currentCost + addCost > maxCapacity) {
       return {
@@ -107,13 +108,13 @@ export function canPurchase(
     }
 
     // Check species min tank size
-    if (species) {
+    if (genus) {
       const currentIdx = TANK_SIZE_ORDER.indexOf(state.tank.sizeTier);
-      const requiredIdx = TANK_SIZE_ORDER.indexOf(species.minTankSize);
+      const requiredIdx = TANK_SIZE_ORDER.indexOf(genus.minTankSize);
       if (currentIdx < requiredIdx) {
         return {
           allowed: false,
-          reason: `${species.name} needs a ${species.minTankSize} tank or larger.`,
+          reason: `${genus.displayName} needs a ${genus.minTankSize} tank or larger.`,
         };
       }
     }
@@ -140,11 +141,8 @@ export function executePurchase(
   // Deduct pomo
   newState.player.pomoBalance -= item.pomoCost;
 
-  let warning: string | undefined;
-
   switch (item.type) {
     case StoreItemType.TankUpgrade: {
-      // Upgrade to the corresponding tank size
       const sizeMap: Record<string, TankSizeTier> = {
         tank_small: TankSizeTier.Small,
         tank_medium: TankSizeTier.Medium,
@@ -160,48 +158,54 @@ export function executePurchase(
     }
 
     case StoreItemType.Filter: {
-      // Equip the new filter
       newState.tank.filterId = itemId;
       newState.player.unlockedItems.push(itemId);
       break;
     }
 
     case StoreItemType.FishSpecies: {
-      // Add a new fish of this species with random variant
-      const speciesConfig = FISH_SPECIES[itemId];
-      const variants = speciesConfig?.variants ?? [];
-      const variantId =
-        variants.length > 0 ? variants[Math.floor(Math.random() * variants.length)].id : 'standard';
+      // Parse composite ID to get exact genus + species
+      const parsed = parseSpeciesStoreId(itemId);
+      if (!parsed) break;
+
+      const genus = getGenus(parsed.genusId);
+      const speciesConfig = getSpecies(parsed.genusId, parsed.speciesId);
+
+      const initialSizeMm = speciesConfig
+        ? speciesConfig.minSizeMm + Math.random() * (speciesConfig.minSizeMm * 0.2)
+        : 20;
+      const lifespanWeeks = speciesConfig
+        ? Math.round(
+            (speciesConfig.minLifespanYears +
+              Math.random() *
+                (speciesConfig.maxLifespanYears - speciesConfig.minLifespanYears)) *
+              52,
+          )
+        : 208;
+
       const newFish: Fish = {
         id: generateFishId(),
-        speciesId: itemId,
-        variantId,
+        genusId: parsed.genusId as Fish['genusId'],
+        speciesId: parsed.speciesId,
         healthState: HealthState.Healthy,
         sicknessTick: 0,
+        bodyLengthMm: initialSizeMm,
+        ageWeeks: 0,
+        lifespanWeeks,
+        maintenanceQuality: 1.0,
+        purchasedAt: Date.now(),
       };
       newState.fish.push(newFish);
 
-      // Check schooling warning
-      const species = FISH_SPECIES[itemId];
-      if (species && species.schoolingMin > 1) {
-        const count = newState.fish.filter(
-          (f) => f.speciesId === itemId && f.healthState !== HealthState.Dead,
-        ).length;
-        if (count < species.schoolingMin) {
-          warning = `${species.name} prefers groups of ${species.schoolingMin}+. You have ${count}.`;
-        }
-      }
+      // Suppress unused variable warning for genus (used for capacity in canPurchase)
+      void genus;
       break;
     }
   }
 
   return {
     state: newState,
-    result: {
-      success: true,
-      message: warning ? `Purchased! ${warning}` : 'Purchased!',
-      warning,
-    },
+    result: { success: true, message: 'Purchased!' },
   };
 }
 
@@ -216,7 +220,8 @@ export function getStoreSnapshot(state: GameState): Array<{
 }> {
   return Object.values(STORE_ITEMS).map((item) => {
     const check = canPurchase(state, item.id);
-    const species = item.type === StoreItemType.FishSpecies ? FISH_SPECIES[item.id] : null;
+    const parsed = item.type === StoreItemType.FishSpecies ? parseSpeciesStoreId(item.id) : null;
+    const genus = parsed ? getGenus(parsed.genusId) : null;
     return {
       id: item.id,
       name: item.name,
@@ -224,7 +229,7 @@ export function getStoreSnapshot(state: GameState): Array<{
       pomoCost: item.pomoCost,
       affordable: state.player.pomoBalance >= item.pomoCost,
       meetsPrerequisites: check.allowed,
-      capacityCost: species ? species.capacityCost : undefined,
+      capacityCost: genus ? genus.capacityCost : undefined,
     };
   });
 }

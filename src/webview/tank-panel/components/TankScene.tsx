@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Stage, Layer, Group } from 'react-konva';
 import type { GameStateSnapshot } from '../../../game/state';
 import {
@@ -10,7 +10,8 @@ import {
 import type { AnimatedFishData } from '../hooks/useFishAnimation';
 import type { SpriteImageMap } from '../hooks/useSpriteLoader';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
-import { FISH_SPECIES } from '../../../game/state';
+import { getGenus, getSpecies } from '../../../game/species';
+import { FishTooltip } from './FishTooltip';
 import { Wall } from './Wall';
 import { Desk } from './Desk';
 import { Light } from './Light';
@@ -104,6 +105,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   );
 
   const { contentScale, tankX, tankY, deskTop } = layout;
+  const [selectedFishId, setSelectedFishId] = useState<string | null>(null);
 
   // Stage dimensions = actual CSS pixel size of the container.
   // Layer scale maps logical sceneWidth → stageWidth so coordinates stay consistent.
@@ -148,25 +150,45 @@ export const TankScene: React.FC<TankSceneProps> = ({
           {state.fish.map((f) => {
             const anim = animatedFish.get(f.id);
             if (!anim) return null;
-            const speciesConfig = FISH_SPECIES[f.speciesId];
+            const genus = getGenus(f.genusId);
             return (
               <FishSprite
                 key={f.id}
                 x={anim.x}
                 y={anim.y}
                 dx={anim.dx}
+                genusId={f.genusId}
                 speciesId={f.speciesId}
-                variantId={f.variantId}
                 healthState={f.healthState}
                 tankHunger={state.tank.hungerLevel}
                 frameCount={frameCount}
                 displaySize={anim.displaySize}
                 spriteImages={spriteImages}
                 feedingActive={feedingActive}
-                hasFeedingAnim={speciesConfig?.hasFeedingAnim ?? false}
+                hasFeedingAnim={genus?.hasFeedingAnim ?? false}
+                onClick={() => setSelectedFishId(selectedFishId === f.id ? null : f.id)}
               />
             );
           })}
+
+          {/* Fish info tooltip */}
+          {selectedFishId && (() => {
+            const f = state.fish.find((fi) => fi.id === selectedFishId);
+            const anim = f ? animatedFish.get(f.id) : undefined;
+            if (!f || !anim) return null;
+            const sp = getSpecies(f.genusId, f.speciesId);
+            return (
+              <FishTooltip
+                x={anim.x}
+                y={anim.y}
+                speciesName={sp?.displayName ?? f.speciesId}
+                bodyLengthMm={f.bodyLengthMm}
+                ageWeeks={f.ageWeeks}
+                healthState={f.healthState}
+                maintenanceQuality={f.maintenanceQuality}
+              />
+            );
+          })()}
         </Group>
 
         {/* Action bar — on desk area */}
