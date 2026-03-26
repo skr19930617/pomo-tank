@@ -1,4 +1,4 @@
-import { type GenusConfig, TankSizeTier, SwimLayer, Personality } from '../../shared/types';
+import { type GenusConfig, SwimLayer, Personality } from '../../shared/types';
 
 export const gourami: GenusConfig = {
   id: 'gourami',
@@ -9,7 +9,6 @@ export const gourami: GenusConfig = {
   baseSpeed: 0.7,
   hasFeedingAnim: false,
   capacityCost: 3,
-  minTankSize: TankSizeTier.Small,
   species: [
     {
       id: 'dwarf',

@@ -16,12 +16,9 @@ interface HudOverlayProps {
   timerColor: string;
   isPaused: boolean;
   compact: boolean;
-  // Coin display
   pomoBalance?: number;
-  // Cost capacity display
   currentCost?: number;
   maxCost?: number;
-  // Non-compact stats (full panel)
   tankHunger?: number;
   waterDirtiness?: number;
   algaeLevel?: number;
@@ -29,11 +26,16 @@ interface HudOverlayProps {
 }
 
 function formatTimer(totalSec: number): string {
-  const capped = Math.min(totalSec, 5999); // 99:59
-  const min = Math.floor(capped / 60);
+  const capped = Math.min(totalSec, 359999); // 99:59:59
+  const hrs = Math.floor(capped / 3600);
+  const min = Math.floor((capped % 3600) / 60);
   const sec = capped % 60;
-  const str = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  return totalSec > 5999 ? '99:59+' : str;
+  const mm = min.toString().padStart(2, '0');
+  const ss = sec.toString().padStart(2, '0');
+  if (hrs > 0) {
+    return `${hrs}:${mm}:${ss}`;
+  }
+  return `${mm}:${ss}`;
 }
 
 export const HudOverlay: React.FC<HudOverlayProps> = ({
@@ -41,21 +43,15 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   timerSeconds,
   timerColor,
   isPaused,
-  compact,
   pomoBalance,
   currentCost,
   maxCost,
-  tankHunger,
-  waterDirtiness,
-  algaeLevel,
-  currentStreak,
 }) => {
   // Pomo animation state
   const [pomoAnim, setPomoAnim] = useState<PomoAnimState | null>(null);
   const [animOffset, setAnimOffset] = useState(0);
   const prevBalance = useRef(pomoBalance ?? 0);
 
-  // Detect pomo balance increase → trigger animation
   useEffect(() => {
     const cur = pomoBalance ?? 0;
     const prev = prevBalance.current;
@@ -65,7 +61,6 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
     prevBalance.current = cur;
   }, [pomoBalance]);
 
-  // Animate pomo gain text
   useEffect(() => {
     if (!pomoAnim) return;
     let rafId: number;
@@ -83,15 +78,43 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
     return () => cancelAnimationFrame(rafId);
   }, [pomoAnim]);
 
-  // When paused, dim the timer text to indicate pause state
-
   const timerStr = formatTimer(timerSeconds);
   const timerOpacity = isPaused ? 0.35 : 1;
 
-  // Coin display
   const balanceStr =
-    pomoBalance !== undefined ? (pomoBalance >= 10000 ? '9999+' : String(pomoBalance)) : undefined;
+    pomoBalance !== undefined ? (pomoBalance >= 100000 ? '99999+' : String(pomoBalance)) : undefined;
 
+  // ── Measure text widths to determine scale ──
+  const pad = 4;
+  const iconGap = 2;
+  const coinIconW = COIN_ICON[0].length;
+  const fishIconW = FISH_ICON[0].length;
+
+  const timerW = measureText(timerStr);
+  const costStr = currentCost !== undefined && maxCost !== undefined ? `${currentCost}/${maxCost}` : '';
+  const costW = costStr ? fishIconW + iconGap + measureText(costStr) : 0;
+  const coinW = balanceStr !== undefined ? coinIconW + iconGap + measureText(balanceStr) : 0;
+
+  // Total natural width of all 3 groups + padding between them
+  const groupGap = 8;
+  const totalNatW = timerW + costW + coinW + pad * 2 + groupGap * 2;
+
+  // Scale down if content overflows, otherwise cap at 1
+  const hudScale = Math.min(1, sceneWidth / totalNatW);
+
+  // Positions (in scaled coordinates)
+  const scaledPad = pad / hudScale;
+
+  // Left: timer
+  const timerX = scaledPad;
+
+  // Center: cost (center the cost group horizontally)
+  const costX = costW > 0 ? (sceneWidth / hudScale - costW) / 2 : 0;
+
+  // Right: coin + balance (right-aligned)
+  const coinX = coinW > 0 ? sceneWidth / hudScale - coinW - scaledPad : 0;
+
+  // ── Build icon rects ──
   const coinRects: React.ReactElement[] = [];
   for (let r = 0; r < COIN_ICON.length; r++) {
     for (let c = 0; c < COIN_ICON[r].length; c++) {
@@ -103,21 +126,11 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
     }
   }
 
-  // Right side: coin + balance position
-  const coinWidth = balanceStr !== undefined ? 7 + 2 + measureText(balanceStr) : 0;
-  const coinX = sceneWidth - coinWidth - 4;
-
-  // Cost capacity display
   const costElements: React.ReactElement[] = [];
-  const fishIconW = FISH_ICON[0].length + 2; // icon width + gap
-  if (currentCost !== undefined && maxCost !== undefined) {
-    const timerW = measureText(timerStr);
-    const costX = 4 + timerW + 8;
-    const costStr = `${currentCost}/${maxCost}`;
+  if (costStr && currentCost !== undefined && maxCost !== undefined) {
     const costRatio = maxCost > 0 ? currentCost / maxCost : 0;
     const costColor = costRatio >= 1 ? '#ff4444' : costRatio >= 0.8 ? '#ffcc44' : '#ffffff';
 
-    // Fish icon
     for (let r = 0; r < FISH_ICON.length; r++) {
       for (let c = 0; c < FISH_ICON[r].length; c++) {
         if (FISH_ICON[r][c] === 1) {
@@ -125,7 +138,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
             <Rect
               key={`fi-${r}-${c}`}
               x={costX + c}
-              y={5 + r}
+              y={4 + r}
               width={1}
               height={1}
               fill={FISH_COLOR}
@@ -134,68 +147,43 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
         }
       }
     }
-
-    // Cost text after icon
     costElements.push(
-      <PixelText key="cost" text={costStr} x={costX + fishIconW} y={4} color={costColor} />,
+      <PixelText key="cost" text={costStr} x={costX + fishIconW + iconGap} y={4} color={costColor} />,
     );
-  }
-
-  // Non-compact stats
-  const statsElements: React.ReactElement[] = [];
-  if (!compact && tankHunger !== undefined) {
-    const timerW = measureText(timerStr);
-    const costStr =
-      currentCost !== undefined && maxCost !== undefined ? `${currentCost}/${maxCost}` : '';
-    const costW = costStr ? fishIconW + measureText(costStr) + 4 : 0;
-    let sx = 4 + timerW + 8 + costW;
-    const labels = [
-      `H:${Math.round(tankHunger)}%`,
-      `W:${Math.round(waterDirtiness ?? 0)}%`,
-      `A:${Math.round(algaeLevel ?? 0)}%`,
-      `S:${currentStreak ?? 0}`,
-    ];
-    for (let i = 0; i < labels.length; i++) {
-      if (sx + measureText(labels[i]) + 4 > coinX - 2) break;
-      statsElements.push(
-        <PixelText key={`stat-${i}`} text={labels[i]} x={sx} y={4} color="#aaaacc" />,
-      );
-      sx += measureText(labels[i]) + 4;
-    }
   }
 
   return (
     <Group>
       {/* Semi-transparent background bar */}
-      <Rect x={0} y={0} width={sceneWidth} height={HUD_HEIGHT} fill="rgba(0,0,0,0.55)" />
+      <Rect x={0} y={0} width={sceneWidth} height={HUD_HEIGHT} fill="#1a1a2a" />
 
-      {/* Timer (left) */}
-      <PixelText text={timerStr} x={4} y={4} color={timerColor} opacity={timerOpacity} />
+      {/* Scaled content group */}
+      <Group scaleX={hudScale} scaleY={hudScale}>
+        {/* Left: Timer */}
+        <PixelText text={timerStr} x={timerX} y={4} color={timerColor} opacity={timerOpacity} />
 
-      {/* Cost capacity */}
-      {costElements}
+        {/* Center: Cost capacity */}
+        {costElements}
 
-      {/* Non-compact stats */}
-      {statsElements}
+        {/* Right: Coin + Balance */}
+        {balanceStr !== undefined && (
+          <Group x={coinX} y={4}>
+            <Group>{coinRects}</Group>
+            <PixelText text={balanceStr} x={coinIconW + iconGap} y={0} color={COIN_COLOR} />
+          </Group>
+        )}
 
-      {/* Coin + Balance (right) */}
-      {balanceStr !== undefined && (
-        <Group x={coinX} y={4}>
-          <Group>{coinRects}</Group>
-          <PixelText text={balanceStr} x={9} y={0} color={COIN_COLOR} />
-        </Group>
-      )}
-
-      {/* Pomo gain animation */}
-      {pomoAnim && balanceStr !== undefined && (
-        <PixelText
-          text={`+${pomoAnim.amount}`}
-          x={coinX + 4}
-          y={4 - animOffset}
-          color="#44ff44"
-          opacity={1 - animOffset / 20}
-        />
-      )}
+        {/* Pomo gain animation */}
+        {pomoAnim && balanceStr !== undefined && (
+          <PixelText
+            text={`+${pomoAnim.amount}`}
+            x={coinX + 4}
+            y={4 - animOffset}
+            color="#44ff44"
+            opacity={1 - animOffset / 20}
+          />
+        )}
+      </Group>
     </Group>
   );
 };

@@ -4,14 +4,6 @@
 
 // ── Enums (re-exported from here as canonical source) ──
 
-export enum TankSizeTier {
-  Nano = 'Nano',
-  Small = 'Small',
-  Medium = 'Medium',
-  Large = 'Large',
-  XL = 'XL',
-}
-
 export enum HealthState {
   Healthy = 'Healthy',
   Warning = 'Warning',
@@ -45,7 +37,25 @@ export type GenusId = 'neon_tetra' | 'corydoras' | 'gourami' | 'otocinclus' | 's
 
 export type AnimState = 'swim' | 'weak' | 'feeding';
 
-// ── Genus/Species hierarchy (new) ──
+// ── Tank Config Types ──
+
+export type TankId = 'nano_20' | 'small_30' | 'medium_45' | 'large_60' | 'xl_90';
+
+export interface TankConfig {
+  id: TankId;
+  displayName: string;
+  widthMm: number;
+  heightMm: number;
+  depthMm: number;
+  baseCapacity: number;
+  pomoCost: number;
+  prerequisite: { requiredUnlocks?: string[] };
+  description: string;
+  renderWidth: number;
+  renderHeight: number;
+}
+
+// ── Genus/Species hierarchy ──
 
 export interface SpriteSet {
   swim: string;
@@ -73,7 +83,6 @@ export interface GenusConfig {
   baseSpeed: number;
   hasFeedingAnim: boolean;
   capacityCost: number;
-  minTankSize: TankSizeTier;
   species: SpeciesConfig[];
 }
 
@@ -96,17 +105,17 @@ export interface FilterConfig {
   displayName: string;
   capacityBonus: number;
   pomoCost: number;
-  prerequisite: { minTankSize?: TankSizeTier; requiredUnlocks?: string[] };
+  prerequisite: { minTankId?: TankId; requiredUnlocks?: string[] };
   description: string;
   mount: FilterMountType;
   visual: FilterVisual;
 }
 
 export type StoreItemId =
-  | 'tank_small'
-  | 'tank_medium'
-  | 'tank_large'
-  | 'tank_xl'
+  | 'small_30'
+  | 'medium_45'
+  | 'large_60'
+  | 'xl_90'
   | 'hang_on_back'
   | 'canister'
   | 'premium_canister'
@@ -122,37 +131,18 @@ export type ActionType = 'feedFish' | 'changeWater' | 'cleanAlgae';
 
 // ── Constants ──
 
-export const TANK_BASE_CAPACITY: Record<TankSizeTier, number> = {
-  [TankSizeTier.Nano]: 4,
-  [TankSizeTier.Small]: 8,
-  [TankSizeTier.Medium]: 14,
-  [TankSizeTier.Large]: 22,
-  [TankSizeTier.XL]: 32,
-};
-
 export const DETERIORATION_THRESHOLD = 70;
-
-export const TANK_SIZE_ORDER: TankSizeTier[] = [
-  TankSizeTier.Nano,
-  TankSizeTier.Small,
-  TankSizeTier.Medium,
-  TankSizeTier.Large,
-  TankSizeTier.XL,
-];
-
-export const TANK_RENDER_SIZES: Record<TankSizeTier, { width: number; height: number }> = {
-  [TankSizeTier.Nano]: { width: 200, height: 150 },
-  [TankSizeTier.Small]: { width: 260, height: 195 },
-  [TankSizeTier.Medium]: { width: 320, height: 240 },
-  [TankSizeTier.Large]: { width: 370, height: 278 },
-  [TankSizeTier.XL]: { width: 400, height: 300 },
-};
 
 export const DESK_HEIGHT = 30;
 export const LIGHT_BAR_HEIGHT = 20;
 
 // ── HUD constants ──
 export const HUD_HEIGHT = 16;
+export const HUD_BOTTOM_PAD = 8;
+
+// ── Light spacing constants ──
+/** Light-to-tank gap as a fraction of raw tank height (e.g. 0.08 = 8%) */
+export const LIGHT_GAP_RATIO = 0.08;
 export const DEFAULT_SESSION_MINUTES = 25;
 
 // ── Timer Mode ──
@@ -180,13 +170,4 @@ export const SWIM_LAYER_RANGES: Record<SwimLayer, { min: number; max: number }> 
   [SwimLayer.middle]: { min: 0.25, max: 0.75 },
   [SwimLayer.lower]: { min: 0.6, max: 0.95 },
   [SwimLayer.all]: { min: 0.05, max: 0.95 },
-};
-
-// ── Tank Dimensions (mm) ──
-export const TANK_DIMENSIONS_MM: Record<TankSizeTier, { widthMm: number; heightMm: number }> = {
-  [TankSizeTier.Nano]: { widthMm: 200, heightMm: 150 },
-  [TankSizeTier.Small]: { widthMm: 300, heightMm: 225 },
-  [TankSizeTier.Medium]: { widthMm: 450, heightMm: 300 },
-  [TankSizeTier.Large]: { widthMm: 600, heightMm: 400 },
-  [TankSizeTier.XL]: { widthMm: 900, heightMm: 600 },
 };

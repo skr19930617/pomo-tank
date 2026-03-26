@@ -4,14 +4,13 @@ import {
   type ActionType,
   type TimerMode,
   HealthState,
-  TankSizeTier,
-  TANK_BASE_CAPACITY,
   generateFishId,
   createInitialState,
   DEFAULT_SESSION_MINUTES,
 } from './state';
-import type { FilterId } from '../shared/types';
+import type { FilterId, TankId } from '../shared/types';
 import { getFilter } from './filters';
+import { getTank } from './tanks';
 import { applyTick } from './deterioration';
 import { evaluateHealthTick } from './health';
 import { calculatePoints, isWellTimed, updateStreak } from './points';
@@ -299,24 +298,27 @@ export class GameEngine {
     this.notifySubscribers();
   }
 
-  switchTank(sizeTier: TankSizeTier): { success: boolean; message?: string } {
-    // Validate unlocked (Nano is always available)
-    if (sizeTier !== TankSizeTier.Nano) {
-      const tankItemId = `tank_${sizeTier.toLowerCase()}`;
-      if (!this.state.player.unlockedItems.includes(tankItemId)) {
-        return { success: false, message: 'Tank size not unlocked' };
+  switchTank(tankId: TankId): { success: boolean; message?: string } {
+    const tankConfig = getTank(tankId);
+    if (!tankConfig) {
+      return { success: false, message: 'Unknown tank' };
+    }
+    // Validate unlocked (starter tank is always available)
+    if (tankConfig.pomoCost > 0) {
+      if (!this.state.player.unlockedItems.includes(tankId)) {
+        return { success: false, message: 'Tank not unlocked' };
       }
     }
     // Validate capacity
     const filterBonus = getFilter(this.state.tank.filterId)?.capacityBonus ?? 0;
-    const newMaxCapacity = TANK_BASE_CAPACITY[sizeTier] + filterBonus;
+    const newMaxCapacity = tankConfig.baseCapacity + filterBonus;
     const currentCost = calculateCurrentCost(this.state.fish);
     if (currentCost > newMaxCapacity) {
       return { success: false, message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})` };
     }
     this.state = {
       ...this.state,
-      tank: { ...this.state.tank, sizeTier },
+      tank: { ...this.state.tank, tankId },
     };
     this.notifySubscribers();
     return { success: true };
@@ -331,7 +333,8 @@ export class GameEngine {
     }
     // Validate capacity
     const newFilterBonus = getFilter(filterId)?.capacityBonus ?? 0;
-    const newMaxCapacity = TANK_BASE_CAPACITY[this.state.tank.sizeTier] + newFilterBonus;
+    const currentTank = getTank(this.state.tank.tankId);
+    const newMaxCapacity = (currentTank?.baseCapacity ?? 0) + newFilterBonus;
     const currentCost = calculateCurrentCost(this.state.fish);
     if (currentCost > newMaxCapacity) {
       return { success: false, message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})` };
@@ -411,7 +414,7 @@ export class GameEngine {
 
     return {
       tank: {
-        sizeTier: this.state.tank.sizeTier,
+        tankId: this.state.tank.tankId,
         hungerLevel: this.state.tank.hungerLevel,
         waterDirtiness: this.state.tank.waterDirtiness,
         algaeLevel: this.state.tank.algaeLevel,

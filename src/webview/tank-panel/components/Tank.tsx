@@ -1,5 +1,5 @@
 import React from 'react';
-import { Rect, Group } from 'react-konva';
+import { Rect, Line, Group } from 'react-konva';
 import type { FilterId } from '../../../shared/types';
 import { getFilter } from '../../../game/filters';
 
@@ -30,6 +30,11 @@ export const Tank: React.FC<TankProps> = ({
   const innerW = tankWidth - frameThickness * 2;
   const innerH = tankHeight - frameThickness * 2;
 
+  // Water fills 90% of inner height (air gap at top)
+  const waterRatio = 0.9;
+  const waterH = innerH * waterRatio;
+  const waterTop = innerTop + innerH - waterH;
+
   // Water color tinted by dirtiness (0-100)
   const dirtFactor = Math.min(waterDirtiness / 100, 1);
   const waterR = Math.round(60 + dirtFactor * 80);
@@ -46,23 +51,34 @@ export const Tank: React.FC<TankProps> = ({
 
   return (
     <>
-      {/* Tank frame (border) */}
-      <Rect
-        x={tankLeft}
-        y={tankTop}
-        width={tankWidth}
-        height={tankHeight}
+      {/* Tank frame (3 sides — no top edge, open-top aquarium) */}
+      <Line
+        points={[
+          tankLeft, tankTop,
+          tankLeft, tankTop + tankHeight,
+          tankLeft + tankWidth, tankTop + tankHeight,
+          tankLeft + tankWidth, tankTop,
+        ]}
         stroke="#88aacc"
         strokeWidth={frameThickness}
-        fill="transparent"
+      />
+
+      {/* Air gap (transparent background above water line) */}
+      <Rect
+        x={innerLeft}
+        y={innerTop}
+        width={innerW}
+        height={innerH - waterH}
+        fill="#1a2a3a"
+        opacity={0.15}
       />
 
       {/* Water fill */}
       <Rect
         x={innerLeft}
-        y={innerTop}
+        y={waterTop}
         width={innerW}
-        height={innerH}
+        height={waterH}
         fill={waterColor}
         opacity={0.85}
       />
@@ -93,7 +109,7 @@ export const Tank: React.FC<TankProps> = ({
         <>
           <Rect
             x={innerLeft + 8}
-            y={innerTop + 4}
+            y={waterTop + 2}
             width={innerW * 0.3}
             height={3}
             fill="#ffffff"
@@ -101,7 +117,7 @@ export const Tank: React.FC<TankProps> = ({
           />
           <Rect
             x={innerLeft + innerW * 0.5}
-            y={innerTop + 8}
+            y={waterTop + 6}
             width={innerW * 0.2}
             height={2}
             fill="#ffffff"
@@ -126,15 +142,16 @@ export const Tank: React.FC<TankProps> = ({
         );
       })()}
 
-      {/* Glass border overlay */}
-      <Rect
-        x={tankLeft}
-        y={tankTop}
-        width={tankWidth}
-        height={tankHeight}
+      {/* Glass border overlay (3 sides) */}
+      <Line
+        points={[
+          tankLeft, tankTop,
+          tankLeft, tankTop + tankHeight,
+          tankLeft + tankWidth, tankTop + tankHeight,
+          tankLeft + tankWidth, tankTop,
+        ]}
         stroke="#aaccee"
         strokeWidth={1}
-        fill="transparent"
       />
 
       {/* Dark overlay when light off */}

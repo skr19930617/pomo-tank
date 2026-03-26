@@ -1,4 +1,4 @@
-import { type GenusConfig, TankSizeTier, SwimLayer, Personality } from '../../shared/types';
+import { type GenusConfig, SwimLayer, Personality } from '../../shared/types';
 
 export const shrimp: GenusConfig = {
   id: 'shrimp',
@@ -9,7 +9,6 @@ export const shrimp: GenusConfig = {
   baseSpeed: 0.6,
   hasFeedingAnim: true,
   capacityCost: 1,
-  minTankSize: TankSizeTier.Nano,
   species: [
     {
       id: 'amano',

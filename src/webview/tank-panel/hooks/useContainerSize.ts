@@ -24,6 +24,7 @@ export function fitScene(
 
 /**
  * Tracks the size of a container element via window resize events.
+ * NOTE: ResizeObserver does NOT fire in VSCode webviews — use window resize instead.
  *
  * Returns two sizes:
  * - `size`: updates every frame (for CSS transform scaling)
@@ -67,7 +68,9 @@ export function useContainerSize(
       }
     };
 
+    // Measure immediately + after a frame (layout may not be ready on first mount)
     measure();
+    const initRaf = requestAnimationFrame(() => measure());
 
     let rafId: number | null = null;
     const onResize = () => {
@@ -81,6 +84,7 @@ export function useContainerSize(
     window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(initRaf);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [clamp]);

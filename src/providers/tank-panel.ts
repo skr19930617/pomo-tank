@@ -154,7 +154,7 @@ export class TankPanelManager {
       case 'openTank':
         break;
       case 'switchTank': {
-        const tankResult = this.engine.switchTank(message.sizeTier);
+        const tankResult = this.engine.switchTank(message.tankId);
         this.sendToWebview({ type: 'managementResult', action: 'Switch Tank', ...tankResult });
         this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
         break;

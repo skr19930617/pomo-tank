@@ -3,15 +3,14 @@ import {
   type Fish,
   type Tank,
   STORE_ITEMS,
-  TANK_BASE_CAPACITY,
-  TANK_SIZE_ORDER,
-  TankSizeTier,
   StoreItemType,
   HealthState,
   generateFishId,
 } from './state';
 import { getGenus, getSpecies, parseSpeciesStoreId } from './species';
 import { getFilter } from './filters';
+import { getTank } from './tanks';
+import type { TankId, FilterId } from '../shared/types';
 
 export interface PurchaseResult {
   success: boolean;
@@ -30,9 +29,20 @@ export function calculateCurrentCost(fish: Fish[]): number {
 }
 
 export function calculateMaxCapacity(tank: Tank): number {
-  const base = TANK_BASE_CAPACITY[tank.sizeTier];
+  const base = getTank(tank.tankId)?.baseCapacity ?? 0;
   const bonus = getFilter(tank.filterId)?.capacityBonus ?? 0;
   return base + bonus;
+}
+
+// ── Fish Size Restriction ──
+
+export function canFishFitInTank(genusId: string, tankId: TankId): boolean {
+  const genus = getGenus(genusId as Fish['genusId']);
+  const tank = getTank(tankId);
+  if (!genus || !tank) return false;
+
+  const maxFishSize = Math.max(...genus.species.map((s) => s.maxSizeMm));
+  return tank.widthMm >= maxFishSize * 4;
 }
 
 // ── Purchase Logic ──
@@ -66,17 +76,6 @@ export function canPurchase(
     }
   }
 
-  if (item.prerequisite.minTankSize) {
-    const currentIdx = TANK_SIZE_ORDER.indexOf(state.tank.sizeTier);
-    const requiredIdx = TANK_SIZE_ORDER.indexOf(item.prerequisite.minTankSize);
-    if (currentIdx < requiredIdx) {
-      return {
-        allowed: false,
-        reason: `Requires ${item.prerequisite.minTankSize} tank or larger.`,
-      };
-    }
-  }
-
   // Type-specific checks
   if (item.type === StoreItemType.TankUpgrade) {
     if (state.player.unlockedItems.includes(itemId)) {
@@ -106,16 +105,14 @@ export function canPurchase(
       };
     }
 
-    // Check species min tank size
-    if (genus) {
-      const currentIdx = TANK_SIZE_ORDER.indexOf(state.tank.sizeTier);
-      const requiredIdx = TANK_SIZE_ORDER.indexOf(genus.minTankSize);
-      if (currentIdx < requiredIdx) {
-        return {
-          allowed: false,
-          reason: `${genus.displayName} needs a ${genus.minTankSize} tank or larger.`,
-        };
-      }
+    // Check fish size fits in tank
+    if (genus && !canFishFitInTank(genus.id, state.tank.tankId)) {
+      const maxFishSize = Math.max(...genus.species.map((s) => s.maxSizeMm));
+      const tankConfig = getTank(state.tank.tankId);
+      return {
+        allowed: false,
+        reason: `${genus.displayName} (max ${maxFishSize}mm) needs ${maxFishSize * 4}mm+ tank width, current: ${tankConfig?.widthMm ?? 0}mm.`,
+      };
     }
   }
 
@@ -142,22 +139,13 @@ export function executePurchase(
 
   switch (item.type) {
     case StoreItemType.TankUpgrade: {
-      const sizeMap: Record<string, TankSizeTier> = {
-        tank_small: TankSizeTier.Small,
-        tank_medium: TankSizeTier.Medium,
-        tank_large: TankSizeTier.Large,
-        tank_xl: TankSizeTier.XL,
-      };
-      const newSize = sizeMap[itemId];
-      if (newSize) {
-        newState.tank.sizeTier = newSize;
-      }
+      newState.tank.tankId = itemId as TankId;
       newState.player.unlockedItems.push(itemId);
       break;
     }
 
     case StoreItemType.Filter: {
-      newState.tank.filterId = itemId;
+      newState.tank.filterId = itemId as FilterId;
       newState.player.unlockedItems.push(itemId);
       break;
     }
@@ -167,7 +155,6 @@ export function executePurchase(
       const parsed = parseSpeciesStoreId(itemId);
       if (!parsed) break;
 
-      const genus = getGenus(parsed.genusId);
       const speciesConfig = getSpecies(parsed.genusId, parsed.speciesId);
 
       const initialSizeMm = speciesConfig
@@ -195,9 +182,6 @@ export function executePurchase(
         purchasedAt: Date.now(),
       };
       newState.fish.push(newFish);
-
-      // Suppress unused variable warning for genus (used for capacity in canPurchase)
-      void genus;
       break;
     }
   }

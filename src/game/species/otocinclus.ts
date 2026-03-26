@@ -1,4 +1,4 @@
-import { type GenusConfig, TankSizeTier, SwimLayer, Personality } from '../../shared/types';
+import { type GenusConfig, SwimLayer, Personality } from '../../shared/types';
 
 export const otocinclus: GenusConfig = {
   id: 'otocinclus',
@@ -9,7 +9,6 @@ export const otocinclus: GenusConfig = {
   baseSpeed: 0.9,
   hasFeedingAnim: true,
   capacityCost: 2,
-  minTankSize: TankSizeTier.Small,
   species: [
     {
       id: 'standard',

@@ -15,7 +15,7 @@ import { DebugPanel } from './components/DebugPanel';
 import { TankManager } from './components/TankManager';
 import { FishManager } from './components/FishManager';
 import { useSettings } from './hooks/useSettings';
-import { TANK_RENDER_SIZES } from '../../shared/types';
+import { getTank } from '../../game/tanks';
 
 /** Fixed logical scene dimensions — the coordinate space everything is designed in. */
 const SCENE_W = 240;
@@ -39,23 +39,24 @@ export const App: React.FC = () => {
 
   const fishBounds: FishBounds = useMemo(() => {
     if (!state) return { left: 0, top: 0, width: 100, height: 100 };
-    const rawSize = TANK_RENDER_SIZES[state.tank.sizeTier];
+    const tank = getTank(state.tank.tankId);
+    if (!tank) return { left: 0, top: 0, width: 100, height: 100 };
     const frame = 3;
     const sand = 8;
     return {
       left: frame,
       top: frame,
-      width: rawSize.width - frame * 2,
-      height: rawSize.height - frame * 2 - sand,
+      width: tank.renderWidth - frame * 2,
+      height: tank.renderHeight - frame * 2 - sand,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.tank.sizeTier]);
+  }, [state?.tank.tankId]);
 
   const { animatedFish, frameCount } = useFishAnimation(
     state?.fish,
     state?.lightOn ?? true,
     fishBounds,
-    state?.tank.sizeTier,
+    state?.tank.tankId,
   );
 
   if (!state) {

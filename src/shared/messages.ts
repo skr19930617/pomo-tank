@@ -2,7 +2,7 @@
 // Discriminated unions ensuring type-safe communication.
 
 import type { GameStateSnapshot } from '../game/state';
-import type { UserSettings, TankSizeTier, FilterId } from './types';
+import type { UserSettings, TankId, FilterId } from './types';
 
 // ── Extension → Webview ──
 
@@ -28,7 +28,7 @@ export type WebviewToExtensionMessage =
   | { type: 'debugResetState' }
   | { type: 'debugSetTickMultiplier'; multiplier: number }
   | { type: 'updateSettings'; settings: Partial<UserSettings> }
-  | { type: 'switchTank'; sizeTier: TankSizeTier }
+  | { type: 'switchTank'; tankId: TankId }
   | { type: 'switchFilter'; filterId: FilterId }
   | { type: 'renameFish'; fishId: string; customName: string }
   | { type: 'removeFish'; fishId: string };

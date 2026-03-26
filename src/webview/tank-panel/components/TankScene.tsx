@@ -2,11 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { Stage, Layer, Group } from 'react-konva';
 import type { GameStateSnapshot } from '../../../game/state';
 import {
-  TANK_RENDER_SIZES,
   DESK_HEIGHT,
   LIGHT_BAR_HEIGHT,
+  LIGHT_GAP_RATIO,
   HUD_HEIGHT,
+  HUD_BOTTOM_PAD,
 } from '../../../shared/types';
+import { getTank } from '../../../game/tanks';
 import type { AnimatedFishData } from '../hooks/useFishAnimation';
 import type { SpriteImageMap } from '../hooks/useSpriteLoader';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
@@ -25,8 +27,8 @@ import { useTimer } from '../hooks/useTimer';
 const DEFAULT_SCENE_W = 480;
 const DEFAULT_SCENE_H = 380;
 
-/** Padding between HUD / desk and the tank cluster. */
-const TANK_PAD = 4;
+/** Tank cluster occupies this fraction of available width/height (rest is margin). */
+const CLUSTER_FILL = 0.92;
 
 export interface TankLayout {
   contentScale: number;
@@ -49,16 +51,19 @@ export function computeTankLayout(
 ): TankLayout {
   const deskTop = sceneHeight - DESK_HEIGHT;
 
-  const clusterH = rawTankH + LIGHT_BAR_HEIGHT;
-  const availW = sceneWidth - TANK_PAD * 2;
-  const availH = deskTop - HUD_HEIGHT - TANK_PAD;
+  const lightGap = rawTankH * LIGHT_GAP_RATIO;
+  const clusterH = rawTankH + LIGHT_BAR_HEIGHT + lightGap;
+  const totalW = sceneWidth;
+  const totalH = deskTop - HUD_HEIGHT - HUD_BOTTOM_PAD;
+  const availW = totalW * CLUSTER_FILL;
+  const availH = totalH * CLUSTER_FILL;
 
   const contentScale = Math.min(availW / rawTankW, availH / clusterH);
 
   const scaledTankW = rawTankW * contentScale;
   const scaledTankH = rawTankH * contentScale;
 
-  // Pin tank bottom to desk top
+  // Pin tank bottom to desk top, extra space goes above the light
   const tankX = (sceneWidth - scaledTankW) / 2;
   const tankY = deskTop - scaledTankH;
 
@@ -98,7 +103,9 @@ export const TankScene: React.FC<TankSceneProps> = ({
   spriteImages,
   feedingActive,
 }) => {
-  const { width: rawTankW, height: rawTankH } = TANK_RENDER_SIZES[state.tank.sizeTier];
+  const tankConfig = getTank(state.tank.tankId);
+  const rawTankW = tankConfig?.renderWidth ?? 200;
+  const rawTankH = tankConfig?.renderHeight ?? 150;
 
   const layout = useMemo(
     () => computeTankLayout(sceneWidth, sceneHeight, rawTankW, rawTankH),
@@ -123,7 +130,8 @@ export const TankScene: React.FC<TankSceneProps> = ({
     state.tickMultiplier,
   );
 
-  const lightTopRaw = -LIGHT_BAR_HEIGHT;
+  const lightGapRaw = rawTankH * LIGHT_GAP_RATIO;
+  const lightTopRaw = -(LIGHT_BAR_HEIGHT + lightGapRaw);
 
   return (
     <Stage width={stageW} height={stageH}>
@@ -137,7 +145,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
         {/* Tank cluster: scaled & positioned group */}
         <Group x={tankX} y={tankY} scaleX={contentScale} scaleY={contentScale}>
           {/* Light bar */}
-          <Light tankLeft={0} tankWidth={rawTankW} lightTop={lightTopRaw} lightOn={state.lightOn} />
+          <Light tankLeft={0} tankWidth={rawTankW} lightTop={lightTopRaw} lightOn={state.lightOn} lightGap={lightGapRaw} />
 
           {/* Tank body */}
           <Tank

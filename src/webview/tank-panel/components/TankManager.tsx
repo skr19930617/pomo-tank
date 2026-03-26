@@ -7,20 +7,13 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import type { GameStateSnapshot } from '../../../game/state';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
-import { TankSizeTier, TANK_BASE_CAPACITY, TANK_SIZE_ORDER } from '../../../shared/types';
 import { getFilter, getAllFilters } from '../../../game/filters';
+import { getTank, getAllTanks } from '../../../game/tanks';
 
 interface TankManagerProps {
   state: GameStateSnapshot;
   sendMessage: (msg: WebviewToExtensionMessage) => void;
 }
-
-const TANK_ITEM_MAP: Record<string, TankSizeTier> = {
-  tank_small: TankSizeTier.Small,
-  tank_medium: TankSizeTier.Medium,
-  tank_large: TankSizeTier.Large,
-  tank_xl: TankSizeTier.XL,
-};
 
 const accordionSummarySx = {
   bgcolor: 'background.paper',
@@ -50,11 +43,10 @@ export const TankManager: React.FC<TankManagerProps> = ({ state, sendMessage }) 
   const currentFilterBonus = getFilter(state.tank.filterId)?.capacityBonus ?? 0;
   const currentCost = state.capacity.current;
 
-  const availableSizes = TANK_SIZE_ORDER.filter((tier) => {
-    if (tier === TankSizeTier.Nano) return true;
-    return Object.entries(TANK_ITEM_MAP).some(
-      ([itemId, t]) => t === tier && unlockedItems.includes(itemId),
-    );
+  const allTanks = getAllTanks();
+  const availableTanks = allTanks.filter((tank) => {
+    if (tank.pomoCost === 0) return true; // Starter tank always available
+    return unlockedItems.includes(tank.id);
   });
 
   const allFilters = getAllFilters();
@@ -75,21 +67,20 @@ export const TankManager: React.FC<TankManagerProps> = ({ state, sendMessage }) 
         </AccordionSummary>
         <AccordionDetails sx={{ bgcolor: 'background.panel', borderRadius: '0 0 4px 4px' }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {availableSizes.map((tier) => {
-              const isActive = state.tank.sizeTier === tier;
-              const baseCap = TANK_BASE_CAPACITY[tier];
-              const newMax = baseCap + currentFilterBonus;
+            {availableTanks.map((tank) => {
+              const isActive = state.tank.tankId === tank.id;
+              const newMax = tank.baseCapacity + currentFilterBonus;
               const wouldExceed = currentCost > newMax;
               return (
                 <Button
-                  key={tier}
+                  key={tank.id}
                   size="small"
                   variant={isActive ? 'contained' : 'outlined'}
                   disabled={isActive || wouldExceed}
-                  onClick={() => sendMessage({ type: 'switchTank', sizeTier: tier })}
+                  onClick={() => sendMessage({ type: 'switchTank', tankId: tank.id })}
                   sx={optionButtonSx(isActive, wouldExceed)}
                 >
-                  {tier} ({baseCap})
+                  {tank.displayName} ({tank.baseCapacity})
                 </Button>
               );
             })}
@@ -109,7 +100,8 @@ export const TankManager: React.FC<TankManagerProps> = ({ state, sendMessage }) 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
             {availableFilters.map((filter) => {
               const isActive = state.tank.filterId === filter.id;
-              const baseCap = TANK_BASE_CAPACITY[state.tank.sizeTier];
+              const currentTank = getTank(state.tank.tankId);
+              const baseCap = currentTank?.baseCapacity ?? 0;
               const newMax = baseCap + filter.capacityBonus;
               const wouldExceed = currentCost > newMax;
               return (

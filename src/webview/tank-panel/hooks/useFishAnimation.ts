@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { GameStateSnapshot } from '../../../game/state';
 import { getGenus } from '../../../game/species';
-import { HealthState, SWIM_LAYER_RANGES, TANK_DIMENSIONS_MM, TANK_RENDER_SIZES } from '../../../shared/types';
+import { HealthState, SWIM_LAYER_RANGES, type TankId } from '../../../shared/types';
+import { getTank } from '../../../game/tanks';
 
 export interface AnimatedFishData {
   x: number;
@@ -45,7 +46,7 @@ export function useFishAnimation(
   fish: GameStateSnapshot['fish'] | undefined,
   lightOn: boolean,
   bounds: FishBounds,
-  tankSizeTier?: string,
+  tankId?: string,
 ): { animatedFish: Map<string, AnimatedFishData>; frameCount: number } {
   const stateRef = useRef<Map<string, FishAnimState>>(new Map());
   const [animState, setAnimState] = useState<{
@@ -115,9 +116,9 @@ export function useFishAnimation(
       const result = new Map<string, AnimatedFishData>();
 
       // Compute tank dimensions for mm→px conversion
-      const tier = (tankSizeTier ?? 'Nano') as keyof typeof TANK_DIMENSIONS_MM;
-      const tankDims = TANK_DIMENSIONS_MM[tier] ?? TANK_DIMENSIONS_MM.Nano;
-      const tankRender = TANK_RENDER_SIZES[tier] ?? TANK_RENDER_SIZES.Nano;
+      const tankCfg = getTank(tankId as TankId | undefined);
+      const tankWidthMm = tankCfg?.widthMm ?? 250;
+      const tankRenderWidth = tankCfg?.renderWidth ?? 110;
 
       // ── Schooling: build per-genus neighbor lists for boids ──
       const schoolingFish = new Map<string, Array<{ id: string; s: FishAnimState }>>();
@@ -140,7 +141,7 @@ export function useFishAnimation(
         const genus = getGenus(f.genusId);
 
         // Compute display size from mm
-        const displaySize = mmToPx(f.bodyLengthMm, tankDims.widthMm, tankRender.width);
+        const displaySize = mmToPx(f.bodyLengthMm, tankWidthMm, tankRenderWidth);
 
         if (isDead) {
           // Dead fish freeze in place
@@ -255,7 +256,7 @@ export function useFishAnimation(
     return () => {
       cancelAnimationFrame(rafRef.current);
     };
-  }, [fish, lightOn, bounds, syncFish, tankSizeTier]);
+  }, [fish, lightOn, bounds, syncFish, tankId]);
 
   return { animatedFish: animState.fish, frameCount: animState.frameCount };
 }

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { GameState } from '../game/state';
+import { migrateState } from '../game/state';
 import { type UserSettings, DEFAULT_USER_SETTINGS } from '../shared/types';
 
 const STATE_KEY = 'pomotank.gameState';
@@ -22,7 +23,9 @@ export function loadState(): GameState | undefined {
   if (!context) {
     throw new Error('Storage not initialized');
   }
-  return context.globalState.get<GameState>(STATE_KEY);
+  const raw = context.globalState.get(STATE_KEY);
+  if (!raw) return undefined;
+  return migrateState(raw);
 }
 
 export function clearState(): Thenable<void> {

@@ -32,8 +32,6 @@ export const Wall: React.FC<WallProps> = ({ sceneWidth, sceneHeight }) => {
           fill={color}
         />
       ))}
-      {/* Decorative shelf line */}
-      <Line points={[0, 60, sceneWidth, 60]} stroke="#444460" strokeWidth={2} />
     </>
   );
 };

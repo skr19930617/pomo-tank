@@ -1,4 +1,4 @@
-import { type GenusConfig, TankSizeTier, SwimLayer, Personality } from '../../shared/types';
+import { type GenusConfig, SwimLayer, Personality } from '../../shared/types';
 
 export const neonTetra: GenusConfig = {
   id: 'neon_tetra',
@@ -9,7 +9,7 @@ export const neonTetra: GenusConfig = {
   baseSpeed: 1.2,
   hasFeedingAnim: false,
   capacityCost: 1,
-  minTankSize: TankSizeTier.Nano,
+
   species: [
     {
       id: 'standard',

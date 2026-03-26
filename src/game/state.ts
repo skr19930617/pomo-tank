@@ -1,21 +1,20 @@
 // ── Re-export shared types ──
 export {
-  TankSizeTier,
   HealthState,
   StoreItemType,
   SwimLayer,
   Personality,
-  TANK_BASE_CAPACITY,
-  TANK_SIZE_ORDER,
-  TANK_RENDER_SIZES,
   DESK_HEIGHT,
   LIGHT_BAR_HEIGHT,
+  LIGHT_GAP_RATIO,
+  HUD_BOTTOM_PAD,
   DETERIORATION_THRESHOLD,
   DEFAULT_SESSION_MINUTES,
   SWIM_LAYER_RANGES,
-  TANK_DIMENSIONS_MM,
 } from '../shared/types';
 export type {
+  TankId,
+  TankConfig,
   GenusId,
   FilterId,
   StoreItemId,
@@ -32,9 +31,9 @@ export type {
 } from '../shared/types';
 
 import {
-  TankSizeTier,
   HealthState,
   StoreItemType,
+  type TankId,
   type GenusId,
   type FilterId,
   type TimerMode,
@@ -42,11 +41,11 @@ import {
 
 import { buildFishStoreItems } from './species';
 import { buildFilterStoreItems } from './filters';
+import { buildTankStoreItems } from './tanks';
 
 // ── Store Item Catalog ──
 
 export interface StoreItemPrerequisite {
-  minTankSize?: TankSizeTier;
   requiredUnlocks?: string[];
 }
 
@@ -59,44 +58,9 @@ export interface StoreItemData {
   description: string;
 }
 
-const BASE_STORE_ITEMS: Record<string, StoreItemData> = {
-  tank_small: {
-    id: 'tank_small',
-    name: 'Small Tank',
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 30,
-    prerequisite: {},
-    description: 'A cozy upgrade. Base capacity: 8.',
-  },
-  tank_medium: {
-    id: 'tank_medium',
-    name: 'Medium Tank',
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 100,
-    prerequisite: { requiredUnlocks: ['tank_small'] },
-    description: 'Room to grow. Base capacity: 14.',
-  },
-  tank_large: {
-    id: 'tank_large',
-    name: 'Large Tank',
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 250,
-    prerequisite: { requiredUnlocks: ['tank_medium'] },
-    description: 'A proper aquarium. Base capacity: 22.',
-  },
-  tank_xl: {
-    id: 'tank_xl',
-    name: 'XL Tank',
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 500,
-    prerequisite: { requiredUnlocks: ['tank_large'] },
-    description: 'The ultimate tank. Base capacity: 32.',
-  },
-};
-
-// Fish and filter store items are generated dynamically from configs
+// Fish, filter, and tank store items are all generated dynamically from configs
 export const STORE_ITEMS: Record<string, StoreItemData> = {
-  ...BASE_STORE_ITEMS,
+  ...buildTankStoreItems(),
   ...buildFishStoreItems(),
   ...buildFilterStoreItems(),
 };
@@ -118,7 +82,7 @@ export interface Fish {
 }
 
 export interface Tank {
-  sizeTier: TankSizeTier;
+  tankId: TankId;
   hungerLevel: number;
   waterDirtiness: number;
   algaeLevel: number;
@@ -148,7 +112,7 @@ export interface GameState {
 
 export interface GameStateSnapshot {
   tank: {
-    sizeTier: TankSizeTier;
+    tankId: TankId;
     hungerLevel: number;
     waterDirtiness: number;
     algaeLevel: number;
@@ -200,6 +164,41 @@ export interface GameStateSnapshot {
   tickMultiplier: number;
 }
 
+// ── State Migration ──
+
+const TIER_TO_TANK_ID: Record<string, TankId> = {
+  Nano: 'nano_20',
+  Small: 'small_30',
+  Medium: 'medium_45',
+  Large: 'large_60',
+  XL: 'xl_90',
+};
+
+const ITEM_MIGRATION: Record<string, string> = {
+  tank_small: 'small_30',
+  tank_medium: 'medium_45',
+  tank_large: 'large_60',
+  tank_xl: 'xl_90',
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function migrateState(raw: any): GameState {
+  // Migrate old TankSizeTier → TankId
+  if (raw?.tank && 'sizeTier' in raw.tank && !('tankId' in raw.tank)) {
+    raw.tank.tankId = TIER_TO_TANK_ID[raw.tank.sizeTier] ?? 'nano_20';
+    delete raw.tank.sizeTier;
+  }
+
+  // Migrate unlockedItems
+  if (raw?.player?.unlockedItems && Array.isArray(raw.player.unlockedItems)) {
+    raw.player.unlockedItems = raw.player.unlockedItems.map(
+      (item: string) => ITEM_MIGRATION[item] ?? item,
+    );
+  }
+
+  return raw as GameState;
+}
+
 // ── Initial State Factory ──
 
 let fishIdCounter = 0;
@@ -222,7 +221,7 @@ export function createInitialState(): GameState {
       sessionStartTime: now,
     },
     tank: {
-      sizeTier: TankSizeTier.Nano,
+      tankId: 'nano_20',
       hungerLevel: 0,
       waterDirtiness: 0,
       algaeLevel: 0,

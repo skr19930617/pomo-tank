@@ -65,7 +65,7 @@ export function buildFishStoreItems(): Record<string, {
   name: string;
   type: StoreItemType;
   pomoCost: number;
-  prerequisite: { minTankSize?: GenusConfig['minTankSize']; requiredUnlocks?: string[] };
+  prerequisite: { requiredUnlocks?: string[] };
   description: string;
 }> {
   const items: Record<string, {
@@ -73,7 +73,7 @@ export function buildFishStoreItems(): Record<string, {
     name: string;
     type: StoreItemType;
     pomoCost: number;
-    prerequisite: { minTankSize?: GenusConfig['minTankSize']; requiredUnlocks?: string[] };
+    prerequisite: { requiredUnlocks?: string[] };
     description: string;
   }> = {};
 
@@ -85,7 +85,7 @@ export function buildFishStoreItems(): Record<string, {
         name: species.displayName,
         type: StoreItemType.FishSpecies,
         pomoCost: species.pomoCost,
-        prerequisite: genus.minTankSize !== 'Nano' ? { minTankSize: genus.minTankSize } : {},
+        prerequisite: {},
         description: `${genus.displayName} family. Capacity cost: ${genus.capacityCost}.`,
       };
     }
