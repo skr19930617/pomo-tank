@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Box from '@mui/material/Box';
 
 // Sprite sheet layout: 6 columns × 2 rows = 12 frames, 64×64 per frame
 const SPRITE_COLS = 6;
@@ -34,8 +35,8 @@ export const FishPreview: React.FC<FishPreviewProps> = ({ spriteUri }) => {
   const bgY = -(row * FRAME_SIZE * scale);
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         width: PREVIEW_SIZE,
         height: PREVIEW_SIZE,
         backgroundImage: `url(${spriteUri})`,
@@ -45,7 +46,7 @@ export const FishPreview: React.FC<FishPreviewProps> = ({ spriteUri }) => {
         imageRendering: 'pixelated',
         display: 'inline-block',
         verticalAlign: 'middle',
-        marginRight: '6px',
+        mr: '6px',
         flexShrink: 0,
       }}
     />

@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 
 interface DebugPanelProps {
   pomoBalance: number;
@@ -6,67 +10,15 @@ interface DebugPanelProps {
   onResetState: () => void;
 }
 
-const panelStyle: React.CSSProperties = {
-  border: '2px solid #ff6633',
-  borderRadius: '4px',
-  padding: '6px 8px',
-  margin: '4px',
-  background: '#2a1a10',
-  fontSize: '11px',
-  color: '#ffcc88',
-};
-
-const labelStyle: React.CSSProperties = {
-  fontWeight: 'bold',
-  color: '#ff6633',
-  marginBottom: '4px',
-  fontSize: '10px',
-};
-
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '4px',
-  marginBottom: '4px',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '60px',
-  padding: '2px 4px',
-  fontSize: '11px',
-  border: '1px solid #664422',
-  borderRadius: '2px',
-  background: '#1a0f08',
-  color: '#ffcc88',
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '2px 8px',
-  fontSize: '10px',
-  cursor: 'pointer',
-  border: '1px solid #664422',
-  borderRadius: '2px',
-  background: '#3a2210',
-  color: '#ffcc88',
-};
-
-const dangerButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  border: '1px solid #cc3322',
-  color: '#ff6644',
-};
-
 export const DebugPanel: React.FC<DebugPanelProps> = ({ pomoBalance, onSetPomo, onResetState }) => {
   const [pomoInput, setPomoInput] = useState(String(pomoBalance));
   const [confirmingReset, setConfirmingReset] = useState(false);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync input when external balance changes
   useEffect(() => {
     setPomoInput(String(pomoBalance));
   }, [pomoBalance]);
 
-  // Auto-dismiss confirmation after 3 seconds
   useEffect(() => {
     if (confirmingReset) {
       confirmTimer.current = setTimeout(() => {
@@ -95,35 +47,110 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ pomoBalance, onSetPomo, 
   };
 
   return (
-    <div style={panelStyle}>
-      <div style={labelStyle}>DEBUG MODE</div>
-      <div style={rowStyle}>
-        <span>Pomo:</span>
-        <input
+    <Box
+      sx={{
+        border: '2px solid',
+        borderColor: 'debug.main',
+        borderRadius: '4px',
+        p: '6px 8px',
+        m: '4px',
+        bgcolor: 'debug.dark',
+        fontSize: '11px',
+        color: 'debug.light',
+      }}
+    >
+      <Typography
+        sx={{
+          fontWeight: 'bold',
+          color: 'debug.main',
+          mb: '4px',
+          fontSize: '10px',
+        }}
+      >
+        DEBUG MODE
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', mb: '4px' }}>
+        <Typography variant="body1" sx={{ color: 'debug.light' }}>
+          Pomo:
+        </Typography>
+        <TextField
           type="number"
           value={pomoInput}
           onChange={(e) => setPomoInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSetPomo()}
-          style={inputStyle}
-          min={0}
+          inputProps={{ min: 0 }}
+          sx={{
+            width: '60px',
+            '& .MuiOutlinedInput-root': {
+              bgcolor: '#1a0f08',
+              color: 'debug.light',
+              fontSize: '11px',
+              '& fieldset': { borderColor: '#664422' },
+              '&:hover fieldset': { borderColor: '#664422' },
+              '& input': { py: '2px', px: '4px' },
+            },
+          }}
         />
-        <button style={buttonStyle} onClick={handleSetPomo}>
+        <Button
+          onClick={handleSetPomo}
+          sx={{
+            px: 1,
+            py: '2px',
+            fontSize: '10px',
+            minWidth: 'auto',
+            border: '1px solid #664422',
+            borderRadius: '2px',
+            bgcolor: '#3a2210',
+            color: 'debug.light',
+            '&:hover': { bgcolor: '#4a3220' },
+          }}
+        >
           Set
-        </button>
-      </div>
-      <div style={rowStyle}>
-        <button
-          style={confirmingReset ? dangerButtonStyle : buttonStyle}
+        </Button>
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <Button
           onClick={handleResetClick}
+          sx={{
+            px: 1,
+            py: '2px',
+            fontSize: '10px',
+            minWidth: 'auto',
+            borderRadius: '2px',
+            bgcolor: '#3a2210',
+            ...(confirmingReset
+              ? {
+                  border: '1px solid #cc3322',
+                  color: '#ff6644',
+                }
+              : {
+                  border: '1px solid #664422',
+                  color: 'debug.light',
+                }),
+            '&:hover': { bgcolor: '#4a3220' },
+          }}
         >
           {confirmingReset ? 'Confirm Reset?' : 'Reset State'}
-        </button>
+        </Button>
         {confirmingReset && (
-          <button style={buttonStyle} onClick={() => setConfirmingReset(false)}>
+          <Button
+            onClick={() => setConfirmingReset(false)}
+            sx={{
+              px: 1,
+              py: '2px',
+              fontSize: '10px',
+              minWidth: 'auto',
+              border: '1px solid #664422',
+              borderRadius: '2px',
+              bgcolor: '#3a2210',
+              color: 'debug.light',
+              '&:hover': { bgcolor: '#4a3220' },
+            }}
+          >
             Cancel
-          </button>
+          </Button>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };

@@ -15,6 +15,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-26
 - TypeScript 5.3+ (strict mode) + @types/vscode ^1.85.0, esbuild ^0.20.0, React 18, react-konva, konva (010-legacy-code-cleanup)
 - TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @types/vscode ^1.85.0, esbuild ^0.20.0 (011-ui-timer-improvements)
 - VSCode ExtensionContext globalState (existing pattern via `src/persistence/storage.ts`) (011-ui-timer-improvements)
+- TypeScript 5.3+ (strict mode) + React 19, react-dom 19, react-konva 19, Konva 10, **NEW: @mui/material, @emotion/react, @emotion/styled** (012-mui-css-migration)
+- VSCode ExtensionContext globalState (existing, unchanged) (012-mui-css-migration)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -34,9 +36,9 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 012-mui-css-migration: Added TypeScript 5.3+ (strict mode) + React 19, react-dom 19, react-konva 19, Konva 10, **NEW: @mui/material, @emotion/react, @emotion/styled**
 - 011-ui-timer-improvements: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 010-legacy-code-cleanup: Added TypeScript 5.3+ (strict mode) + @types/vscode ^1.85.0, esbuild ^0.20.0, React 18, react-konva, konva
-- 009-fish-species-config: Added TypeScript 5.3+ (strict mode) + React 18, react-konva, konva, @types/vscode ^1.85.0, esbuild ^0.20.0
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import type { UserSettings } from '../../../shared/types';
 import { FOCUS_MIN, FOCUS_MAX, BREAK_MIN, BREAK_MAX } from '../../../shared/types';
 
@@ -7,92 +13,103 @@ interface SettingsPanelProps {
   onUpdateSetting: <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => void;
 }
 
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '6px 8px',
-  cursor: 'pointer',
-  background: '#2a2a40',
-  borderRadius: '4px',
-  color: '#aabbcc',
-  fontSize: '11px',
-  userSelect: 'none',
-  border: '1px solid #333355',
-};
-
-const bodyStyle: React.CSSProperties = {
-  padding: '8px',
-  background: '#222238',
-  borderRadius: '0 0 4px 4px',
-  borderTop: 'none',
-};
-
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '4px 0',
-  fontSize: '11px',
-  color: '#ccccdd',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '50px',
-  padding: '2px 4px',
-  background: '#1a1a2e',
-  border: '1px solid #444466',
-  borderRadius: '3px',
-  color: '#eeeeff',
-  fontSize: '11px',
-  textAlign: 'center',
-};
-
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onUpdateSetting }) => {
-  const [expanded, setExpanded] = useState(false);
-
   return (
-    <div style={{ margin: '4px 0' }}>
-      <div style={headerStyle} onClick={() => setExpanded((e) => !e)}>
-        <span>Settings</span>
-        <span>{expanded ? '▲' : '▼'}</span>
-      </div>
-      {expanded && (
-        <div style={bodyStyle}>
-          <div style={rowStyle}>
-            <label>Focus (min)</label>
-            <input
-              type="number"
-              style={inputStyle}
-              value={settings.focusMinutes}
-              min={FOCUS_MIN}
-              max={FOCUS_MAX}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val)) {
-                  onUpdateSetting('focusMinutes', Math.max(FOCUS_MIN, Math.min(FOCUS_MAX, val)));
-                }
-              }}
-            />
-          </div>
-          <div style={rowStyle}>
-            <label>Break (min)</label>
-            <input
-              type="number"
-              style={inputStyle}
-              value={settings.breakMinutes}
-              min={BREAK_MIN}
-              max={BREAK_MAX}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val)) {
-                  onUpdateSetting('breakMinutes', Math.max(BREAK_MIN, Math.min(BREAK_MAX, val)));
-                }
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+    <Accordion
+      sx={{
+        my: '4px',
+        bgcolor: 'transparent',
+      }}
+    >
+      <AccordionSummary
+        sx={{
+          bgcolor: 'background.paper',
+          borderRadius: '4px',
+          border: '1px solid',
+          borderColor: 'border.dark',
+          color: 'text.secondary',
+          fontSize: '11px',
+          userSelect: 'none',
+        }}
+        expandIcon={<Typography sx={{ color: 'text.secondary', fontSize: '11px' }}>▼</Typography>}
+      >
+        <Typography variant="body1">Settings</Typography>
+      </AccordionSummary>
+      <AccordionDetails
+        sx={{
+          bgcolor: 'background.panel',
+          borderRadius: '0 0 4px 4px',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            py: '4px',
+          }}
+        >
+          <Typography variant="body1" sx={{ color: 'text.primary' }}>
+            Focus (min)
+          </Typography>
+          <TextField
+            type="number"
+            value={settings.focusMinutes}
+            inputProps={{ min: FOCUS_MIN, max: FOCUS_MAX }}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              if (!isNaN(val)) {
+                onUpdateSetting('focusMinutes', Math.max(FOCUS_MIN, Math.min(FOCUS_MAX, val)));
+              }
+            }}
+            sx={{
+              width: '60px',
+              '& .MuiOutlinedInput-root': {
+                bgcolor: '#1a1a2e',
+                color: 'text.bright',
+                fontSize: '11px',
+                '& fieldset': { borderColor: 'border.main' },
+                '&:hover fieldset': { borderColor: 'border.main' },
+                '& input': { textAlign: 'center', py: '2px', px: '4px' },
+              },
+            }}
+          />
+        </Box>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            py: '4px',
+          }}
+        >
+          <Typography variant="body1" sx={{ color: 'text.primary' }}>
+            Break (min)
+          </Typography>
+          <TextField
+            type="number"
+            value={settings.breakMinutes}
+            inputProps={{ min: BREAK_MIN, max: BREAK_MAX }}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              if (!isNaN(val)) {
+                onUpdateSetting('breakMinutes', Math.max(BREAK_MIN, Math.min(BREAK_MAX, val)));
+              }
+            }}
+            sx={{
+              width: '60px',
+              '& .MuiOutlinedInput-root': {
+                bgcolor: '#1a1a2e',
+                color: 'text.bright',
+                fontSize: '11px',
+                '& fieldset': { borderColor: 'border.main' },
+                '&:hover fieldset': { borderColor: 'border.main' },
+                '& input': { textAlign: 'center', py: '2px', px: '4px' },
+              },
+            }}
+          />
+        </Box>
+      </AccordionDetails>
+    </Accordion>
   );
 };

@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { useGameState } from '../tank-panel/hooks/useGameState';
 import { useFishAnimation } from '../tank-panel/hooks/useFishAnimation';
 import type { FishBounds } from '../tank-panel/hooks/useFishAnimation';
@@ -43,11 +45,15 @@ export function App() {
   );
 
   if (!state) {
-    return <div style={{ padding: 8, color: '#999' }}>Loading...</div>;
+    return (
+      <Box sx={{ p: 1, color: 'text.disabled' }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    );
   }
 
   return (
-    <div ref={ref} style={{ width: '100%' }}>
+    <Box ref={ref} sx={{ width: '100%' }}>
       <TankScene
         state={state}
         animatedFish={animatedFish}
@@ -63,6 +69,6 @@ export function App() {
         spriteImages={spriteImages}
         feedingActive={feedingActive}
       />
-    </div>
+    </Box>
   );
 }
