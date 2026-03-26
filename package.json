@@ -45,18 +45,6 @@
       {
         "command": "pomotank.openStore",
         "title": "Pomotank: Open Store"
-      },
-      {
-        "command": "pomotank.debugTick",
-        "title": "Pomotank: [Debug] Tick x10"
-      },
-      {
-        "command": "pomotank.debugReset",
-        "title": "Pomotank: [Debug] Reset State"
-      },
-      {
-        "command": "pomotank.debugAddPomo",
-        "title": "Pomotank: [Debug] Add 100 Pomo"
       }
     ],
     "configuration": {

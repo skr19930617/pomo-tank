@@ -197,6 +197,7 @@ export interface GameStateSnapshot {
   };
   lightOn: boolean;
   debugMode: boolean;
+  tickMultiplier: number;
 }
 
 // ── Initial State Factory ──

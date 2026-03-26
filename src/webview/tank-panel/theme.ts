@@ -68,8 +68,8 @@ const theme = createTheme({
         body: {
           background: '#181825',
           color: '#ccccdd',
-          overflowY: 'auto',
-          padding: '12px',
+          overflow: 'hidden',
+          padding: 0,
         },
       },
     },

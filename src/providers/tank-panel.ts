@@ -186,6 +186,15 @@ export class TankPanelManager {
           });
         }
         break;
+      case 'debugSetTickMultiplier':
+        if (isDebugMode()) {
+          this.engine.setTickMultiplier(message.multiplier);
+          this.sendToWebview({
+            type: 'stateUpdate',
+            state: this.engine.createSnapshot(false, isDebugMode()),
+          });
+        }
+        break;
       case 'debugResetState':
         if (isDebugMode()) {
           this.engine.resetState();

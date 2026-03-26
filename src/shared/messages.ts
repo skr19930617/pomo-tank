@@ -26,6 +26,7 @@ export type WebviewToExtensionMessage =
   | { type: 'openTank' }
   | { type: 'debugSetPomo'; amount: number }
   | { type: 'debugResetState' }
+  | { type: 'debugSetTickMultiplier'; multiplier: number }
   | { type: 'updateSettings'; settings: Partial<UserSettings> }
   | { type: 'switchTank'; sizeTier: TankSizeTier }
   | { type: 'switchFilter'; filterId: FilterId }

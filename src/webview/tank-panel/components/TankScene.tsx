@@ -53,7 +53,7 @@ export function computeTankLayout(
   const availW = sceneWidth - TANK_PAD * 2;
   const availH = deskTop - HUD_HEIGHT - TANK_PAD;
 
-  const contentScale = Math.min(availW / rawTankW, availH / clusterH, 1);
+  const contentScale = Math.min(availW / rawTankW, availH / clusterH);
 
   const scaledTankW = rawTankW * contentScale;
   const scaledTankH = rawTankH * contentScale;
@@ -120,6 +120,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
     state.session.sessionMinutes,
     state.session.timerMode,
     state.session.breakRemainingMs,
+    state.tickMultiplier,
   );
 
   const lightTopRaw = -LIGHT_BAR_HEIGHT;

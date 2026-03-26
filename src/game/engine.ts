@@ -39,6 +39,7 @@ export class GameEngine {
   private breakPausedRemainingMs: number | null = null;
   private intervalId: ReturnType<typeof setTimeout> | null = null;
   private subscribers: Array<(state: GameState) => void> = [];
+  private tickMultiplier: number = 1;
 
   constructor(
     state: GameState,
@@ -54,9 +55,25 @@ export class GameEngine {
 
   start(): void {
     if (this.intervalId !== null) return;
-    this.intervalId = setInterval(() => this.tick(), 60_000) as unknown as ReturnType<
+    const intervalMs = 60_000 / this.tickMultiplier;
+    this.intervalId = setInterval(() => this.tick(), intervalMs) as unknown as ReturnType<
       typeof setTimeout
     >;
+  }
+
+  setTickMultiplier(n: number): void {
+    const clamped = Math.max(1, Math.min(100, Math.round(n)));
+    this.tickMultiplier = clamped;
+    // Restart interval with new speed
+    if (this.intervalId !== null) {
+      this.stop();
+      this.start();
+    }
+    this.notifySubscribers();
+  }
+
+  getTickMultiplier(): number {
+    return this.tickMultiplier;
   }
 
   stop(): void {
@@ -435,6 +452,7 @@ export class GameEngine {
       },
       lightOn: this.state.lightOn,
       debugMode,
+      tickMultiplier: this.tickMultiplier,
     };
   }
 

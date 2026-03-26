@@ -27,6 +27,7 @@ export function useTimer(
   sessionMinutes: number = DEFAULT_SESSION_MINUTES,
   timerMode: TimerMode = 'focus',
   breakRemainingMs: number = 0,
+  tickMultiplier: number = 1,
 ): TimerState {
   const baseRef = useRef({ serverMs: 0, clientTs: 0 });
   const lastServerMs = useRef(-1);
@@ -59,11 +60,11 @@ export function useTimer(
         let sec: number;
         if (timerMode === 'break') {
           const base = breakBaseRef.current;
-          const elapsed = Date.now() - base.clientTs;
+          const elapsed = (Date.now() - base.clientTs) * tickMultiplier;
           sec = Math.max(0, Math.floor((base.serverMs - elapsed) / 1000));
         } else {
           const base = baseRef.current;
-          const elapsed = Date.now() - base.clientTs;
+          const elapsed = (Date.now() - base.clientTs) * tickMultiplier;
           sec = Math.floor((base.serverMs + elapsed) / 1000);
         }
         if (sec !== lastSec) {
@@ -91,7 +92,7 @@ export function useTimer(
       };
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lightOn, timeSinceLastMaintenance, timerMode, breakRemainingMs]);
+  }, [lightOn, timeSinceLastMaintenance, timerMode, breakRemainingMs, tickMultiplier]);
 
   const getSnapshot = (): number => {
     if (timerMode === 'break') {
@@ -99,7 +100,7 @@ export function useTimer(
         return Math.max(0, Math.floor(breakBaseRef.current.serverMs / 1000));
       }
       const base = breakBaseRef.current;
-      const elapsed = Date.now() - base.clientTs;
+      const elapsed = (Date.now() - base.clientTs) * tickMultiplier;
       return Math.max(0, Math.floor((base.serverMs - elapsed) / 1000));
     }
     // Focus mode: count up
@@ -107,7 +108,7 @@ export function useTimer(
       return Math.floor(baseRef.current.serverMs / 1000);
     }
     const base = baseRef.current;
-    const elapsed = Date.now() - base.clientTs;
+    const elapsed = (Date.now() - base.clientTs) * tickMultiplier;
     return Math.floor((base.serverMs + elapsed) / 1000);
   };
 

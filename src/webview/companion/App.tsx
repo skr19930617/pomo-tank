@@ -5,23 +5,26 @@ import { useGameState } from '../tank-panel/hooks/useGameState';
 import { useFishAnimation } from '../tank-panel/hooks/useFishAnimation';
 import type { FishBounds } from '../tank-panel/hooks/useFishAnimation';
 import { useSpriteLoader } from '../tank-panel/hooks/useSpriteLoader';
-import { useContainerSize } from '../tank-panel/hooks/useContainerSize';
+import { useContainerSize, fitScene } from '../tank-panel/hooks/useContainerSize';
 import { TankScene } from '../tank-panel/components/TankScene';
 import { TANK_RENDER_SIZES } from '../../shared/types';
 
-/** Aspect ratio: height / width */
-const ASPECT = 180 / 220;
-/** Default CSS width used before ResizeObserver fires */
-const FALLBACK_W = 220;
+/** Fixed logical scene dimensions — the coordinate space everything is designed in. */
+const SCENE_W = 110;
+const SCENE_H = 90;
+const SCENE_ASPECT = SCENE_H / SCENE_W;
 
 export function App() {
   const { state, sendMessage, spriteUriMap, feedingActive } = useGameState();
   const { images: spriteImages } = useSpriteLoader(spriteUriMap);
-  const { ref, size } = useContainerSize(ASPECT, FALLBACK_W);
+  const { ref, size, renderSize } = useContainerSize(220, 180);
 
-  // Logical scene dimensions (Stage renders at 2× pixel scale)
-  const sceneW = Math.floor(size.width / 2);
-  const sceneH = Math.floor(size.height / 2);
+  // fitted: updates every frame (for CSS transform), render: debounced (for canvas)
+  const fitted = fitScene(SCENE_ASPECT, size.width, size.height);
+  const rendered = fitScene(SCENE_ASPECT, renderSize.width, renderSize.height);
+
+  const scaleX = rendered.width > 0 ? fitted.width / rendered.width : 1;
+  const scaleY = rendered.height > 0 ? fitted.height / rendered.height : 1;
 
   const fishBounds: FishBounds = useMemo(() => {
     if (!state) return { left: 0, top: 0, width: 60, height: 40 };
@@ -53,22 +56,33 @@ export function App() {
   }
 
   return (
-    <Box ref={ref} sx={{ width: '100%' }}>
-      <TankScene
-        state={state}
-        animatedFish={animatedFish}
-        frameCount={frameCount}
-        sceneWidth={sceneW}
-        sceneHeight={sceneH}
-        containerWidth={size.width}
-        containerHeight={size.height}
-        compact={true}
-        sendMessage={sendMessage}
-        showExpand={true}
-        onExpandClick={() => sendMessage({ type: 'openTank' })}
-        spriteImages={spriteImages}
-        feedingActive={feedingActive}
-      />
+    <Box
+      ref={ref}
+      sx={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Box sx={{ transform: `scale(${scaleX}, ${scaleY})`, transformOrigin: 'center center', willChange: 'transform' }}>
+        <TankScene
+          state={state}
+          animatedFish={animatedFish}
+          frameCount={frameCount}
+          sceneWidth={SCENE_W}
+          sceneHeight={SCENE_H}
+          containerWidth={rendered.width}
+          containerHeight={rendered.height}
+          compact={true}
+          sendMessage={sendMessage}
+          showExpand={true}
+          onExpandClick={() => sendMessage({ type: 'openTank' })}
+          spriteImages={spriteImages}
+          feedingActive={feedingActive}
+        />
+      </Box>
     </Box>
   );
 }

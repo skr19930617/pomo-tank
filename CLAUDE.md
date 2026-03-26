@@ -19,6 +19,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-26
 - VSCode ExtensionContext globalState (existing, unchanged) (012-mui-css-migration)
 - TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/reac (013-filter-config-rendering)
 - TypeScript 5.3+ (strict mode) + React 19, @mui/material, @emotion/react, react-konva 19, Konva 10 (014-tank-fish-management)
+- TypeScript 5.3+ (strict mode) + React 19, @mui/material, @emotion/react, react-konva 19, Konva 10, @types/vscode ^1.85.0, esbuild ^0.20.0 (015-rebuild-debug-ui)
+- VSCode ExtensionContext globalState (key-value persistence via `src/persistence/storage.ts`) (015-rebuild-debug-ui)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -38,9 +40,9 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 015-rebuild-debug-ui: Added TypeScript 5.3+ (strict mode) + React 19, @mui/material, @emotion/react, react-konva 19, Konva 10, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 014-tank-fish-management: Added TypeScript 5.3+ (strict mode) + React 19, @mui/material, @emotion/react, react-konva 19, Konva 10
 - 013-filter-config-rendering: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/reac
-- 012-mui-css-migration: Added TypeScript 5.3+ (strict mode) + React 19, react-dom 19, react-konva 19, Konva 10, **NEW: @mui/material, @emotion/react, @emotion/styled**
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -6,58 +6,90 @@ interface ContainerSize {
 }
 
 /**
- * Observes the width of a container element via ResizeObserver and derives
- * the height from a fixed aspect ratio.
+ * Fit a scene with the given aspect ratio into available dimensions,
+ * returning the largest size that fits while maintaining the ratio.
+ */
+export function fitScene(
+  aspectRatio: number,
+  availW: number,
+  availH: number,
+): { width: number; height: number } {
+  const byWidth = { width: availW, height: availW * aspectRatio };
+  if (byWidth.height <= availH) {
+    return { width: Math.floor(byWidth.width), height: Math.floor(byWidth.height) };
+  }
+  const w = availH / aspectRatio;
+  return { width: Math.floor(w), height: Math.floor(availH) };
+}
+
+/**
+ * Tracks the size of a container element via window resize events.
  *
- * Returns a fallback size immediately so the first render is never empty.
- *
- * @param aspectRatio - height / width ratio (e.g. 0.818 for 180/220).
- * @param fallbackWidth - CSS-pixel width used before the first observation.
- * @param minWidth - Minimum CSS-pixel width (default 120).
+ * Returns two sizes:
+ * - `size`: updates every frame (for CSS transform scaling)
+ * - `renderSize`: debounced (for expensive canvas redraws)
  */
 export function useContainerSize(
-  aspectRatio: number,
   fallbackWidth: number,
+  fallbackHeight: number,
   minWidth = 120,
-): { ref: React.RefObject<HTMLDivElement | null>; size: ContainerSize } {
+  minHeight = 80,
+): {
+  ref: React.RefObject<HTMLDivElement | null>;
+  size: ContainerSize;
+  renderSize: ContainerSize;
+} {
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const derive = useCallback(
-    (cssW: number): ContainerSize => {
-      const w = Math.max(Math.floor(cssW), minWidth);
-      return { width: w, height: Math.floor(w * aspectRatio) };
-    },
-    [aspectRatio, minWidth],
+  const clamp = useCallback(
+    (cssW: number, cssH: number): ContainerSize => ({
+      width: Math.max(Math.floor(cssW), minWidth),
+      height: Math.max(Math.floor(cssH), minHeight),
+    }),
+    [minWidth, minHeight],
   );
 
-  // Start with a usable fallback so the first render shows content.
-  const [size, setSize] = useState<ContainerSize>(() => derive(fallbackWidth));
+  const [size, setSize] = useState<ContainerSize>(() => clamp(fallbackWidth, fallbackHeight));
+  const [renderSize, setRenderSize] = useState<ContainerSize>(() =>
+    clamp(fallbackWidth, fallbackHeight),
+  );
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    // Measure immediately in case the element already has a width.
-    const rect = el.getBoundingClientRect();
-    if (rect.width > 0) {
-      setSize(derive(rect.width));
-    }
-
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const w = entry.contentRect.width;
-        if (w > 0) {
-          setSize((prev) => {
-            const next = derive(w);
-            return prev.width === next.width && prev.height === next.height ? prev : next;
-          });
-        }
+    const measure = () => {
+      const el = ref.current;
+      const w = el ? el.getBoundingClientRect().width : window.innerWidth;
+      const h = el ? el.getBoundingClientRect().height : window.innerHeight;
+      if (w > 0 && h > 0) {
+        setSize((prev) => {
+          const next = clamp(w, h);
+          return prev.width === next.width && prev.height === next.height ? prev : next;
+        });
       }
-    });
+    };
 
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [derive]);
+    measure();
 
-  return { ref, size };
+    let rafId: number | null = null;
+    const onResize = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        measure();
+      });
+    };
+
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [clamp]);
+
+  // Debounce renderSize — canvas only redraws when resize settles
+  useEffect(() => {
+    const timer = setTimeout(() => setRenderSize(size), 100);
+    return () => clearTimeout(timer);
+  }, [size]);
+
+  return { ref, size, renderSize };
 }

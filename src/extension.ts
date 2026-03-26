@@ -90,35 +90,18 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.registerCommand('pomotank.openStore', () => {
         tankPanel.openOrReveal(context, 'store');
       }),
-      vscode.commands.registerCommand('pomotank.debugTick', () => {
-        if (engine) {
-          for (let i = 0; i < 10; i++) {
-            engine.tick();
+    );
+
+    // Reset tick multiplier when debug mode is toggled off
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('pomotank.debugMode')) {
+          const debugEnabled = vscode.workspace
+            .getConfiguration('pomotank')
+            .get<boolean>('debugMode', false);
+          if (!debugEnabled && engine) {
+            engine.setTickMultiplier(1);
           }
-          vscode.window.showInformationMessage('Pomotank: Applied 10 ticks');
-        }
-      }),
-      vscode.commands.registerCommand('pomotank.debugReset', () => {
-        if (engine) {
-          engine.resetState();
-          saveState(engine.getState());
-          vscode.window.showInformationMessage('Pomotank: State reset');
-        }
-      }),
-      vscode.commands.registerCommand('pomotank.debugAddPomo', () => {
-        if (engine) {
-          const s = engine.getState();
-          engine.setState({
-            ...s,
-            player: {
-              ...s.player,
-              pomoBalance: s.player.pomoBalance + 100,
-              totalPomoEarned: s.player.totalPomoEarned + 100,
-            },
-          });
-          vscode.window.showInformationMessage(
-            `Pomotank: +100 pomo (now ${engine.getState().player.pomoBalance})`,
-          );
         }
       }),
     );

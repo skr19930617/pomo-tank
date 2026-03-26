@@ -7,7 +7,7 @@ import { useGameState } from './hooks/useGameState';
 import { useFishAnimation } from './hooks/useFishAnimation';
 import type { FishBounds } from './hooks/useFishAnimation';
 import { useSpriteLoader } from './hooks/useSpriteLoader';
-import { useContainerSize } from './hooks/useContainerSize';
+import { useContainerSize, fitScene } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
 import { Store } from './components/Store';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -17,21 +17,25 @@ import { FishManager } from './components/FishManager';
 import { useSettings } from './hooks/useSettings';
 import { TANK_RENDER_SIZES } from '../../shared/types';
 
-/** Aspect ratio: height / width */
-const ASPECT = 380 / 480;
-/** Default CSS width used before ResizeObserver fires */
-const FALLBACK_W = 480;
+/** Fixed logical scene dimensions — the coordinate space everything is designed in. */
+const SCENE_W = 240;
+const SCENE_H = 190;
+const SCENE_ASPECT = SCENE_H / SCENE_W;
 
 export const App: React.FC = () => {
   const { state, notification, sendMessage, spriteUriMap, feedingActive } = useGameState();
   const { images: spriteImages } = useSpriteLoader(spriteUriMap);
   const { settings, updateSetting } = useSettings(sendMessage);
   const [storeOpen, setStoreOpen] = useState(false);
-  const { ref, size } = useContainerSize(ASPECT, FALLBACK_W);
+  const { ref, size, renderSize } = useContainerSize(480, 380);
 
-  // Logical scene dimensions (Stage renders at 2× pixel scale)
-  const sceneW = Math.floor(size.width / 2);
-  const sceneH = Math.floor(size.height / 2);
+  // fitted: updates every frame (for CSS transform), render: debounced (for canvas)
+  const fitted = fitScene(SCENE_ASPECT, size.width, size.height);
+  const rendered = fitScene(SCENE_ASPECT, renderSize.width, renderSize.height);
+
+  // CSS scale bridges the gap between expensive canvas renders
+  const scaleX = rendered.width > 0 ? fitted.width / rendered.width : 1;
+  const scaleY = rendered.height > 0 ? fitted.height / rendered.height : 1;
 
   const fishBounds: FishBounds = useMemo(() => {
     if (!state) return { left: 0, top: 0, width: 100, height: 100 };
@@ -63,48 +67,75 @@ export const App: React.FC = () => {
   }
 
   return (
-    <Box ref={ref} sx={{ position: 'relative', bgcolor: 'background.default', width: '100%' }}>
-      {/* Canvas scene with HUD + ActionBar integrated */}
-      <TankScene
-        state={state}
-        animatedFish={animatedFish}
-        frameCount={frameCount}
-        sceneWidth={sceneW}
-        sceneHeight={sceneH}
-        containerWidth={size.width}
-        containerHeight={size.height}
-        compact={false}
-        sendMessage={sendMessage}
-        showExpand={false}
-        spriteImages={spriteImages}
-        feedingActive={feedingActive}
-      />
-
-      {/* Store button trigger */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: '4px', bgcolor: 'background.default' }}>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => setStoreOpen((o) => !o)}
-          sx={{
-            px: 2,
-            py: '4px',
-            fontSize: '11px',
-            borderColor: 'border.main',
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            '&:hover': { borderColor: 'border.main', bgcolor: 'background.panel' },
-          }}
-        >
-          Store
-        </Button>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', p: '12px' }}>
+      {/* Scene area — flexes to fill available space */}
+      <Box
+        ref={ref}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Box sx={{ transform: `scale(${scaleX}, ${scaleY})`, transformOrigin: 'center center', willChange: 'transform' }}>
+          <TankScene
+            state={state}
+            animatedFish={animatedFish}
+            frameCount={frameCount}
+            sceneWidth={SCENE_W}
+            sceneHeight={SCENE_H}
+            containerWidth={rendered.width}
+            containerHeight={rendered.height}
+            compact={false}
+            sendMessage={sendMessage}
+            showExpand={false}
+            spriteImages={spriteImages}
+            feedingActive={feedingActive}
+          />
+        </Box>
       </Box>
 
-      {/* Settings panels (collapsible) */}
-      <Box sx={{ px: '4px', bgcolor: 'background.default' }}>
-        <SettingsPanel settings={settings} onUpdateSetting={updateSetting} />
-        <TankManager state={state} sendMessage={sendMessage} />
-        <FishManager state={state} sendMessage={sendMessage} />
+      {/* Controls area — scrolls independently */}
+      <Box sx={{ flexShrink: 0, overflowY: 'auto', maxHeight: '40%' }}>
+        {/* Store button trigger */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: '4px', bgcolor: 'background.default' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setStoreOpen((o) => !o)}
+            sx={{
+              px: 2,
+              py: '4px',
+              fontSize: '11px',
+              borderColor: 'border.main',
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              '&:hover': { borderColor: 'border.main', bgcolor: 'background.panel' },
+            }}
+          >
+            Store
+          </Button>
+        </Box>
+
+        {/* Settings panels (collapsible) */}
+        <Box sx={{ px: '4px', bgcolor: 'background.default' }}>
+          <SettingsPanel settings={settings} onUpdateSetting={updateSetting} />
+          <TankManager state={state} sendMessage={sendMessage} />
+          <FishManager state={state} sendMessage={sendMessage} />
+        </Box>
+
+        {/* Debug panel (only visible when debugMode enabled) */}
+        {state.debugMode && (
+          <DebugPanel
+            pomoBalance={state.player.pomoBalance}
+            tickMultiplier={state.tickMultiplier}
+            onSetPomo={(amount) => sendMessage({ type: 'debugSetPomo', amount })}
+            onSetTickMultiplier={(multiplier) => sendMessage({ type: 'debugSetTickMultiplier', multiplier })}
+            onResetState={() => sendMessage({ type: 'debugResetState' })}
+          />
+        )}
       </Box>
 
       {/* Notification toast */}
@@ -125,15 +156,6 @@ export const App: React.FC = () => {
           },
         }}
       />
-
-      {/* Debug panel (only visible when debugMode enabled) */}
-      {state.debugMode && (
-        <DebugPanel
-          pomoBalance={state.player.pomoBalance}
-          onSetPomo={(amount) => sendMessage({ type: 'debugSetPomo', amount })}
-          onResetState={() => sendMessage({ type: 'debugResetState' })}
-        />
-      )}
 
       {/* Store overlay */}
       <Store items={state.store.items} sendMessage={sendMessage} visible={storeOpen} onClose={() => setStoreOpen(false)} />
