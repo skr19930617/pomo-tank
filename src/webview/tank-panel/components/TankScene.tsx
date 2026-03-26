@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Group } from 'react-konva';
+import type Konva from 'konva';
+import { useVisibilityResume } from '../hooks/useVisibilityResume';
 import type { GameStateSnapshot } from '../../../game/state';
 import {
   DESK_HEIGHT,
@@ -114,6 +116,8 @@ export const TankScene: React.FC<TankSceneProps> = ({
 
   const { contentScale, tankX, tankY, deskTop } = layout;
   const [selectedFishId, setSelectedFishId] = useState<string | null>(null);
+  const stageRef = useRef<Konva.Stage>(null);
+  useVisibilityResume(stageRef);
 
   // Stage dimensions = actual CSS pixel size of the container.
   // Layer scale maps logical sceneWidth → stageWidth so coordinates stay consistent.
@@ -134,7 +138,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const lightTopRaw = -(LIGHT_BAR_HEIGHT + lightGapRaw);
 
   return (
-    <Stage width={stageW} height={stageH}>
+    <Stage ref={stageRef} width={stageW} height={stageH}>
       <Layer scaleX={layerScale} scaleY={layerScale}>
         {/* Background wall — full scene */}
         <Wall sceneWidth={sceneWidth} sceneHeight={sceneHeight} />

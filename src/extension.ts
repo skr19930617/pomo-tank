@@ -42,7 +42,9 @@ export function activate(context: vscode.ExtensionContext): void {
     // Initialize UI providers
     const companionProvider = new CompanionViewProvider(context.extensionUri, engine);
     context.subscriptions.push(
-      vscode.window.registerWebviewViewProvider('pomotank.companionView', companionProvider),
+      vscode.window.registerWebviewViewProvider('pomotank.companionView', companionProvider, {
+        webviewOptions: { retainContextWhenHidden: true },
+      }),
     );
 
     const tankPanel = new TankPanelManager(context.extensionUri, engine);
