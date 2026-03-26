@@ -82,6 +82,11 @@ export function useGameState(): UseGameStateResult {
             msg.success ? `Light ${msg.lightOn ? 'on' : 'off'}` : 'Light toggle failed',
           );
           break;
+        case 'managementResult':
+          if (!msg.success) {
+            showNotification(msg.message ?? `${msg.action} failed`);
+          }
+          break;
       }
     };
 

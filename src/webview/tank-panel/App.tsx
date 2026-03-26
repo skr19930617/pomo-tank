@@ -12,6 +12,8 @@ import { TankScene } from './components/TankScene';
 import { Store } from './components/Store';
 import { SettingsPanel } from './components/SettingsPanel';
 import { DebugPanel } from './components/DebugPanel';
+import { TankManager } from './components/TankManager';
+import { FishManager } from './components/FishManager';
 import { useSettings } from './hooks/useSettings';
 import { TANK_RENDER_SIZES } from '../../shared/types';
 
@@ -98,9 +100,11 @@ export const App: React.FC = () => {
         </Button>
       </Box>
 
-      {/* Settings panel (collapsible) */}
+      {/* Settings panels (collapsible) */}
       <Box sx={{ px: '4px', bgcolor: 'background.default' }}>
         <SettingsPanel settings={settings} onUpdateSetting={updateSetting} />
+        <TankManager state={state} sendMessage={sendMessage} />
+        <FishManager state={state} sendMessage={sendMessage} />
       </Box>
 
       {/* Notification toast */}

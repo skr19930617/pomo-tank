@@ -114,6 +114,7 @@ export interface Fish {
   lifespanWeeks: number;
   maintenanceQuality: number;
   purchasedAt: number;
+  customName?: string;
 }
 
 export interface Tank {
@@ -162,11 +163,13 @@ export interface GameStateSnapshot {
     ageWeeks: number;
     lifespanWeeks: number;
     maintenanceQuality: number;
+    customName?: string;
   }>;
   player: {
     pomoBalance: number;
     currentStreak: number;
     dailyContinuityDays: number;
+    unlockedItems: string[];
   };
   session: {
     timeSinceLastMaintenance: number;

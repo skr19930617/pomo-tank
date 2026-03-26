@@ -2,7 +2,7 @@
 // Discriminated unions ensuring type-safe communication.
 
 import type { GameStateSnapshot } from '../game/state';
-import type { UserSettings } from './types';
+import type { UserSettings, TankSizeTier, FilterId } from './types';
 
 // ── Extension → Webview ──
 
@@ -11,7 +11,8 @@ export type ExtensionToWebviewMessage =
   | { type: 'actionResult'; action: string; success: boolean }
   | { type: 'purchaseResult'; itemId: string; success: boolean; message?: string }
   | { type: 'lightToggleResult'; lightOn: boolean; success: boolean }
-  | { type: 'settingsUpdate'; settings: UserSettings };
+  | { type: 'settingsUpdate'; settings: UserSettings }
+  | { type: 'managementResult'; action: string; success: boolean; message?: string };
 
 // ── Webview → Extension ──
 
@@ -25,4 +26,8 @@ export type WebviewToExtensionMessage =
   | { type: 'openTank' }
   | { type: 'debugSetPomo'; amount: number }
   | { type: 'debugResetState' }
-  | { type: 'updateSettings'; settings: Partial<UserSettings> };
+  | { type: 'updateSettings'; settings: Partial<UserSettings> }
+  | { type: 'switchTank'; sizeTier: TankSizeTier }
+  | { type: 'switchFilter'; filterId: FilterId }
+  | { type: 'renameFish'; fishId: string; customName: string }
+  | { type: 'removeFish'; fishId: string };

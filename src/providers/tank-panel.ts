@@ -153,6 +153,30 @@ export class TankPanelManager {
       }
       case 'openTank':
         break;
+      case 'switchTank': {
+        const tankResult = this.engine.switchTank(message.sizeTier);
+        this.sendToWebview({ type: 'managementResult', action: 'Switch Tank', ...tankResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
+      case 'switchFilter': {
+        const filterResult = this.engine.switchFilter(message.filterId);
+        this.sendToWebview({ type: 'managementResult', action: 'Switch Filter', ...filterResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
+      case 'renameFish': {
+        const renameResult = this.engine.renameFish(message.fishId, message.customName);
+        this.sendToWebview({ type: 'managementResult', action: 'Rename Fish', ...renameResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
+      case 'removeFish': {
+        const removeResult = this.engine.removeFish(message.fishId);
+        this.sendToWebview({ type: 'managementResult', action: 'Remove Fish', ...removeResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
       case 'debugSetPomo':
         if (isDebugMode()) {
           this.engine.setPomo(message.amount);

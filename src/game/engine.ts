@@ -4,10 +4,14 @@ import {
   type ActionType,
   type TimerMode,
   HealthState,
+  TankSizeTier,
+  TANK_BASE_CAPACITY,
   generateFishId,
   createInitialState,
   DEFAULT_SESSION_MINUTES,
 } from './state';
+import type { FilterId } from '../shared/types';
+import { getFilter } from './filters';
 import { applyTick } from './deterioration';
 import { evaluateHealthTick } from './health';
 import { calculatePoints, isWellTimed, updateStreak } from './points';
@@ -278,6 +282,79 @@ export class GameEngine {
     this.notifySubscribers();
   }
 
+  switchTank(sizeTier: TankSizeTier): { success: boolean; message?: string } {
+    // Validate unlocked (Nano is always available)
+    if (sizeTier !== TankSizeTier.Nano) {
+      const tankItemId = `tank_${sizeTier.toLowerCase()}`;
+      if (!this.state.player.unlockedItems.includes(tankItemId)) {
+        return { success: false, message: 'Tank size not unlocked' };
+      }
+    }
+    // Validate capacity
+    const filterBonus = getFilter(this.state.tank.filterId)?.capacityBonus ?? 0;
+    const newMaxCapacity = TANK_BASE_CAPACITY[sizeTier] + filterBonus;
+    const currentCost = calculateCurrentCost(this.state.fish);
+    if (currentCost > newMaxCapacity) {
+      return { success: false, message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})` };
+    }
+    this.state = {
+      ...this.state,
+      tank: { ...this.state.tank, sizeTier },
+    };
+    this.notifySubscribers();
+    return { success: true };
+  }
+
+  switchFilter(filterId: FilterId): { success: boolean; message?: string } {
+    // Validate unlocked (basic_sponge is always available)
+    if (filterId !== 'basic_sponge') {
+      if (!this.state.player.unlockedItems.includes(filterId)) {
+        return { success: false, message: 'Filter not unlocked' };
+      }
+    }
+    // Validate capacity
+    const newFilterBonus = getFilter(filterId)?.capacityBonus ?? 0;
+    const newMaxCapacity = TANK_BASE_CAPACITY[this.state.tank.sizeTier] + newFilterBonus;
+    const currentCost = calculateCurrentCost(this.state.fish);
+    if (currentCost > newMaxCapacity) {
+      return { success: false, message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})` };
+    }
+    this.state = {
+      ...this.state,
+      tank: { ...this.state.tank, filterId },
+    };
+    this.notifySubscribers();
+    return { success: true };
+  }
+
+  renameFish(fishId: string, customName: string): { success: boolean; message?: string } {
+    const fishIndex = this.state.fish.findIndex((f) => f.id === fishId);
+    if (fishIndex < 0) {
+      return { success: false, message: 'Fish not found' };
+    }
+    const trimmed = customName.trim().slice(0, 20);
+    const newFish = [...this.state.fish];
+    newFish[fishIndex] = {
+      ...newFish[fishIndex],
+      customName: trimmed || undefined,
+    };
+    this.state = { ...this.state, fish: newFish };
+    this.notifySubscribers();
+    return { success: true };
+  }
+
+  removeFish(fishId: string): { success: boolean; message?: string } {
+    const fishIndex = this.state.fish.findIndex((f) => f.id === fishId);
+    if (fishIndex < 0) {
+      return { success: false, message: 'Fish not found' };
+    }
+    const newFish = [...this.state.fish];
+    newFish.splice(fishIndex, 1);
+    this.state = { ...this.state, fish: newFish };
+    this.notifySubscribers();
+    return { success: true };
+  }
+
   setSessionMinutes(minutes: number): void {
     this.sessionMinutes = minutes;
   }
@@ -332,11 +409,13 @@ export class GameEngine {
         ageWeeks: f.ageWeeks,
         lifespanWeeks: f.lifespanWeeks,
         maintenanceQuality: f.maintenanceQuality,
+        customName: f.customName,
       })),
       player: {
         pomoBalance: this.state.player.pomoBalance,
         currentStreak: this.state.player.currentStreak,
         dailyContinuityDays: this.state.player.dailyContinuityDays,
+        unlockedItems: this.state.player.unlockedItems,
       },
       session: {
         timeSinceLastMaintenance,

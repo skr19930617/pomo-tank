@@ -194,6 +194,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
                 x={anim.x}
                 y={anim.y}
                 speciesName={sp?.displayName ?? f.speciesId}
+                customName={f.customName}
                 bodyLengthMm={f.bodyLengthMm}
                 ageWeeks={f.ageWeeks}
                 healthState={f.healthState}
