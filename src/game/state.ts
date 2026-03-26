@@ -24,6 +24,8 @@ export type {
   GenusConfig,
   SpeciesConfig,
   SpriteSet,
+  TimerMode,
+  UserSettings,
 } from '../shared/types';
 
 import {
@@ -32,6 +34,7 @@ import {
   StoreItemType,
   type GenusId,
   type FilterId,
+  type TimerMode,
 } from '../shared/types';
 
 import { buildFishStoreItems } from './species';
@@ -220,6 +223,9 @@ export interface GameStateSnapshot {
     isInBreakWindow: boolean;
     isActivelyCoding: boolean;
     sessionMinutes: number;
+    timerMode: TimerMode;
+    breakRemainingMs: number;
+    breakMinutes: number;
   };
   capacity: {
     current: number;

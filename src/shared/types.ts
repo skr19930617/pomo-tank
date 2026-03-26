@@ -132,6 +132,25 @@ export const LIGHT_BAR_HEIGHT = 20;
 export const HUD_HEIGHT = 16;
 export const DEFAULT_SESSION_MINUTES = 25;
 
+// ── Timer Mode ──
+export type TimerMode = 'focus' | 'break';
+
+// ── User Settings ──
+export interface UserSettings {
+  focusMinutes: number;
+  breakMinutes: number;
+}
+
+export const FOCUS_MIN = 1;
+export const FOCUS_MAX = 120;
+export const BREAK_MIN = 0;
+export const BREAK_MAX = 60;
+
+export const DEFAULT_USER_SETTINGS: UserSettings = {
+  focusMinutes: 25,
+  breakMinutes: 5,
+};
+
 // ── Swim Layer Ranges ──
 export const SWIM_LAYER_RANGES: Record<SwimLayer, { min: number; max: number }> = {
   [SwimLayer.upper]: { min: 0.05, max: 0.35 },

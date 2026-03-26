@@ -1,3 +1,5 @@
+/* PixelFont @font-face is injected inline by tank-panel.ts to resolve webview URI */
+
 * {
   margin: 0;
   padding: 0;
@@ -7,8 +9,8 @@
 body {
   background: var(--vscode-editor-background, #1e1e1e);
   color: var(--vscode-editor-foreground, #cccccc);
-  font-family: var(--vscode-font-family, monospace);
-  font-size: 13px;
+  font-family: 'PixelFont', monospace;
+  font-size: 8px;
   overflow-y: auto;
   padding: 12px;
 }
@@ -191,3 +193,4 @@ canvas {
 #notification.hidden {
   display: none;
 }
+

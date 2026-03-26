@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { createInitialState } from './game/state';
-import { initStorage, loadState, saveState } from './persistence/storage';
+import { initStorage, loadState, saveState, loadSettings } from './persistence/storage';
 import { GameEngine } from './game/engine';
 import { CompanionViewProvider } from './providers/companion-view';
 import { TankPanelManager } from './providers/tank-panel';
@@ -27,18 +27,13 @@ export function activate(context: vscode.ExtensionContext): void {
     activityTracker = new ActivityTracker();
     context.subscriptions.push(activityTracker);
 
-    // Read configurable session duration
-    const config = vscode.workspace.getConfiguration('pomotank');
-    const rawSessionMinutes = config.get<number>('workSessionMinutes', 25);
-    const sessionMinutes = Math.max(1, Math.min(120, rawSessionMinutes));
-    if (rawSessionMinutes !== sessionMinutes) {
-      console.warn(
-        `Pomotank: workSessionMinutes (${rawSessionMinutes}) clamped to [1, 120] → ${sessionMinutes}`,
-      );
-    }
+    // Load user settings (in-UI settings take precedence over VSCode config)
+    const userSettings = loadSettings();
+    const sessionMinutes = userSettings.focusMinutes;
+    const breakMinutes = userSettings.breakMinutes;
 
     // Initialize game engine
-    engine = new GameEngine(state, activityTracker, sessionMinutes);
+    engine = new GameEngine(state, activityTracker, sessionMinutes, breakMinutes);
 
     // Run offline catch-up
     engine.applyOfflineCatchUp();

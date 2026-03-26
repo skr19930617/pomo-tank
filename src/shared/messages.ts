@@ -2,6 +2,7 @@
 // Discriminated unions ensuring type-safe communication.
 
 import type { GameStateSnapshot } from '../game/state';
+import type { UserSettings } from './types';
 
 // ── Extension → Webview ──
 
@@ -9,7 +10,8 @@ export type ExtensionToWebviewMessage =
   | { type: 'stateUpdate'; state: GameStateSnapshot }
   | { type: 'actionResult'; action: string; success: boolean }
   | { type: 'purchaseResult'; itemId: string; success: boolean; message?: string }
-  | { type: 'lightToggleResult'; lightOn: boolean; success: boolean };
+  | { type: 'lightToggleResult'; lightOn: boolean; success: boolean }
+  | { type: 'settingsUpdate'; settings: UserSettings };
 
 // ── Webview → Extension ──
 
@@ -22,4 +24,5 @@ export type WebviewToExtensionMessage =
   | { type: 'purchaseItem'; itemId: string }
   | { type: 'openTank' }
   | { type: 'debugSetPomo'; amount: number }
-  | { type: 'debugResetState' };
+  | { type: 'debugResetState' }
+  | { type: 'updateSettings'; settings: Partial<UserSettings> };

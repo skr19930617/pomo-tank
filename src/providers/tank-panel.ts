@@ -4,6 +4,8 @@ import type { GameState } from '../game/state';
 import { getAllGenera } from '../game/species';
 import type { AnimState } from '../shared/types';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
+import { type UserSettings, FOCUS_MIN, FOCUS_MAX, BREAK_MIN, BREAK_MAX } from '../shared/types';
+import { loadSettings, saveSettings } from '../persistence/storage';
 
 export type SpriteUriMap = Record<string, Record<string, Record<string, string>>>;
 
@@ -101,7 +103,27 @@ export class TankPanelManager {
           type: 'stateUpdate',
           state: this.engine.createSnapshot(false, isDebugMode()),
         });
+        this.sendToWebview({
+          type: 'settingsUpdate',
+          settings: loadSettings(),
+        });
         break;
+      case 'updateSettings': {
+        const current = loadSettings();
+        const merged: UserSettings = { ...current, ...message.settings };
+        merged.focusMinutes = Math.max(FOCUS_MIN, Math.min(FOCUS_MAX, Math.round(merged.focusMinutes)));
+        merged.breakMinutes = Math.max(BREAK_MIN, Math.min(BREAK_MAX, Math.round(merged.breakMinutes)));
+        saveSettings(merged);
+        this.engine.setSessionMinutes(merged.focusMinutes);
+        this.engine.setBreakMinutes(merged.breakMinutes);
+        this.sendToWebview({ type: 'settingsUpdate', settings: merged });
+        // Send updated state so timer reflects new sessionMinutes immediately
+        this.sendToWebview({
+          type: 'stateUpdate',
+          state: this.engine.createSnapshot(false, isDebugMode()),
+        });
+        break;
+      }
       case 'feedFish':
         this.engine.performAction('feedFish');
         this.sendToWebview({ type: 'actionResult', action: 'Feed Fish', success: true });
@@ -156,6 +178,9 @@ export class TankPanelManager {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'tank-detail', 'style.css'),
     );
+    const fontUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'tank-detail', 'fonts', 'press-start-2p.woff2'),
+    );
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview-tank-panel.js'),
     );
@@ -170,8 +195,17 @@ export class TankPanelManager {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${cspSource}"
+      content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${cspSource}; font-src ${cspSource}"
     />
+    <style>
+      @font-face {
+        font-family: 'PixelFont';
+        src: url('${fontUri}') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+    </style>
     <link rel="stylesheet" href="${styleUri}" />
   </head>
   <body>

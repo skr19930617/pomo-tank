@@ -113,10 +113,12 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const stageH = containerHeight ?? sceneHeight * 2;
   const layerScale = stageW / sceneWidth;
 
-  const { displaySeconds, isOvertime, isPaused } = useTimer(
+  const { displaySeconds, timerColor, isPaused } = useTimer(
     state.session.timeSinceLastMaintenance,
     state.lightOn,
     state.session.sessionMinutes,
+    state.session.timerMode,
+    state.session.breakRemainingMs,
   );
 
   const lightTopRaw = -LIGHT_BAR_HEIGHT;
@@ -210,7 +212,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
         <HudOverlay
           sceneWidth={sceneWidth}
           timerSeconds={displaySeconds}
-          isOvertime={isOvertime}
+          timerColor={timerColor}
           isPaused={isPaused}
           compact={compact}
           pomoBalance={state.player.pomoBalance}

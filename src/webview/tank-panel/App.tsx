@@ -6,7 +6,9 @@ import { useSpriteLoader } from './hooks/useSpriteLoader';
 import { useContainerSize } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
 import { Store } from './components/Store';
+import { SettingsPanel } from './components/SettingsPanel';
 import { DebugPanel } from './components/DebugPanel';
+import { useSettings } from './hooks/useSettings';
 import { TANK_RENDER_SIZES } from '../../shared/types';
 
 /** Aspect ratio: height / width */
@@ -40,6 +42,7 @@ const loadingStyle: React.CSSProperties = {
 export const App: React.FC = () => {
   const { state, notification, sendMessage, spriteUriMap, feedingActive } = useGameState();
   const { images: spriteImages } = useSpriteLoader(spriteUriMap);
+  const { settings, updateSetting } = useSettings(sendMessage);
   const [storeOpen, setStoreOpen] = useState(false);
   const { ref, size } = useContainerSize(ASPECT, FALLBACK_W);
 
@@ -115,6 +118,11 @@ export const App: React.FC = () => {
         </button>
       </div>
 
+      {/* Settings panel (collapsible) */}
+      <div style={{ padding: '0 4px', background: '#181825' }}>
+        <SettingsPanel settings={settings} onUpdateSetting={updateSetting} />
+      </div>
+
       {/* Notification toast */}
       {notification && <div style={notificationStyle}>{notification}</div>}
 
@@ -128,7 +136,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Store overlay */}
-      <Store items={state.store.items} sendMessage={sendMessage} visible={storeOpen} />
+      <Store items={state.store.items} sendMessage={sendMessage} visible={storeOpen} onClose={() => setStoreOpen(false)} />
     </div>
   );
 };

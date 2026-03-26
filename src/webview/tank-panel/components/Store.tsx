@@ -2,11 +2,18 @@ import React from 'react';
 import { StoreItemType } from '../../../shared/types';
 import type { GameStateSnapshot } from '../../../game/state';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
+import { FishPreview } from './FishPreview';
+import { PixelIcon, COIN_ICON, COIN_COLOR, FISH_ICON, FISH_COLOR } from './pixel-icons';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const spriteUriMap: Record<string, Record<string, Record<string, string>>> = (window as any)
+  .__SPRITE_URI_MAP__ ?? {};
 
 interface StoreProps {
   items: GameStateSnapshot['store']['items'];
   sendMessage: (msg: WebviewToExtensionMessage) => void;
   visible: boolean;
+  onClose: () => void;
 }
 
 const overlayStyle: React.CSSProperties = {
@@ -79,7 +86,20 @@ const SECTION_ORDER: StoreItemType[] = [
   StoreItemType.FishSpecies,
 ];
 
-export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible }) => {
+const closeBtnStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '8px',
+  right: '8px',
+  padding: '4px 10px',
+  fontSize: '12px',
+  cursor: 'pointer',
+  border: '1px solid #555',
+  borderRadius: '3px',
+  background: '#333344',
+  color: '#ccccdd',
+};
+
+export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible, onClose }) => {
   if (!visible) return null;
 
   const grouped = new Map<StoreItemType, typeof items>();
@@ -91,6 +111,9 @@ export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible }) => 
 
   return (
     <div style={overlayStyle}>
+      <button style={closeBtnStyle} onClick={onClose}>
+        X
+      </button>
       <div style={{ fontSize: '16px', color: '#eeeeff', marginBottom: '12px' }}>Store</div>
       {SECTION_ORDER.map((type) => {
         const sectionItems = grouped.get(type);
@@ -100,18 +123,46 @@ export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible }) => 
             <div style={headingStyle}>{SECTION_LABELS[type]}</div>
             {sectionItems.map((item) => {
               const canBuy = item.affordable && item.meetsPrerequisites;
+              // Parse fish species ID for sprite preview (format: "genusId:speciesId")
+              let fishSpriteUri: string | undefined;
+              if (item.type === StoreItemType.FishSpecies && item.id.includes(':')) {
+                const [genusId, speciesId] = item.id.split(':');
+                fishSpriteUri = spriteUriMap[genusId]?.[speciesId]?.swim;
+              }
               return (
                 <div key={item.id} style={itemRowStyle}>
-                  <span>
-                    {item.name} — {item.pomoCost} pomo
+                  <span style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                    {fishSpriteUri && <FishPreview spriteUri={fishSpriteUri} />}
+                    <span
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {item.name}
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginLeft: '8px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <PixelIcon icon={COIN_ICON} color={COIN_COLOR} />
+                      <span>{item.pomoCost}</span>
+                    </span>
                     {item.capacityCost !== undefined && (
-                      <span style={{ color: '#88aacc', marginLeft: '4px' }}>
-                        (cost: {item.capacityCost})
+                      <span
+                        style={{ display: 'inline-flex', alignItems: 'center', color: '#88aacc' }}
+                      >
+                        <PixelIcon icon={FISH_ICON} color={FISH_COLOR} />
+                        <span>{item.capacityCost}</span>
                       </span>
                     )}
                   </span>
                   <button
-                    style={canBuy ? buyBtnStyle : lockedBtnStyle}
+                    style={{ ...(canBuy ? buyBtnStyle : lockedBtnStyle) }}
                     disabled={!canBuy}
                     onClick={() => {
                       if (canBuy) {

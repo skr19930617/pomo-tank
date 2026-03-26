@@ -3,6 +3,7 @@ import { Group, Rect } from 'react-konva';
 import { PixelText } from './PixelText';
 import { HUD_HEIGHT } from '../../../shared/types';
 import { measureText } from './pixel-font-data';
+import { COIN_ICON, COIN_COLOR, FISH_ICON, FISH_COLOR } from './pixel-icons';
 
 interface PomoAnimState {
   amount: number;
@@ -12,7 +13,7 @@ interface PomoAnimState {
 interface HudOverlayProps {
   sceneWidth: number;
   timerSeconds: number;
-  isOvertime: boolean;
+  timerColor: string;
   isPaused: boolean;
   compact: boolean;
   // Coin display
@@ -38,7 +39,7 @@ function formatTimer(totalSec: number): string {
 export const HudOverlay: React.FC<HudOverlayProps> = ({
   sceneWidth,
   timerSeconds,
-  isOvertime,
+  timerColor,
   isPaused,
   compact,
   pomoBalance,
@@ -85,31 +86,18 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   // When paused, dim the timer text to indicate pause state
 
   const timerStr = formatTimer(timerSeconds);
-  const timerColor = isOvertime ? '#ff4444' : '#ffffff';
   const timerOpacity = isPaused ? 0.35 : 1;
 
   // Coin display
   const balanceStr =
     pomoBalance !== undefined ? (pomoBalance >= 10000 ? '9999+' : String(pomoBalance)) : undefined;
 
-  // Coin icon: 7×7 circle with P
-  // prettier-ignore
-  const coinIcon = [
-    [0,0,1,1,1,0,0],
-    [0,1,1,1,1,1,0],
-    [1,1,1,1,0,1,1],
-    [1,1,1,1,1,1,1],
-    [1,1,1,1,0,1,1],
-    [0,1,1,1,1,1,0],
-    [0,0,1,1,1,0,0],
-  ];
-
   const coinRects: React.ReactElement[] = [];
-  for (let r = 0; r < 7; r++) {
-    for (let c = 0; c < 7; c++) {
-      if (coinIcon[r][c] === 1) {
+  for (let r = 0; r < COIN_ICON.length; r++) {
+    for (let c = 0; c < COIN_ICON[r].length; c++) {
+      if (COIN_ICON[r][c] === 1) {
         coinRects.push(
-          <Rect key={`coin-${r}-${c}`} x={c} y={r} width={1} height={1} fill="#ffcc00" />,
+          <Rect key={`coin-${r}-${c}`} x={c} y={r} width={1} height={1} fill={COIN_COLOR} />,
         );
       }
     }
@@ -119,19 +107,9 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   const coinWidth = balanceStr !== undefined ? 7 + 2 + measureText(balanceStr) : 0;
   const coinX = sceneWidth - coinWidth - 4;
 
-  // Fish icon for cost display (7×5 mini fish)
-  // prettier-ignore
-  const fishIcon = [
-    [0,0,1,0,0,0,0],
-    [1,0,0,1,1,1,0],
-    [1,1,1,1,1,1,1],
-    [1,0,0,1,1,1,0],
-    [0,0,1,0,0,0,0],
-  ];
-
   // Cost capacity display
   const costElements: React.ReactElement[] = [];
-  const fishIconW = 7 + 2; // icon width + gap
+  const fishIconW = FISH_ICON[0].length + 2; // icon width + gap
   if (currentCost !== undefined && maxCost !== undefined) {
     const timerW = measureText(timerStr);
     const costX = 4 + timerW + 8;
@@ -140,9 +118,9 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
     const costColor = costRatio >= 1 ? '#ff4444' : costRatio >= 0.8 ? '#ffcc44' : '#ffffff';
 
     // Fish icon
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 7; c++) {
-        if (fishIcon[r][c] === 1) {
+    for (let r = 0; r < FISH_ICON.length; r++) {
+      for (let c = 0; c < FISH_ICON[r].length; c++) {
+        if (FISH_ICON[r][c] === 1) {
           costElements.push(
             <Rect
               key={`fi-${r}-${c}`}
@@ -150,7 +128,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
               y={5 + r}
               width={1}
               height={1}
-              fill="#44ddff"
+              fill={FISH_COLOR}
             />,
           );
         }
@@ -204,7 +182,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
       {balanceStr !== undefined && (
         <Group x={coinX} y={4}>
           <Group>{coinRects}</Group>
-          <PixelText text={balanceStr} x={9} y={0} color="#ffcc00" />
+          <PixelText text={balanceStr} x={9} y={0} color={COIN_COLOR} />
         </Group>
       )}
 

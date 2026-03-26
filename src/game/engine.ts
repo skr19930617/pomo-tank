@@ -2,6 +2,7 @@ import {
   type GameState,
   type GameStateSnapshot,
   type ActionType,
+  type TimerMode,
   HealthState,
   generateFishId,
   createInitialState,
@@ -28,6 +29,10 @@ export class GameEngine {
   private state: GameState;
   private activityTracker: IActivityTracker;
   private sessionMinutes: number;
+  private breakMinutes: number;
+  private timerMode: TimerMode = 'focus';
+  private breakStartTimestamp: number | null = null;
+  private breakPausedRemainingMs: number | null = null;
   private intervalId: ReturnType<typeof setTimeout> | null = null;
   private subscribers: Array<(state: GameState) => void> = [];
 
@@ -35,10 +40,12 @@ export class GameEngine {
     state: GameState,
     activityTracker: IActivityTracker,
     sessionMinutes: number = DEFAULT_SESSION_MINUTES,
+    breakMinutes: number = 5,
   ) {
     this.state = state;
     this.activityTracker = activityTracker;
     this.sessionMinutes = sessionMinutes;
+    this.breakMinutes = breakMinutes;
   }
 
   start(): void {
@@ -202,6 +209,13 @@ export class GameEngine {
       },
     };
 
+    // Enter break mode if breakMinutes > 0
+    if (this.breakMinutes > 0) {
+      this.timerMode = 'break';
+      this.breakStartTimestamp = now;
+      this.breakPausedRemainingMs = null;
+    }
+
     // ── Per-pomo fish progression: quality update + growth + aging ──
     const qualitySnapshot = computeQualitySnapshot(
       this.state.tank.hungerLevel,
@@ -264,7 +278,41 @@ export class GameEngine {
     this.notifySubscribers();
   }
 
+  setSessionMinutes(minutes: number): void {
+    this.sessionMinutes = minutes;
+  }
+
+  setBreakMinutes(minutes: number): void {
+    this.breakMinutes = minutes;
+  }
+
+  private getBreakRemainingMs(): number {
+    if (this.timerMode !== 'break' || this.breakStartTimestamp === null) return 0;
+    if (this.breakPausedRemainingMs !== null) return this.breakPausedRemainingMs;
+    const elapsed = Date.now() - this.breakStartTimestamp;
+    const remaining = this.breakMinutes * 60 * 1000 - elapsed;
+    return Math.max(0, remaining);
+  }
+
+  private checkBreakExpiry(): void {
+    if (this.timerMode !== 'break') return;
+    if (this.getBreakRemainingMs() <= 0) {
+      this.timerMode = 'focus';
+      this.breakStartTimestamp = null;
+      this.breakPausedRemainingMs = null;
+      // Reset sessionStartTime so focus timer starts from 0
+      this.state = {
+        ...this.state,
+        player: {
+          ...this.state.player,
+          sessionStartTime: Date.now(),
+        },
+      };
+    }
+  }
+
   createSnapshot(isActiveCoding: boolean, debugMode: boolean = false): GameStateSnapshot {
+    this.checkBreakExpiry();
     const timeSinceLastMaintenance = Date.now() - this.state.player.sessionStartTime;
 
     return {
@@ -295,6 +343,9 @@ export class GameEngine {
         isInBreakWindow: this.isInBreakWindow(),
         isActivelyCoding: isActiveCoding,
         sessionMinutes: this.sessionMinutes,
+        timerMode: this.timerMode,
+        breakRemainingMs: this.getBreakRemainingMs(),
+        breakMinutes: this.breakMinutes,
       },
       capacity: {
         current: calculateCurrentCost(this.state.fish),
@@ -311,7 +362,10 @@ export class GameEngine {
   toggleLight(): boolean {
     const now = Date.now();
     if (this.state.lightOn) {
-      // Turning off
+      // Turning off — pause break timer if active
+      if (this.timerMode === 'break' && this.breakStartTimestamp !== null) {
+        this.breakPausedRemainingMs = this.getBreakRemainingMs();
+      }
       this.state = {
         ...this.state,
         lightOn: false,
@@ -322,6 +376,11 @@ export class GameEngine {
       const lightOffDuration = this.state.lightOffTimestamp
         ? now - this.state.lightOffTimestamp
         : 0;
+      // Resume break timer if it was paused
+      if (this.timerMode === 'break' && this.breakPausedRemainingMs !== null) {
+        this.breakStartTimestamp = now - (this.breakMinutes * 60 * 1000 - this.breakPausedRemainingMs);
+        this.breakPausedRemainingMs = null;
+      }
       this.state = {
         ...this.state,
         lightOn: true,
