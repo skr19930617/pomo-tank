@@ -6,7 +6,9 @@ import { StoreItemType } from '../../../shared/types';
 import type { GameStateSnapshot } from '../../../game/state';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
 import { FishPreview } from './FishPreview';
+import { FilterPreview } from './FilterPreview';
 import { PixelIcon, COIN_ICON, COIN_COLOR, FISH_ICON, FISH_COLOR } from './pixel-icons';
+import type { FilterId } from '../../../shared/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const spriteUriMap: Record<string, Record<string, Record<string, string>>> = (window as any)
@@ -119,6 +121,7 @@ export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible, onClo
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                     {fishSpriteUri && <FishPreview spriteUri={fishSpriteUri} />}
+                    {item.type === StoreItemType.Filter && <FilterPreview filterId={item.id as FilterId} />}
                     <Typography
                       variant="body1"
                       noWrap

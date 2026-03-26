@@ -1,5 +1,7 @@
 import React from 'react';
-import { Rect } from 'react-konva';
+import { Rect, Group } from 'react-konva';
+import type { FilterId } from '../../../shared/types';
+import { getFilter } from '../../../game/filters';
 
 interface TankProps {
   tankLeft: number;
@@ -9,6 +11,7 @@ interface TankProps {
   waterDirtiness: number;
   algaeLevel: number;
   lightOn: boolean;
+  filterId: FilterId | null;
 }
 
 export const Tank: React.FC<TankProps> = ({
@@ -19,6 +22,7 @@ export const Tank: React.FC<TankProps> = ({
   waterDirtiness,
   algaeLevel,
   lightOn,
+  filterId,
 }) => {
   const frameThickness = 3;
   const innerLeft = tankLeft + frameThickness;
@@ -105,6 +109,22 @@ export const Tank: React.FC<TankProps> = ({
           />
         </>
       )}
+
+      {/* Internal filter (sponge) */}
+      {(() => {
+        const filter = getFilter(filterId);
+        if (!filter || filter.mount !== 'internal') return null;
+        const { width: fw, height: fh, primaryColor, accentColor } = filter.visual;
+        const fx = innerLeft + innerW - fw - 2;
+        const fy = innerTop + innerH - sandHeight - fh;
+        return (
+          <Group opacity={lightOn ? 1 : 0.5}>
+            <Rect x={fx} y={fy} width={fw} height={fh} fill={primaryColor} />
+            <Rect x={fx + 2} y={fy + 2} width={fw - 4} height={2} fill={accentColor} />
+            <Rect x={fx + 2} y={fy + fh - 4} width={fw - 4} height={2} fill={accentColor} />
+          </Group>
+        );
+      })()}
 
       {/* Glass border overlay */}
       <Rect

@@ -26,6 +26,9 @@ export type {
   SpriteSet,
   TimerMode,
   UserSettings,
+  FilterConfig,
+  FilterMountType,
+  FilterVisual,
 } from '../shared/types';
 
 import {
@@ -38,37 +41,7 @@ import {
 } from '../shared/types';
 
 import { buildFishStoreItems } from './species';
-
-// ── Filter Catalog ──
-
-export interface FilterData {
-  id: FilterId;
-  name: string;
-  capacityBonus: number;
-}
-
-export const FILTERS: Record<FilterId, FilterData> = {
-  basic_sponge: {
-    id: 'basic_sponge',
-    name: 'Basic Sponge',
-    capacityBonus: 0,
-  },
-  hang_on_back: {
-    id: 'hang_on_back',
-    name: 'Hang-On-Back',
-    capacityBonus: 3,
-  },
-  canister: {
-    id: 'canister',
-    name: 'Canister',
-    capacityBonus: 6,
-  },
-  premium_canister: {
-    id: 'premium_canister',
-    name: 'Premium Canister',
-    capacityBonus: 10,
-  },
-};
+import { buildFilterStoreItems } from './filters';
 
 // ── Store Item Catalog ──
 
@@ -119,36 +92,13 @@ const BASE_STORE_ITEMS: Record<string, StoreItemData> = {
     prerequisite: { requiredUnlocks: ['tank_large'] },
     description: 'The ultimate tank. Base capacity: 32.',
   },
-  hang_on_back: {
-    id: 'hang_on_back',
-    name: 'Hang-On-Back Filter',
-    type: StoreItemType.Filter,
-    pomoCost: 50,
-    prerequisite: {},
-    description: 'A solid upgrade. Capacity bonus: +3.',
-  },
-  canister: {
-    id: 'canister',
-    name: 'Canister Filter',
-    type: StoreItemType.Filter,
-    pomoCost: 150,
-    prerequisite: {},
-    description: 'Professional-grade filtration. Capacity bonus: +6.',
-  },
-  premium_canister: {
-    id: 'premium_canister',
-    name: 'Premium Canister Filter',
-    type: StoreItemType.Filter,
-    pomoCost: 400,
-    prerequisite: {},
-    description: 'The best money can buy. Capacity bonus: +10.',
-  },
 };
 
-// Fish store items are generated dynamically from species configs
+// Fish and filter store items are generated dynamically from configs
 export const STORE_ITEMS: Record<string, StoreItemData> = {
   ...BASE_STORE_ITEMS,
   ...buildFishStoreItems(),
+  ...buildFilterStoreItems(),
 };
 
 // ── Game State Interfaces ──

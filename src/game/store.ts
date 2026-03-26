@@ -4,7 +4,6 @@ import {
   type Tank,
   STORE_ITEMS,
   TANK_BASE_CAPACITY,
-  FILTERS,
   TANK_SIZE_ORDER,
   TankSizeTier,
   StoreItemType,
@@ -12,6 +11,7 @@ import {
   generateFishId,
 } from './state';
 import { getGenus, getSpecies, parseSpeciesStoreId } from './species';
+import { getFilter } from './filters';
 
 export interface PurchaseResult {
   success: boolean;
@@ -31,8 +31,7 @@ export function calculateCurrentCost(fish: Fish[]): number {
 
 export function calculateMaxCapacity(tank: Tank): number {
   const base = TANK_BASE_CAPACITY[tank.sizeTier];
-  const filter = tank.filterId ? FILTERS[tank.filterId] : null;
-  const bonus = filter ? filter.capacityBonus : 0;
+  const bonus = getFilter(tank.filterId)?.capacityBonus ?? 0;
   return base + bonus;
 }
 

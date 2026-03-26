@@ -79,6 +79,29 @@ export interface GenusConfig {
 
 export type FilterId = 'basic_sponge' | 'hang_on_back' | 'canister' | 'premium_canister';
 
+// ── Filter Config Types ──
+
+export type FilterMountType = 'internal' | 'hang_on_back' | 'canister';
+
+export interface FilterVisual {
+  relativeSize: number;
+  primaryColor: string;
+  accentColor: string;
+  width: number;
+  height: number;
+}
+
+export interface FilterConfig {
+  id: FilterId;
+  displayName: string;
+  capacityBonus: number;
+  pomoCost: number;
+  prerequisite: { minTankSize?: TankSizeTier; requiredUnlocks?: string[] };
+  description: string;
+  mount: FilterMountType;
+  visual: FilterVisual;
+}
+
 export type StoreItemId =
   | 'tank_small'
   | 'tank_medium'

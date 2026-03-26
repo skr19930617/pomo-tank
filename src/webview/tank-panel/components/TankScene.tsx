@@ -19,6 +19,7 @@ import { Tank } from './Tank';
 import { FishSprite } from './Fish';
 import { HudOverlay } from './HudOverlay';
 import { ActionBar } from './ActionBar';
+import { FilterVisual } from './Filter';
 import { useTimer } from '../hooks/useTimer';
 
 const DEFAULT_SCENE_W = 480;
@@ -145,6 +146,15 @@ export const TankScene: React.FC<TankSceneProps> = ({
             tankHeight={rawTankH}
             waterDirtiness={state.tank.waterDirtiness}
             algaeLevel={state.tank.algaeLevel}
+            lightOn={state.lightOn}
+            filterId={state.tank.filterId}
+          />
+
+          {/* External filter (HOB / canister) */}
+          <FilterVisual
+            filterId={state.tank.filterId}
+            tankWidth={rawTankW}
+            tankHeight={rawTankH}
             lightOn={state.lightOn}
           />
 
