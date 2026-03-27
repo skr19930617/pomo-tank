@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Group } from 'react-konva';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
 import { DESK_HEIGHT } from '../../../shared/types';
+import type { FeedingPhase } from '../hooks/useFeedingMode';
 import { PixelButton } from './PixelButton';
 
 // ── Icon bitmaps (8×8) ──
@@ -121,6 +122,8 @@ interface ActionBarProps {
   avgHunger?: number;
   waterDirtiness?: number;
   algaeLevel?: number;
+  feedingPhase?: FeedingPhase;
+  onFeedClick?: () => void;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -133,6 +136,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   avgHunger = 0,
   waterDirtiness = 0,
   algaeLevel = 0,
+  feedingPhase = 'idle',
+  onFeedClick,
 }) => {
   // Feedback state: buttonId → timestamp when feedback started
   const [feedback, setFeedback] = useState<Record<string, number>>({});
@@ -190,7 +195,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   // Determine disabled state per button
   const isDisabled = (id: string): boolean => {
     if (!lightOn && id !== 'light') return true;
-    if (id === 'feed') return avgHunger < LOW_THRESHOLD;
+    if (id === 'feed') return avgHunger < LOW_THRESHOLD || feedingPhase !== 'idle';
+    // Disable other maintenance buttons during feeding animation
+    if (feedingPhase === 'animating' && (id === 'water' || id === 'algae' || id === 'light')) return true;
     if (id === 'water') return waterDirtiness < LOW_THRESHOLD;
     if (id === 'algae') return algaeLevel < LOW_THRESHOLD;
     return false;
@@ -216,6 +223,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             onClick={() => {
               if (btn.id === 'expand') {
                 onExpandClick?.();
+              } else if (btn.id === 'feed' && onFeedClick) {
+                onFeedClick();
               } else if (btn.msgType) {
                 handleAction(btn.id, btn.msgType);
               }

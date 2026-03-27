@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Group } from 'react-konva';
 import type Konva from 'konva';
 import { useVisibilityResume } from '../hooks/useVisibilityResume';
@@ -24,7 +24,9 @@ import { FishSprite } from './Fish';
 import { HudOverlay } from './HudOverlay';
 import { ActionBar } from './ActionBar';
 import { FilterVisual } from './Filter';
+import { FoodOverlay } from './FoodOverlay';
 import { useTimer } from '../hooks/useTimer';
+import type { UseFeedingModeResult } from '../hooks/useFeedingMode';
 
 const DEFAULT_SCENE_W = 480;
 const DEFAULT_SCENE_H = 380;
@@ -87,7 +89,7 @@ interface TankSceneProps {
   showExpand?: boolean;
   onExpandClick?: () => void;
   spriteImages: SpriteImageMap;
-  feedingActive: boolean;
+  feedingMode: UseFeedingModeResult;
 }
 
 export const TankScene: React.FC<TankSceneProps> = ({
@@ -103,7 +105,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   showExpand = false,
   onExpandClick,
   spriteImages,
-  feedingActive,
+  feedingMode,
 }) => {
   const tankConfig = getTank(state.tank.tankId);
   const rawTankW = tankConfig?.renderWidth ?? 200;
@@ -137,8 +139,81 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const lightGapRaw = rawTankH * LIGHT_GAP_RATIO;
   const lightTopRaw = -(LIGHT_BAR_HEIGHT + lightGapRaw);
 
+  // ── Feeding mode: water surface Y in tank-local coords ──
+  const frameThickness = 3;
+  const innerH = rawTankH - frameThickness * 2;
+  const waterH = innerH * 0.9;
+  const waterSurfaceY = frameThickness + innerH - waterH; // top of water in tank coords
+
+  // ── Feeding mode: custom cursor ──
+  useEffect(() => {
+    const container = stageRef.current?.container();
+    if (!container) return;
+    if (feedingMode.phase === 'targeting') {
+      container.style.cursor = 'crosshair';
+    } else {
+      container.style.cursor = '';
+    }
+    return () => { container.style.cursor = ''; };
+  }, [feedingMode.phase]);
+
+  // ── Feeding mode: ESC to cancel targeting ──
+  useEffect(() => {
+    if (feedingMode.phase !== 'targeting') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        feedingMode.cancelTargeting();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedingMode.phase, feedingMode.cancelTargeting]);
+
+  // ── Feeding mode: click handler on stage ──
+  const handleStageClick = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (feedingMode.phase !== 'targeting') return;
+
+      const stage = e.target.getStage();
+      if (!stage) return;
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+
+      // Convert stage pixel coords → logical scene coords
+      const logicalX = pointer.x / layerScale;
+      const logicalY = pointer.y / layerScale;
+
+      // Convert scene coords → tank-local coords
+      const localX = (logicalX - tankX) / contentScale;
+      const localY = (logicalY - tankY) / contentScale;
+
+      // Check if click is inside tank water area
+      const inTankX = localX >= frameThickness && localX <= rawTankW - frameThickness;
+      const inTankY = localY >= waterSurfaceY && localY <= rawTankH - frameThickness;
+
+      if (inTankX && inTankY) {
+        const sandTop = rawTankH - frameThickness - 8; // 8px sand strip
+        feedingMode.confirmDrop(localX, waterSurfaceY, sandTop);
+      } else {
+        // Click outside tank water → cancel
+        feedingMode.cancelTargeting();
+      }
+    },
+    [feedingMode, layerScale, tankX, tankY, contentScale, rawTankW, rawTankH, waterSurfaceY],
+  );
+
+  // ── Feeding mode: animation update + completion ──
+  useEffect(() => {
+    if (feedingMode.phase !== 'animating' || frameCount === 0) return;
+    const completed = feedingMode.updateAnimation(frameCount);
+    if (completed && sendMessage) {
+      sendMessage({ type: 'feedFish' } as WebviewToExtensionMessage);
+    }
+  }, [feedingMode, frameCount, sendMessage]);
+
   return (
-    <Stage ref={stageRef} width={stageW} height={stageH}>
+    <Stage ref={stageRef} width={stageW} height={stageH} onClick={handleStageClick}>
       <Layer scaleX={layerScale} scaleY={layerScale}>
         {/* Background wall — full scene */}
         <Wall sceneWidth={sceneWidth} sceneHeight={sceneHeight} />
@@ -171,6 +246,14 @@ export const TankScene: React.FC<TankSceneProps> = ({
             lightOn={state.lightOn}
           />
 
+          {/* Food overlay (can + particles) */}
+          {feedingMode.phase === 'animating' && (
+            <FoodOverlay
+              particles={feedingMode.particles}
+              canState={feedingMode.canState}
+            />
+          )}
+
           {/* Fish */}
           {state.fish.map((f) => {
             const anim = animatedFish.get(f.id);
@@ -189,7 +272,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
                 frameCount={frameCount}
                 displaySize={anim.displaySize}
                 spriteImages={spriteImages}
-                feedingActive={feedingActive}
+                feedingActive={feedingMode.phase === 'animating'}
                 hasFeedingAnim={genus?.hasFeedingAnim ?? false}
                 onClick={() => setSelectedFishId(selectedFishId === f.id ? null : f.id)}
               />
@@ -229,6 +312,8 @@ export const TankScene: React.FC<TankSceneProps> = ({
             avgHunger={state.tank.hungerLevel}
             waterDirtiness={state.tank.waterDirtiness}
             algaeLevel={state.tank.algaeLevel}
+            feedingPhase={feedingMode.phase}
+            onFeedClick={feedingMode.startTargeting}
           />
         )}
 

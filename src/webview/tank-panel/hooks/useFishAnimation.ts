@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { GameStateSnapshot } from '../../../game/state';
 import { getGenus } from '../../../game/species';
-import { HealthState, SWIM_LAYER_RANGES, type TankId } from '../../../shared/types';
+import { HealthState, Personality, SWIM_LAYER_RANGES, type TankId } from '../../../shared/types';
 import { getTank } from '../../../game/tanks';
+import type { AttractionTarget } from './useFeedingMode';
 
 export interface AnimatedFishData {
   x: number;
@@ -16,6 +17,8 @@ interface FishAnimState {
   y: number;
   dx: number;
   dy: number;
+  /** Frame when fish arrived near food (0 = not arrived yet). */
+  foodArrivedFrame: number;
 }
 
 export interface FishBounds {
@@ -37,6 +40,20 @@ const SCHOOL_SEPARATION_FORCE = 0.04; // strength of repulsion when too close
 const SCHOOL_ALIGNMENT_FORCE = 0.02; // strength of velocity matching
 const SCHOOL_COHESION_FORCE = 0.003; // gentle pull toward group center
 
+// ── Food attraction parameters ──
+const FOOD_ATTRACTION_FORCE = 0.015; // pull toward food
+const FOOD_SPEED_BOOST = 1.4; // multiply base speed when chasing food
+const FOOD_ARRIVAL_DIST = 10; // px — considered "arrived" at food
+const FOOD_LINGER_FRAMES = 40; // frames to linger near food before resuming free swim
+
+/** Frames to delay before reacting to food, keyed by personality. */
+export const PERSONALITY_REACTION_DELAY: Record<Personality, number> = {
+  [Personality.active]: 0,
+  [Personality.social]: 30,
+  [Personality.calm]: 60,
+  [Personality.timid]: 90,
+};
+
 /** Convert mm body length to px for rendering. */
 function mmToPx(fishMm: number, tankWidthMm: number, tankRenderWidthPx: number): number {
   return (fishMm / tankWidthMm) * tankRenderWidthPx;
@@ -47,6 +64,7 @@ export function useFishAnimation(
   lightOn: boolean,
   bounds: FishBounds,
   tankId?: string,
+  attractionTarget?: AttractionTarget | null,
 ): { animatedFish: Map<string, AnimatedFishData>; frameCount: number } {
   const stateRef = useRef<Map<string, FishAnimState>>(new Map());
   const [animState, setAnimState] = useState<{
@@ -54,6 +72,8 @@ export function useFishAnimation(
     frameCount: number;
   }>({ fish: new Map(), frameCount: 0 });
   const rafRef = useRef<number>(0);
+  const attractionRef = useRef<AttractionTarget | null | undefined>(attractionTarget);
+  useEffect(() => { attractionRef.current = attractionTarget; }, [attractionTarget]);
 
   // Sync fish list — add new fish, remove gone ones
   const syncFish = useCallback(() => {
@@ -97,6 +117,7 @@ export function useFishAnimation(
           y: zoneMinY + Math.random() * (zoneMaxY - zoneMinY),
           dx: (Math.random() - 0.5) * 2,
           dy: (Math.random() - 0.5) * 1,
+          foodArrivedFrame: 0,
         });
       }
     }
@@ -203,19 +224,55 @@ export function useFishAnimation(
             }
           }
 
-          // Random drift
-          if (Math.random() < DRIFT_CHANCE) {
+          // ── Food attraction: pull toward food particles ──
+          let chasingFood = false;
+          const target = attractionRef.current;
+          if (target?.active && genus) {
+            const personality = genus.personality as Personality;
+            const delay = PERSONALITY_REACTION_DELAY[personality] ?? 60;
+            if (frameCounter - target.startFrame >= delay) {
+              const distToFoodX = target.x - s.x;
+              const distToFoodY = target.y - s.y;
+              const distToFood = Math.sqrt(distToFoodX * distToFoodX + distToFoodY * distToFoodY);
+
+              if (s.foodArrivedFrame === 0 && distToFood < FOOD_ARRIVAL_DIST) {
+                // Just arrived near food — record frame
+                s.foodArrivedFrame = frameCounter;
+              }
+
+              if (s.foodArrivedFrame === 0) {
+                // Still approaching — apply attraction force
+                s.dx += distToFoodX * FOOD_ATTRACTION_FORCE;
+                s.dy += distToFoodY * FOOD_ATTRACTION_FORCE;
+                chasingFood = true;
+              } else if (frameCounter - s.foodArrivedFrame < FOOD_LINGER_FRAMES) {
+                // Lingering near food — slow down, slight drift
+                s.dx *= 0.9;
+                s.dy *= 0.9;
+              }
+              // After linger period: free swim resumes naturally (no force applied)
+            }
+          } else {
+            // No food target — reset arrival state
+            s.foodArrivedFrame = 0;
+          }
+
+          // Random drift (suppressed while chasing food)
+          if (!chasingFood && Math.random() < DRIFT_CHANCE) {
             s.dx += (Math.random() - 0.5) * 0.8;
             s.dy += (Math.random() - 0.5) * 0.4;
           }
 
-          // Clamp velocity
-          const maxV = 1.5 * speedMul;
-          s.dx = Math.max(-maxV, Math.min(maxV, s.dx));
-          s.dy = Math.max(-maxV * 0.6, Math.min(maxV * 0.6, s.dy));
+          // Speed boost when chasing food
+          const effectiveSpeed = chasingFood ? speedMul * FOOD_SPEED_BOOST : speedMul;
 
-          s.x += s.dx * speedMul;
-          s.y += s.dy * speedMul;
+          // Clamp velocity (equal ratio for X and Y so fish move naturally in both axes)
+          const maxV = 1.5 * effectiveSpeed;
+          s.dx = Math.max(-maxV, Math.min(maxV, s.dx));
+          s.dy = Math.max(-maxV, Math.min(maxV, s.dy));
+
+          s.x += s.dx * effectiveSpeed;
+          s.y += s.dy * effectiveSpeed;
 
           // Bounce off tank walls (with margin for fish body)
           const margin = 6;

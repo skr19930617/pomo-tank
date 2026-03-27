@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import { useGameState } from './hooks/useGameState';
 import { useFishAnimation } from './hooks/useFishAnimation';
 import type { FishBounds } from './hooks/useFishAnimation';
+import { useFeedingMode } from './hooks/useFeedingMode';
 import { useSpriteLoader } from './hooks/useSpriteLoader';
 import { useContainerSize, fitScene } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
@@ -23,10 +24,11 @@ const SCENE_H = 190;
 const SCENE_ASPECT = SCENE_H / SCENE_W;
 
 export const App: React.FC = () => {
-  const { state, notification, sendMessage, spriteUriMap, feedingActive } = useGameState();
+  const { state, notification, sendMessage, spriteUriMap } = useGameState();
   const { images: spriteImages } = useSpriteLoader(spriteUriMap);
   const { settings, updateSetting } = useSettings(sendMessage);
   const [storeOpen, setStoreOpen] = useState(false);
+  const feedingMode = useFeedingMode();
   const { ref, size, renderSize } = useContainerSize(480, 380);
 
   // fitted: updates every frame (for CSS transform), render: debounced (for canvas)
@@ -57,6 +59,7 @@ export const App: React.FC = () => {
     state?.lightOn ?? true,
     fishBounds,
     state?.tank.tankId,
+    feedingMode.attractionTarget,
   );
 
   if (!state) {
@@ -93,7 +96,7 @@ export const App: React.FC = () => {
             sendMessage={sendMessage}
             showExpand={false}
             spriteImages={spriteImages}
-            feedingActive={feedingActive}
+            feedingMode={feedingMode}
           />
         </Box>
       </Box>

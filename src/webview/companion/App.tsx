@@ -4,6 +4,7 @@ import Typography from '@mui/material/Typography';
 import { useGameState } from '../tank-panel/hooks/useGameState';
 import { useFishAnimation } from '../tank-panel/hooks/useFishAnimation';
 import type { FishBounds } from '../tank-panel/hooks/useFishAnimation';
+import { useFeedingMode } from '../tank-panel/hooks/useFeedingMode';
 import { useSpriteLoader } from '../tank-panel/hooks/useSpriteLoader';
 import { useContainerSize, fitScene } from '../tank-panel/hooks/useContainerSize';
 import { TankScene } from '../tank-panel/components/TankScene';
@@ -15,7 +16,8 @@ const SCENE_H = 90;
 const SCENE_ASPECT = SCENE_H / SCENE_W;
 
 export function App() {
-  const { state, sendMessage, spriteUriMap, feedingActive } = useGameState();
+  const { state, sendMessage, spriteUriMap } = useGameState();
+  const feedingMode = useFeedingMode();
   const { images: spriteImages } = useSpriteLoader(spriteUriMap);
   const { ref, size, renderSize } = useContainerSize(220, 180);
 
@@ -81,7 +83,7 @@ export function App() {
           showExpand={true}
           onExpandClick={() => sendMessage({ type: 'openTank' })}
           spriteImages={spriteImages}
-          feedingActive={feedingActive}
+          feedingMode={feedingMode}
         />
       </Box>
     </Box>
