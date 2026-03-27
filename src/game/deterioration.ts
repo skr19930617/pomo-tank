@@ -1,15 +1,17 @@
 // ── Deterioration Logic ──
 // Pure functions that compute per-tick decay of hunger, water dirtiness, and algae.
+// All rates are tank-wide and fixed, derived from the configured session duration.
 // No vscode imports.
 
-import type { GameState, Fish } from "./state";
-import { FISH_SPECIES, FILTERS } from "./state";
+import type { GameState } from './state';
+import { DETERIORATION_THRESHOLD, DEFAULT_SESSION_MINUTES } from './state';
 
 // ── Balancing Constants ──
 
-export const ACTIVITY_MULTIPLIER = 1.15;
-export const BASE_ALGAE_RATE = 0.5;
-export const DIRTY_ALGAE_BONUS = 1.5;
+export const BASE_ALGAE_RATE_FACTOR = 5; // Algae threshold reached in 5 pomo sessions
+export const WATER_RATE_FACTOR = 3; // Water threshold reached in 3 pomo sessions
+export const HUNGER_RATE_FACTOR = 1; // Hunger threshold reached in 1 pomo session
+export const DIRTY_ALGAE_BONUS = 1.5; // Extra algae rate when water is dirty
 
 // ── Helpers ──
 
@@ -20,71 +22,51 @@ function clamp(value: number, min: number, max: number): number {
 // ── Exported Tick Functions ──
 
 /**
- * Returns a new Fish with hunger advanced by one tick.
- * hungerDelta = species.hungerRate × activityMultiplier
+ * Computes the per-tick hunger rate based on session duration.
+ * Hunger reaches DETERIORATION_THRESHOLD in 1 pomo session.
  */
-export function applyHungerTick(fish: Fish, isActiveCoding: boolean): Fish {
-  const species = FISH_SPECIES[fish.speciesId];
-  if (!species) {
-    return fish;
-  }
-  const multiplier = isActiveCoding ? ACTIVITY_MULTIPLIER : 1.0;
-  const hungerDelta = species.hungerRate * multiplier;
-  const newHunger = clamp(fish.hungerLevel + hungerDelta, 0, 100);
-  return { ...fish, hungerLevel: newHunger };
+export function getHungerRate(sessionMinutes: number): number {
+  return DETERIORATION_THRESHOLD / (HUNGER_RATE_FACTOR * sessionMinutes);
 }
 
 /**
- * Returns the new waterDirtiness value after one tick.
- * dirtinessDelta = sum(fish.species.dirtinessLoad) × (1 - filter.efficiency)
+ * Computes the per-tick water dirtiness rate based on session duration.
+ * Water reaches DETERIORATION_THRESHOLD in 3 pomo sessions.
  */
-export function applyDirtinessTick(
-  state: GameState,
-  _isActiveCoding: boolean,
-): number {
-  const totalDirtinessLoad = state.fish.reduce((sum, f) => {
-    const species = FISH_SPECIES[f.speciesId];
-    return sum + (species ? species.dirtinessLoad : 0);
-  }, 0);
-
-  const filterId = state.tank.filterId;
-  const filter = filterId ? FILTERS[filterId] : null;
-  const filterEfficiency = filter ? filter.efficiency : 0;
-
-  const dirtinessDelta = totalDirtinessLoad * (1 - filterEfficiency);
-  return clamp(state.tank.waterDirtiness + dirtinessDelta, 0, 100);
+export function getWaterRate(sessionMinutes: number): number {
+  return DETERIORATION_THRESHOLD / (WATER_RATE_FACTOR * sessionMinutes);
 }
 
 /**
- * Returns the new algaeLevel value after one tick.
- * algaeDelta = baseAlgaeRate + (waterDirtiness / 100) × dirtyAlgaeBonus
+ * Computes the base per-tick algae rate based on session duration.
+ * Algae reaches DETERIORATION_THRESHOLD in 5 pomo sessions (before water bonus).
  */
-export function applyAlgaeTick(state: GameState): number {
-  const algaeDelta =
-    BASE_ALGAE_RATE +
-    (state.tank.waterDirtiness / 100) * DIRTY_ALGAE_BONUS;
-  return clamp(state.tank.algaeLevel + algaeDelta, 0, 100);
+export function getAlgaeRate(sessionMinutes: number): number {
+  return DETERIORATION_THRESHOLD / (BASE_ALGAE_RATE_FACTOR * sessionMinutes);
 }
 
 /**
  * Applies all deterioration (hunger, dirtiness, algae) for one tick.
+ * All rates are tank-wide and fixed — they do not depend on fish count or species.
  * Returns a new GameState with all values clamped to 0–100.
  */
 export function applyTick(
   state: GameState,
-  isActiveCoding: boolean,
+  _isActiveCoding: boolean,
+  sessionMinutes: number = DEFAULT_SESSION_MINUTES,
 ): GameState {
-  const newFish = state.fish.map((f) => applyHungerTick(f, isActiveCoding));
-  const newWaterDirtiness = applyDirtinessTick(state, isActiveCoding);
-  const newAlgaeLevel = applyAlgaeTick(state);
+  const hungerDelta = getHungerRate(sessionMinutes);
+  const waterDelta = getWaterRate(sessionMinutes);
+  const baseAlgaeDelta = getAlgaeRate(sessionMinutes);
+  const algaeDelta = baseAlgaeDelta + (state.tank.waterDirtiness / 100) * DIRTY_ALGAE_BONUS;
 
   return {
     ...state,
-    fish: newFish,
     tank: {
       ...state.tank,
-      waterDirtiness: newWaterDirtiness,
-      algaeLevel: newAlgaeLevel,
+      hungerLevel: clamp(state.tank.hungerLevel + hungerDelta, 0, 100),
+      waterDirtiness: clamp(state.tank.waterDirtiness + waterDelta, 0, 100),
+      algaeLevel: clamp(state.tank.algaeLevel + algaeDelta, 0, 100),
     },
   };
 }

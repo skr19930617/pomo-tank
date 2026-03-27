@@ -1,0 +1,45 @@
+import { type GenusConfig, SwimLayer, Personality } from '../../shared/types';
+
+export const neonTetra: GenusConfig = {
+  id: 'neon_tetra',
+  displayName: 'Neon Tetra',
+  swimLayer: SwimLayer.middle,
+  personality: Personality.active,
+  schooling: true,
+  baseSpeed: 1.2,
+  hasFeedingAnim: false,
+  capacityCost: 1,
+
+  species: [
+    {
+      id: 'standard',
+      displayName: 'Neon Tetra',
+      sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      minSizeMm: 20,
+      maxSizeMm: 35,
+      minLifespanYears: 3,
+      maxLifespanYears: 5,
+      pomoCost: 15,
+    },
+    {
+      id: 'albino',
+      displayName: 'Albino Neon Tetra',
+      sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      minSizeMm: 20,
+      maxSizeMm: 35,
+      minLifespanYears: 3,
+      maxLifespanYears: 5,
+      pomoCost: 20,
+    },
+    {
+      id: 'green',
+      displayName: 'Green Neon Tetra',
+      sprites: { swim: 'swim_64x64_6x2_12f.png', weak: 'weak_64x64_6x2_12f.png' },
+      minSizeMm: 18,
+      maxSizeMm: 30,
+      minLifespanYears: 3,
+      maxLifespanYears: 5,
+      pomoCost: 20,
+    },
+  ],
+};

@@ -1,131 +1,51 @@
-// ── Enums ──
+// ── Re-export shared types ──
+export {
+  HealthState,
+  StoreItemType,
+  SwimLayer,
+  Personality,
+  DESK_HEIGHT,
+  LIGHT_BAR_HEIGHT,
+  LIGHT_GAP_RATIO,
+  HUD_BOTTOM_PAD,
+  DETERIORATION_THRESHOLD,
+  DEFAULT_SESSION_MINUTES,
+  SWIM_LAYER_RANGES,
+} from '../shared/types';
+export type {
+  TankId,
+  TankConfig,
+  GenusId,
+  FilterId,
+  StoreItemId,
+  ActionType,
+  AnimState,
+  GenusConfig,
+  SpeciesConfig,
+  SpriteSet,
+  TimerMode,
+  UserSettings,
+  FilterConfig,
+  FilterMountType,
+  FilterVisual,
+} from '../shared/types';
 
-export enum TankSizeTier {
-  Nano = "Nano",
-  Small = "Small",
-  Medium = "Medium",
-  Large = "Large",
-  XL = "XL",
-}
+import {
+  HealthState,
+  StoreItemType,
+  type TankId,
+  type GenusId,
+  type FilterId,
+  type TimerMode,
+} from '../shared/types';
 
-export const TANK_CAPACITY: Record<TankSizeTier, number> = {
-  [TankSizeTier.Nano]: 3,
-  [TankSizeTier.Small]: 5,
-  [TankSizeTier.Medium]: 8,
-  [TankSizeTier.Large]: 12,
-  [TankSizeTier.XL]: 18,
-};
-
-export const TANK_SIZE_ORDER: TankSizeTier[] = [
-  TankSizeTier.Nano,
-  TankSizeTier.Small,
-  TankSizeTier.Medium,
-  TankSizeTier.Large,
-  TankSizeTier.XL,
-];
-
-export enum HealthState {
-  Healthy = "Healthy",
-  Warning = "Warning",
-  Sick = "Sick",
-  Dead = "Dead",
-}
-
-export enum StoreItemType {
-  TankUpgrade = "TankUpgrade",
-  Filter = "Filter",
-  FishSpecies = "FishSpecies",
-}
-
-// ── Fish Species Catalog ──
-
-export interface FishSpeciesData {
-  id: string;
-  name: string;
-  hungerRate: number; // hunger increase per tick (base)
-  dirtinessLoad: number; // contribution to water dirtiness per tick
-  minTankSize: TankSizeTier;
-  schoolingMin: number; // recommended group size
-}
-
-export const FISH_SPECIES: Record<string, FishSpeciesData> = {
-  guppy: {
-    id: "guppy",
-    name: "Guppy",
-    hungerRate: 2,
-    dirtinessLoad: 1,
-    minTankSize: TankSizeTier.Nano,
-    schoolingMin: 1,
-  },
-  neon_tetra: {
-    id: "neon_tetra",
-    name: "Neon Tetra",
-    hungerRate: 2,
-    dirtinessLoad: 1,
-    minTankSize: TankSizeTier.Nano,
-    schoolingMin: 3,
-  },
-  corydoras: {
-    id: "corydoras",
-    name: "Corydoras",
-    hungerRate: 3,
-    dirtinessLoad: 2,
-    minTankSize: TankSizeTier.Small,
-    schoolingMin: 3,
-  },
-  betta: {
-    id: "betta",
-    name: "Betta",
-    hungerRate: 3,
-    dirtinessLoad: 1,
-    minTankSize: TankSizeTier.Small,
-    schoolingMin: 1,
-  },
-  angelfish: {
-    id: "angelfish",
-    name: "Angelfish",
-    hungerRate: 5,
-    dirtinessLoad: 3,
-    minTankSize: TankSizeTier.Medium,
-    schoolingMin: 1,
-  },
-};
-
-// ── Filter Catalog ──
-
-export interface FilterData {
-  id: string;
-  name: string;
-  efficiency: number; // 0.0–1.0 multiplier reducing dirtiness per tick
-}
-
-export const FILTERS: Record<string, FilterData> = {
-  basic_sponge: {
-    id: "basic_sponge",
-    name: "Basic Sponge",
-    efficiency: 0.15,
-  },
-  hang_on_back: {
-    id: "hang_on_back",
-    name: "Hang-On-Back",
-    efficiency: 0.3,
-  },
-  canister: {
-    id: "canister",
-    name: "Canister",
-    efficiency: 0.5,
-  },
-  premium_canister: {
-    id: "premium_canister",
-    name: "Premium Canister",
-    efficiency: 0.7,
-  },
-};
+import { buildFishStoreItems } from './species';
+import { buildFilterStoreItems } from './filters';
+import { buildTankStoreItems } from './tanks';
 
 // ── Store Item Catalog ──
 
 export interface StoreItemPrerequisite {
-  minTankSize?: TankSizeTier;
   requiredUnlocks?: string[];
 }
 
@@ -138,169 +58,145 @@ export interface StoreItemData {
   description: string;
 }
 
+// Fish, filter, and tank store items are all generated dynamically from configs
 export const STORE_ITEMS: Record<string, StoreItemData> = {
-  // Tank upgrades
-  tank_small: {
-    id: "tank_small",
-    name: "Small Tank",
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 30,
-    prerequisite: {},
-    description: "A cozy upgrade. Holds up to 5 fish.",
-  },
-  tank_medium: {
-    id: "tank_medium",
-    name: "Medium Tank",
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 100,
-    prerequisite: { requiredUnlocks: ["tank_small"] },
-    description: "Room to grow. Holds up to 8 fish.",
-  },
-  tank_large: {
-    id: "tank_large",
-    name: "Large Tank",
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 250,
-    prerequisite: { requiredUnlocks: ["tank_medium"] },
-    description: "A proper aquarium. Holds up to 12 fish.",
-  },
-  tank_xl: {
-    id: "tank_xl",
-    name: "XL Tank",
-    type: StoreItemType.TankUpgrade,
-    pomoCost: 500,
-    prerequisite: { requiredUnlocks: ["tank_large"] },
-    description: "The ultimate tank. Holds up to 18 fish.",
-  },
-  // Filters
-  hang_on_back: {
-    id: "hang_on_back",
-    name: "Hang-On-Back Filter",
-    type: StoreItemType.Filter,
-    pomoCost: 50,
-    prerequisite: {},
-    description: "A solid upgrade. Reduces dirtiness by 30%.",
-  },
-  canister: {
-    id: "canister",
-    name: "Canister Filter",
-    type: StoreItemType.Filter,
-    pomoCost: 150,
-    prerequisite: {},
-    description: "Professional-grade filtration. Reduces dirtiness by 50%.",
-  },
-  premium_canister: {
-    id: "premium_canister",
-    name: "Premium Canister Filter",
-    type: StoreItemType.Filter,
-    pomoCost: 400,
-    prerequisite: {},
-    description: "The best money can buy. Reduces dirtiness by 70%.",
-  },
-  // Fish species
-  neon_tetra: {
-    id: "neon_tetra",
-    name: "Neon Tetra",
-    type: StoreItemType.FishSpecies,
-    pomoCost: 15,
-    prerequisite: {},
-    description: "A tiny glowing schooling fish. Prefers groups of 3+.",
-  },
-  corydoras: {
-    id: "corydoras",
-    name: "Corydoras",
-    type: StoreItemType.FishSpecies,
-    pomoCost: 25,
-    prerequisite: { minTankSize: TankSizeTier.Small },
-    description: "A friendly bottom-dweller. Prefers groups of 3+.",
-  },
-  betta: {
-    id: "betta",
-    name: "Betta",
-    type: StoreItemType.FishSpecies,
-    pomoCost: 30,
-    prerequisite: { minTankSize: TankSizeTier.Small },
-    description: "A beautiful, independent fighter fish.",
-  },
-  angelfish: {
-    id: "angelfish",
-    name: "Angelfish",
-    type: StoreItemType.FishSpecies,
-    pomoCost: 60,
-    prerequisite: { minTankSize: TankSizeTier.Medium },
-    description: "An elegant, larger fish. Hungry and messy but stunning.",
-  },
+  ...buildTankStoreItems(),
+  ...buildFishStoreItems(),
+  ...buildFilterStoreItems(),
 };
 
 // ── Game State Interfaces ──
 
 export interface Fish {
   id: string;
+  genusId: GenusId;
   speciesId: string;
-  hungerLevel: number; // 0–100
   healthState: HealthState;
-  sicknessTick: number; // ticks in current unhealthy state
+  sicknessTick: number;
+  bodyLengthMm: number;
+  ageWeeks: number;
+  lifespanWeeks: number;
+  maintenanceQuality: number;
+  purchasedAt: number;
+  customName?: string;
 }
 
 export interface Tank {
-  sizeTier: TankSizeTier;
-  waterDirtiness: number; // 0–100
-  algaeLevel: number; // 0–100
-  filterId: string | null;
+  tankId: TankId;
+  hungerLevel: number;
+  waterDirtiness: number;
+  algaeLevel: number;
+  filterId: FilterId | null;
 }
 
 export interface PlayerProfile {
   pomoBalance: number;
   totalPomoEarned: number;
   currentStreak: number;
-  lastMaintenanceDate: string; // ISO date string
+  lastMaintenanceDate: string;
   dailyContinuityDays: number;
   unlockedItems: string[];
-  lastTickTimestamp: number; // Unix ms
-  sessionStartTime: number; // Unix ms
+  lastTickTimestamp: number;
+  sessionStartTime: number;
 }
 
 export interface GameState {
   player: PlayerProfile;
   tank: Tank;
   fish: Fish[];
+  lightOn: boolean;
+  lightOffTimestamp: number | null;
 }
 
-// ── Snapshot for webview communication ──
+// ── Snapshot for webview communication (type-safe) ──
 
 export interface GameStateSnapshot {
   tank: {
-    sizeTier: string;
+    tankId: TankId;
+    hungerLevel: number;
     waterDirtiness: number;
     algaeLevel: number;
-    filterId: string | null;
+    filterId: FilterId | null;
   };
   fish: Array<{
     id: string;
+    genusId: GenusId;
     speciesId: string;
-    hungerLevel: number;
-    healthState: string;
+    healthState: HealthState;
+    bodyLengthMm: number;
+    ageWeeks: number;
+    lifespanWeeks: number;
+    maintenanceQuality: number;
+    customName?: string;
   }>;
   player: {
     pomoBalance: number;
     currentStreak: number;
     dailyContinuityDays: number;
+    unlockedItems: string[];
   };
   session: {
     timeSinceLastMaintenance: number;
     isInBreakWindow: boolean;
     isActivelyCoding: boolean;
+    sessionMinutes: number;
+    timerMode: TimerMode;
+    breakRemainingMs: number;
+    breakMinutes: number;
+  };
+  capacity: {
+    current: number;
+    max: number;
   };
   store: {
     items: Array<{
       id: string;
       name: string;
-      type: string;
+      type: StoreItemType;
       pomoCost: number;
       affordable: boolean;
       meetsPrerequisites: boolean;
+      capacityCost?: number;
     }>;
   };
+  lightOn: boolean;
+  debugMode: boolean;
+  tickMultiplier: number;
+}
+
+// ── State Migration ──
+
+const TIER_TO_TANK_ID: Record<string, TankId> = {
+  Nano: 'nano_20',
+  Small: 'small_30',
+  Medium: 'medium_45',
+  Large: 'large_60',
+  XL: 'xl_90',
+};
+
+const ITEM_MIGRATION: Record<string, string> = {
+  tank_small: 'small_30',
+  tank_medium: 'medium_45',
+  tank_large: 'large_60',
+  tank_xl: 'xl_90',
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function migrateState(raw: any): GameState {
+  // Migrate old TankSizeTier → TankId
+  if (raw?.tank && 'sizeTier' in raw.tank && !('tankId' in raw.tank)) {
+    raw.tank.tankId = TIER_TO_TANK_ID[raw.tank.sizeTier] ?? 'nano_20';
+    delete raw.tank.sizeTier;
+  }
+
+  // Migrate unlockedItems
+  if (raw?.player?.unlockedItems && Array.isArray(raw.player.unlockedItems)) {
+    raw.player.unlockedItems = raw.player.unlockedItems.map(
+      (item: string) => ITEM_MIGRATION[item] ?? item,
+    );
+  }
+
+  return raw as GameState;
 }
 
 // ── Initial State Factory ──
@@ -318,26 +214,34 @@ export function createInitialState(): GameState {
       pomoBalance: 0,
       totalPomoEarned: 0,
       currentStreak: 0,
-      lastMaintenanceDate: "",
+      lastMaintenanceDate: '',
       dailyContinuityDays: 0,
       unlockedItems: [],
       lastTickTimestamp: now,
       sessionStartTime: now,
     },
     tank: {
-      sizeTier: TankSizeTier.Nano,
+      tankId: 'nano_20',
+      hungerLevel: 0,
       waterDirtiness: 0,
       algaeLevel: 0,
-      filterId: "basic_sponge",
+      filterId: 'basic_sponge',
     },
     fish: [
       {
         id: generateFishId(),
-        speciesId: "guppy",
-        hungerLevel: 0,
+        genusId: 'neon_tetra',
+        speciesId: 'standard',
         healthState: HealthState.Healthy,
         sicknessTick: 0,
+        bodyLengthMm: 20 + Math.random() * 4,
+        ageWeeks: 0,
+        lifespanWeeks: Math.round((3 + Math.random() * 2) * 52),
+        maintenanceQuality: 1.0,
+        purchasedAt: now,
       },
     ],
+    lightOn: true,
+    lightOffTimestamp: null,
   };
 }

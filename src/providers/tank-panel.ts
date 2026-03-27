@@ -1,6 +1,47 @@
-import * as vscode from "vscode";
-import type { GameEngine } from "../game/engine";
-import type { GameState } from "../game/state";
+import * as vscode from 'vscode';
+import type { GameEngine } from '../game/engine';
+import type { GameState } from '../game/state';
+import { getAllGenera } from '../game/species';
+import type { AnimState } from '../shared/types';
+import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
+import { type UserSettings, FOCUS_MIN, FOCUS_MAX, BREAK_MIN, BREAK_MAX } from '../shared/types';
+import { loadSettings, saveSettings } from '../persistence/storage';
+
+export type SpriteUriMap = Record<string, Record<string, Record<string, string>>>;
+
+function isDebugMode(): boolean {
+  return vscode.workspace.getConfiguration('pomotank').get<boolean>('debugMode', false);
+}
+
+function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): SpriteUriMap {
+  const map: SpriteUriMap = {};
+  const states: AnimState[] = ['swim', 'weak', 'feeding'];
+
+  for (const genus of getAllGenera()) {
+    map[genus.id] = {};
+    for (const species of genus.species) {
+      map[genus.id][species.id] = {};
+      for (const state of states) {
+        const filename = species.sprites[state];
+        if (filename) {
+          const uri = webview.asWebviewUri(
+            vscode.Uri.joinPath(
+              extensionUri,
+              'media',
+              'sprites',
+              'fish',
+              genus.id,
+              species.id,
+              filename,
+            ),
+          );
+          map[genus.id][species.id][state] = uri.toString();
+        }
+      }
+    }
+  }
+  return map;
+}
 
 export class TankPanelManager {
   private panel: vscode.WebviewPanel | null = null;
@@ -10,24 +51,22 @@ export class TankPanelManager {
     private readonly engine: GameEngine,
   ) {}
 
-  openOrReveal(
-    context: vscode.ExtensionContext,
-    initialView?: string,
-  ): void {
+  openOrReveal(_context: vscode.ExtensionContext, _initialView?: string): void {
     if (this.panel) {
       this.panel.reveal();
       return;
     }
 
     this.panel = vscode.window.createWebviewPanel(
-      "pomotank.tankDetail",
-      "Pomotank - My Tank",
+      'pomotank.tankDetail',
+      'Pomotank - My Tank',
       vscode.ViewColumn.One,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(this.extensionUri, "media"),
+          vscode.Uri.joinPath(this.extensionUri, 'media'),
+          vscode.Uri.joinPath(this.extensionUri, 'dist'),
         ],
       },
     );
@@ -43,91 +82,144 @@ export class TankPanelManager {
     });
   }
 
-  updateState(state: GameState): void {
+  updateState(_state: GameState): void {
     if (this.panel) {
-      const snapshot = this.engine.createSnapshot(false);
-      this.panel.webview.postMessage({
-        type: "stateUpdate",
-        state: snapshot,
-      });
+      const msg: ExtensionToWebviewMessage = {
+        type: 'stateUpdate',
+        state: this.engine.createSnapshot(false, isDebugMode()),
+      };
+      this.panel.webview.postMessage(msg);
     }
   }
 
-  private handleMessage(message: {
-    type: string;
-    itemId?: string;
-  }): void {
+  private sendToWebview(msg: ExtensionToWebviewMessage): void {
+    this.panel?.webview.postMessage(msg);
+  }
+
+  private handleMessage(message: WebviewToExtensionMessage): void {
     switch (message.type) {
-      case "ready": {
-        const snapshot = this.engine.createSnapshot(false);
-        this.panel?.webview.postMessage({
-          type: "stateUpdate",
-          state: snapshot,
+      case 'ready':
+        this.sendToWebview({
+          type: 'stateUpdate',
+          state: this.engine.createSnapshot(false, isDebugMode()),
+        });
+        this.sendToWebview({
+          type: 'settingsUpdate',
+          settings: loadSettings(),
+        });
+        break;
+      case 'updateSettings': {
+        const current = loadSettings();
+        const merged: UserSettings = { ...current, ...message.settings };
+        merged.focusMinutes = Math.max(FOCUS_MIN, Math.min(FOCUS_MAX, Math.round(merged.focusMinutes)));
+        merged.breakMinutes = Math.max(BREAK_MIN, Math.min(BREAK_MAX, Math.round(merged.breakMinutes)));
+        saveSettings(merged);
+        this.engine.setSessionMinutes(merged.focusMinutes);
+        this.engine.setBreakMinutes(merged.breakMinutes);
+        this.sendToWebview({ type: 'settingsUpdate', settings: merged });
+        // Send updated state so timer reflects new sessionMinutes immediately
+        this.sendToWebview({
+          type: 'stateUpdate',
+          state: this.engine.createSnapshot(false, isDebugMode()),
         });
         break;
       }
-      case "feedFish":
-        this.engine.performAction("feedFish");
-        this.panel?.webview.postMessage({
-          type: "actionResult",
-          action: "Feed Fish",
-          success: true,
+      case 'feedFish':
+        this.engine.performAction('feedFish');
+        this.sendToWebview({ type: 'actionResult', action: 'Feed Fish', success: true });
+        break;
+      case 'changeWater':
+        this.engine.performAction('changeWater');
+        this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
+        break;
+      case 'cleanAlgae':
+        this.engine.performAction('cleanAlgae');
+        this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
+        break;
+      case 'purchaseItem': {
+        const result = this.engine.purchaseItem(message.itemId);
+        this.sendToWebview({
+          type: 'purchaseResult',
+          itemId: message.itemId,
+          success: result.success,
+          message: result.message,
         });
         break;
-      case "changeWater":
-        this.engine.performAction("changeWater");
-        this.panel?.webview.postMessage({
-          type: "actionResult",
-          action: "Change Water",
-          success: true,
-        });
+      }
+      case 'toggleLight': {
+        const lightOn = this.engine.toggleLight();
+        this.sendToWebview({ type: 'lightToggleResult', lightOn, success: true });
         break;
-      case "cleanAlgae":
-        this.engine.performAction("cleanAlgae");
-        this.panel?.webview.postMessage({
-          type: "actionResult",
-          action: "Clean Algae",
-          success: true,
-        });
+      }
+      case 'openTank':
         break;
-      case "purchaseItem":
-        if (message.itemId) {
-          const result = this.engine.purchaseItem(message.itemId);
-          this.panel?.webview.postMessage({
-            type: "purchaseResult",
-            itemId: message.itemId,
-            success: result.success,
-            message: result.message,
+      case 'switchTank': {
+        const tankResult = this.engine.switchTank(message.tankId);
+        this.sendToWebview({ type: 'managementResult', action: 'Switch Tank', ...tankResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
+      case 'switchFilter': {
+        const filterResult = this.engine.switchFilter(message.filterId);
+        this.sendToWebview({ type: 'managementResult', action: 'Switch Filter', ...filterResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
+      case 'renameFish': {
+        const renameResult = this.engine.renameFish(message.fishId, message.customName);
+        this.sendToWebview({ type: 'managementResult', action: 'Rename Fish', ...renameResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
+      case 'removeFish': {
+        const removeResult = this.engine.removeFish(message.fishId);
+        this.sendToWebview({ type: 'managementResult', action: 'Remove Fish', ...removeResult });
+        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        break;
+      }
+      case 'debugSetPomo':
+        if (isDebugMode()) {
+          this.engine.setPomo(message.amount);
+          this.sendToWebview({
+            type: 'stateUpdate',
+            state: this.engine.createSnapshot(false, isDebugMode()),
           });
         }
         break;
-      case "openStore":
-        // Store is handled in webview JS
+      case 'debugSetTickMultiplier':
+        if (isDebugMode()) {
+          this.engine.setTickMultiplier(message.multiplier);
+          this.sendToWebview({
+            type: 'stateUpdate',
+            state: this.engine.createSnapshot(false, isDebugMode()),
+          });
+        }
+        break;
+      case 'debugResetState':
+        if (isDebugMode()) {
+          this.engine.resetState();
+          this.sendToWebview({
+            type: 'stateUpdate',
+            state: this.engine.createSnapshot(false, isDebugMode()),
+          });
+        }
         break;
     }
   }
 
   private getHtml(webview: vscode.Webview): string {
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.extensionUri,
-        "media",
-        "webview",
-        "tank-detail",
-        "style.css",
-      ),
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'tank-detail', 'style.css'),
+    );
+    const fontUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'tank-detail', 'fonts', 'press-start-2p.woff2'),
     );
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.extensionUri,
-        "media",
-        "webview",
-        "tank-detail",
-        "main.js",
-      ),
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview-tank-panel.js'),
     );
     const nonce = getNonce();
     const cspSource = webview.cspSource;
+    const spriteUriMap = buildSpriteUriMap(webview, this.extensionUri);
 
     return `<!doctype html>
 <html lang="en">
@@ -136,35 +228,22 @@ export class TankPanelManager {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${cspSource}"
+      content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${cspSource}; font-src ${cspSource}"
     />
+    <style>
+      @font-face {
+        font-family: 'PixelFont';
+        src: url('${fontUri}') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+    </style>
     <link rel="stylesheet" href="${styleUri}" />
   </head>
   <body>
-    <div id="app">
-      <div id="tank-view">
-        <canvas id="tank-canvas" width="400" height="300"></canvas>
-      </div>
-      <div id="stats-bar">
-        <span id="stat-hunger">Hunger: 0%</span>
-        <span id="stat-water">Water: 0%</span>
-        <span id="stat-algae">Algae: 0%</span>
-        <span id="stat-pomo">Pomo: 0</span>
-        <span id="stat-streak">Streak: 0</span>
-        <span id="stat-timer">Session: 0min</span>
-      </div>
-      <div id="actions">
-        <button id="btn-feed" class="action-btn">Feed Fish</button>
-        <button id="btn-water" class="action-btn">Change Water</button>
-        <button id="btn-algae" class="action-btn">Clean Algae</button>
-        <button id="btn-store" class="action-btn store-btn">Store</button>
-      </div>
-      <div id="store-panel" class="hidden">
-        <h3>Store</h3>
-        <div id="store-items"></div>
-      </div>
-      <div id="notification" class="hidden"></div>
-    </div>
+    <div id="root"></div>
+    <script nonce="${nonce}">window.__SPRITE_URI_MAP__ = ${JSON.stringify(spriteUriMap)};</script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
 </html>`;
@@ -172,9 +251,8 @@ export class TankPanelManager {
 }
 
 function getNonce(): string {
-  let text = "";
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let text = '';
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   for (let i = 0; i < 32; i++) {
     text += chars.charAt(Math.floor(Math.random() * chars.length));
   }

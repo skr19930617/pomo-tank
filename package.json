@@ -45,18 +45,6 @@
       {
         "command": "pomotank.openStore",
         "title": "Pomotank: Open Store"
-      },
-      {
-        "command": "pomotank.debugTick",
-        "title": "Pomotank: [Debug] Tick x10"
-      },
-      {
-        "command": "pomotank.debugReset",
-        "title": "Pomotank: [Debug] Reset State"
-      },
-      {
-        "command": "pomotank.debugAddPomo",
-        "title": "Pomotank: [Debug] Add 100 Pomo"
       }
     ],
     "configuration": {
@@ -76,6 +64,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show/hide status bar indicator"
+        },
+        "pomotank.debugMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug panel with pomo editor and state reset"
         }
       }
     }
@@ -86,15 +79,37 @@
     "test:unit": "vitest run",
     "test:integration": "node ./test/integration/run.mjs",
     "test": "npm run test:unit",
-    "lint": "eslint src/ --ext .ts",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"**/*.{json,yml,css}\" --ignore-path .prettierignore",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"**/*.{json,yml,css}\" --ignore-path .prettierignore",
     "package": "vsce package"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.8",
     "esbuild": "^0.20.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
     "typescript": "^5.3.0",
+    "typescript-eslint": "^8.57.2",
     "vitest": "^1.2.0"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.9",
+    "konva": "^10.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-konva": "^19.2.3"
   }
 }
