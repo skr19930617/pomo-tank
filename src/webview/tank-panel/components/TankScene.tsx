@@ -25,6 +25,7 @@ import { HudOverlay } from './HudOverlay';
 import { ActionBar } from './ActionBar';
 import { FilterVisual } from './Filter';
 import { FoodOverlay } from './FoodOverlay';
+import { AlgaeOverlay } from './AlgaeOverlay';
 import { useTimer } from '../hooks/useTimer';
 import type { UseFeedingModeResult } from '../hooks/useFeedingMode';
 
@@ -233,7 +234,6 @@ export const TankScene: React.FC<TankSceneProps> = ({
             tankWidth={rawTankW}
             tankHeight={rawTankH}
             waterDirtiness={state.tank.waterDirtiness}
-            algaeLevel={state.tank.algaeLevel}
             lightOn={state.lightOn}
             filterId={state.tank.filterId}
           />
@@ -278,6 +278,13 @@ export const TankScene: React.FC<TankSceneProps> = ({
               />
             );
           })}
+
+          {/* Algae overlay — rendered after fish = in front of fish */}
+          <AlgaeOverlay
+            algaeLevel={state.tank.algaeLevel}
+            tankWidth={rawTankW}
+            tankHeight={rawTankH}
+          />
 
           {/* Fish info tooltip */}
           {selectedFishId && (() => {

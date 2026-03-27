@@ -9,7 +9,6 @@ interface TankProps {
   tankWidth: number;
   tankHeight: number;
   waterDirtiness: number;
-  algaeLevel: number;
   lightOn: boolean;
   filterId: FilterId | null;
 }
@@ -20,7 +19,6 @@ export const Tank: React.FC<TankProps> = ({
   tankWidth,
   tankHeight,
   waterDirtiness,
-  algaeLevel,
   lightOn,
   filterId,
 }) => {
@@ -44,10 +42,6 @@ export const Tank: React.FC<TankProps> = ({
 
   // Sand strip at bottom
   const sandHeight = 8;
-
-  // Algae strip height
-  const algaeFactor = Math.min(algaeLevel / 100, 1);
-  const algaeHeight = algaeFactor * 20;
 
   return (
     <>
@@ -91,18 +85,6 @@ export const Tank: React.FC<TankProps> = ({
         height={sandHeight}
         fill="#c2a868"
       />
-
-      {/* Algae on bottom above sand */}
-      {algaeHeight > 0 && (
-        <Rect
-          x={innerLeft}
-          y={innerTop + innerH - sandHeight - algaeHeight}
-          width={innerW}
-          height={algaeHeight}
-          fill="#4a8a3a"
-          opacity={0.5}
-        />
-      )}
 
       {/* Water shimmer highlights */}
       {lightOn && (
