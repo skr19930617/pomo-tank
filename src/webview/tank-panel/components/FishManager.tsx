@@ -10,10 +10,8 @@ import type { GameStateSnapshot } from '../../../game/state';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
 import { getSpecies } from '../../../game/species';
 import { FishPreview } from './FishPreview';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const spriteUriMap: Record<string, Record<string, Record<string, string>>> = (window as any)
-  .__SPRITE_URI_MAP__ ?? {};
+import { useSpriteUriMap } from '../contexts/sprite-context';
+import { accordionSx, accordionSummarySx, accordionDetailsSx } from '../theme';
 
 interface FishManagerProps {
   state: GameStateSnapshot;
@@ -171,6 +169,7 @@ const FishRow: React.FC<{
 };
 
 export const FishManager: React.FC<FishManagerProps> = ({ state, sendMessage }) => {
+  const spriteUriMap = useSpriteUriMap();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -186,22 +185,14 @@ export const FishManager: React.FC<FishManagerProps> = ({ state, sendMessage }) 
   }, [confirmingId]);
 
   return (
-    <Accordion sx={{ my: '4px', bgcolor: 'transparent' }}>
+    <Accordion sx={accordionSx}>
       <AccordionSummary
-        sx={{
-          bgcolor: 'background.paper',
-          borderRadius: '4px',
-          border: '1px solid',
-          borderColor: 'border.dark',
-          color: 'text.secondary',
-          fontSize: '11px',
-          userSelect: 'none',
-        }}
+        sx={accordionSummarySx}
         expandIcon={<Typography sx={{ color: 'text.secondary', fontSize: '11px' }}>▼</Typography>}
       >
         <Typography variant="body1">Fish ({state.fish.length})</Typography>
       </AccordionSummary>
-      <AccordionDetails sx={{ bgcolor: 'background.panel', borderRadius: '0 0 4px 4px', p: '4px' }}>
+      <AccordionDetails sx={{ ...accordionDetailsSx, p: '4px' }}>
         {state.fish.length === 0 ? (
           <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 1 }}>
             No fish in tank

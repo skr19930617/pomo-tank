@@ -4,7 +4,6 @@ import type {
   ExtensionToWebviewMessage,
   WebviewToExtensionMessage,
 } from '../../../shared/messages';
-import type { SpriteUriMap } from './useSpriteLoader';
 
 // Acquire the VS Code API once at module level
 interface VsCodeApi {
@@ -21,20 +20,12 @@ export interface UseGameStateResult {
   state: GameStateSnapshot | null;
   notification: string | null;
   sendMessage: (msg: WebviewToExtensionMessage) => void;
-  spriteUriMap: SpriteUriMap | null;
-}
-
-// Read sprite URI map from global set by extension host
-function getSpriteUriMap(): SpriteUriMap | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (window as any).__SPRITE_URI_MAP__ ?? null;
 }
 
 export function useGameState(): UseGameStateResult {
   const [state, setState] = useState<GameStateSnapshot | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [spriteUriMap] = useState<SpriteUriMap | null>(() => getSpriteUriMap());
 
   const showNotification = useCallback((text: string) => {
     setNotification(text);
@@ -92,5 +83,5 @@ export function useGameState(): UseGameStateResult {
     };
   }, [sendMessage, showNotification]);
 
-  return { state, notification, sendMessage, spriteUriMap };
+  return { state, notification, sendMessage };
 }

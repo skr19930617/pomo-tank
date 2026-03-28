@@ -6,10 +6,12 @@ import { useFishAnimation } from '../tank-panel/hooks/useFishAnimation';
 import type { FishBounds } from '../tank-panel/hooks/useFishAnimation';
 import { useFeedingMode } from '../tank-panel/hooks/useFeedingMode';
 import { useWaterChangeMode } from '../tank-panel/hooks/useWaterChangeMode';
+import { useMossCleaningMode } from '../tank-panel/hooks/useMossCleaningMode';
 import { useSpriteLoader } from '../tank-panel/hooks/useSpriteLoader';
 import { useContainerSize, fitScene } from '../tank-panel/hooks/useContainerSize';
 import { TankScene } from '../tank-panel/components/TankScene';
 import { getTank } from '../../game/tanks';
+import { useSpriteUriMap } from '../tank-panel/contexts/sprite-context';
 
 /** Fixed logical scene dimensions — the coordinate space everything is designed in. */
 const SCENE_W = 110;
@@ -17,10 +19,12 @@ const SCENE_H = 90;
 const SCENE_ASPECT = SCENE_H / SCENE_W;
 
 export function App() {
-  const { state, sendMessage, spriteUriMap } = useGameState();
+  const { state, sendMessage } = useGameState();
+  const spriteUriMap = useSpriteUriMap();
   const feedingMode = useFeedingMode();
   const waterChangeMode = useWaterChangeMode();
-  const { images: spriteImages } = useSpriteLoader(spriteUriMap);
+  const mossCleaningMode = useMossCleaningMode();
+  const { images: spriteImages } = useSpriteLoader(Object.keys(spriteUriMap).length > 0 ? spriteUriMap : null);
   const { ref, size, renderSize } = useContainerSize(220, 180);
 
   // fitted: updates every frame (for CSS transform), render: debounced (for canvas)
@@ -92,6 +96,7 @@ export function App() {
           spriteImages={spriteImages}
           feedingMode={feedingMode}
           waterChangeMode={waterChangeMode}
+          mossCleaningMode={mossCleaningMode}
         />
       </Box>
     </Box>

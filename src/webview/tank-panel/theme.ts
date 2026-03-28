@@ -143,3 +143,24 @@ const theme = createTheme({
 });
 
 export default theme;
+
+// ── Shared Accordion Styles ──
+export const accordionSx = {
+  my: '4px',
+  bgcolor: 'transparent',
+} as const;
+
+export const accordionSummarySx = {
+  bgcolor: 'background.paper',
+  borderRadius: '4px',
+  border: '1px solid',
+  borderColor: 'border.dark',
+  color: 'text.secondary',
+  fontSize: '11px',
+  userSelect: 'none',
+} as const;
+
+export const accordionDetailsSx = {
+  bgcolor: 'background.panel',
+  borderRadius: '0 0 4px 4px',
+} as const;

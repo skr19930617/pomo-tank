@@ -3,11 +3,13 @@
 
 import type { GameStateSnapshot } from '../game/state';
 import type { UserSettings, TankId, FilterId } from './types';
+import type { SpriteUriMap } from './sprite-utils';
 
 // ── Extension → Webview ──
 
 export type ExtensionToWebviewMessage =
   | { type: 'stateUpdate'; state: GameStateSnapshot }
+  | { type: 'spriteUriMap'; spriteUriMap: SpriteUriMap }
   | { type: 'actionResult'; action: string; success: boolean }
   | { type: 'purchaseResult'; itemId: string; success: boolean; message?: string }
   | { type: 'lightToggleResult'; lightOn: boolean; success: boolean }

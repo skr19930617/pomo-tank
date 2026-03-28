@@ -19,6 +19,7 @@ import { TankManager } from './components/TankManager';
 import { FishManager } from './components/FishManager';
 import { useSettings } from './hooks/useSettings';
 import { getTank } from '../../game/tanks';
+import { useSpriteUriMap } from './contexts/sprite-context';
 
 /** Fixed logical scene dimensions — the coordinate space everything is designed in. */
 const SCENE_W = 240;
@@ -26,8 +27,9 @@ const SCENE_H = 190;
 const SCENE_ASPECT = SCENE_H / SCENE_W;
 
 export const App: React.FC = () => {
-  const { state, notification, sendMessage, spriteUriMap } = useGameState();
-  const { images: spriteImages } = useSpriteLoader(spriteUriMap);
+  const { state, notification, sendMessage } = useGameState();
+  const spriteUriMap = useSpriteUriMap();
+  const { images: spriteImages } = useSpriteLoader(Object.keys(spriteUriMap).length > 0 ? spriteUriMap : null);
   const { settings, updateSetting } = useSettings(sendMessage);
   const [storeOpen, setStoreOpen] = useState(false);
   const feedingMode = useFeedingMode();

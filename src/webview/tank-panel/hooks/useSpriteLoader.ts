@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import type { SpriteUriMap } from '../../../shared/sprite-utils';
 
-export type SpriteUriMap = Record<string, Record<string, Record<string, string>>>;
+export type { SpriteUriMap };
 export type SpriteImageMap = Record<
   string,
   Record<string, Record<string, HTMLImageElement | null>>

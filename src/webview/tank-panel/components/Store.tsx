@@ -9,10 +9,7 @@ import { FishPreview } from './FishPreview';
 import { FilterPreview } from './FilterPreview';
 import { PixelIcon, COIN_ICON, COIN_COLOR, FISH_ICON, FISH_COLOR } from './pixel-icons';
 import type { FilterId } from '../../../shared/types';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const spriteUriMap: Record<string, Record<string, Record<string, string>>> = (window as any)
-  .__SPRITE_URI_MAP__ ?? {};
+import { useSpriteUriMap } from '../contexts/sprite-context';
 
 interface StoreProps {
   items: GameStateSnapshot['store']['items'];
@@ -34,6 +31,7 @@ const SECTION_ORDER: StoreItemType[] = [
 ];
 
 export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible, onClose }) => {
+  const spriteUriMap = useSpriteUriMap();
   if (!visible) return null;
 
   const grouped = new Map<StoreItemType, typeof items>();

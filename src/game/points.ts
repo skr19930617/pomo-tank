@@ -2,15 +2,21 @@
 // No vscode imports — pure computation only.
 
 import { DEFAULT_SESSION_MINUTES } from './state';
+import {
+  BASE_POINTS,
+  MAX_STREAK_MULTIPLIER,
+  MAX_DAILY_BONUS,
+  DAILY_BONUS_PER_DAY,
+  STREAK_INCREMENT,
+  PERFECT_TIMING_BONUS,
+  GOOD_TIMING_BONUS,
+  PERFECT_WINDOW_LOW,
+  PERFECT_WINDOW_HIGH,
+  GOOD_WINDOW_LOW,
+  GOOD_WINDOW_HIGH,
+} from './constants';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-export const BASE_POINTS = 10;
-
-export const MAX_STREAK_MULTIPLIER = 2.0;
-export const MAX_DAILY_BONUS = 50;
+export { BASE_POINTS, MAX_STREAK_MULTIPLIER, MAX_DAILY_BONUS };
 
 // ---------------------------------------------------------------------------
 // Session-relative timing windows
@@ -18,12 +24,12 @@ export const MAX_DAILY_BONUS = 50;
 
 function getPerfectWindowMs(sessionMinutes: number): { min: number; max: number } {
   const sessionMs = sessionMinutes * 60 * 1000;
-  return { min: sessionMs * 0.8, max: sessionMs * 1.2 };
+  return { min: sessionMs * PERFECT_WINDOW_LOW, max: sessionMs * PERFECT_WINDOW_HIGH };
 }
 
 function getGoodWindowMs(sessionMinutes: number): { min: number; max: number } {
   const sessionMs = sessionMinutes * 60 * 1000;
-  return { min: sessionMs * 0.6, max: sessionMs * 1.4 };
+  return { min: sessionMs * GOOD_WINDOW_LOW, max: sessionMs * GOOD_WINDOW_HIGH };
 }
 
 // ---------------------------------------------------------------------------
@@ -43,12 +49,12 @@ export function calculateTimingBonus(
 ): number {
   const perfect = getPerfectWindowMs(sessionMinutes);
   if (timeSinceLastMaintenanceMs >= perfect.min && timeSinceLastMaintenanceMs <= perfect.max) {
-    return 1.5;
+    return PERFECT_TIMING_BONUS;
   }
 
   const good = getGoodWindowMs(sessionMinutes);
   if (timeSinceLastMaintenanceMs >= good.min && timeSinceLastMaintenanceMs <= good.max) {
-    return 1.2;
+    return GOOD_TIMING_BONUS;
   }
 
   return 1.0;
@@ -58,14 +64,14 @@ export function calculateTimingBonus(
  * Returns the streak multiplier: 1.0 + (currentStreak * 0.1), capped at 2.0.
  */
 export function calculateStreakMultiplier(currentStreak: number): number {
-  return Math.min(1.0 + currentStreak * 0.1, MAX_STREAK_MULTIPLIER);
+  return Math.min(1.0 + currentStreak * STREAK_INCREMENT, MAX_STREAK_MULTIPLIER);
 }
 
 /**
  * Returns the daily continuity bonus: 5 * days, capped at 50.
  */
 export function calculateDailyContinuityBonus(dailyContinuityDays: number): number {
-  return Math.min(5 * dailyContinuityDays, MAX_DAILY_BONUS);
+  return Math.min(DAILY_BONUS_PER_DAY * dailyContinuityDays, MAX_DAILY_BONUS);
 }
 
 /**

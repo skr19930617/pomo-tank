@@ -44,9 +44,9 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 022-full-refactoring: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 021-moss-cleaning-action: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/reac
 - 018-moss-rendering-improvement: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10
-- 017-interactive-feeding-anim: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
 
 
 <!-- MANUAL ADDITIONS START -->
