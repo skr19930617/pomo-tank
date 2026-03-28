@@ -5,13 +5,14 @@
 
 import type { GameState } from './state';
 import { DETERIORATION_THRESHOLD, DEFAULT_SESSION_MINUTES } from './state';
+import {
+  BASE_ALGAE_RATE_FACTOR,
+  WATER_RATE_FACTOR,
+  HUNGER_RATE_FACTOR,
+  DIRTY_ALGAE_BONUS,
+} from './constants';
 
-// ── Balancing Constants ──
-
-export const BASE_ALGAE_RATE_FACTOR = 5; // Algae threshold reached in 5 pomo sessions
-export const WATER_RATE_FACTOR = 3; // Water threshold reached in 3 pomo sessions
-export const HUNGER_RATE_FACTOR = 1; // Hunger threshold reached in 1 pomo session
-export const DIRTY_ALGAE_BONUS = 1.5; // Extra algae rate when water is dirty
+export { BASE_ALGAE_RATE_FACTOR, WATER_RATE_FACTOR, HUNGER_RATE_FACTOR, DIRTY_ALGAE_BONUS };
 
 // ── Helpers ──
 

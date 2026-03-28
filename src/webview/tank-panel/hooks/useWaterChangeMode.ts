@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { WATER_CHANGE_DIRTINESS_REDUCTION } from '../../../game/constants';
 
 // ── Phase type ──
 
@@ -98,7 +99,7 @@ function computeWaterLevel(): number {
 function computeWaterColor(): string | null {
   // Hold final color after completion until forceReset
   if (animState.pendingCompletion) {
-    const endDirtiness = Math.max(0, animState.snapshotDirtiness - 50);
+    const endDirtiness = Math.max(0, animState.snapshotDirtiness - WATER_CHANGE_DIRTINESS_REDUCTION);
     const endRgb = dirtinessToRgb(endDirtiness);
     return `rgb(${endRgb[0]}, ${endRgb[1]}, ${endRgb[2]})`;
   }
@@ -108,7 +109,7 @@ function computeWaterColor(): string | null {
   const t = Math.min(elapsed / FILL_DURATION_MS, 1);
 
   const startRgb = dirtinessToRgb(animState.snapshotDirtiness);
-  const endDirtiness = Math.max(0, animState.snapshotDirtiness - 50);
+  const endDirtiness = Math.max(0, animState.snapshotDirtiness - WATER_CHANGE_DIRTINESS_REDUCTION);
   const endRgb = dirtinessToRgb(endDirtiness);
 
   return lerpRgb(startRgb, endRgb, t);

@@ -2,45 +2,13 @@ import * as vscode from 'vscode';
 import type { GameEngine } from '../game/engine';
 import type { GameState } from '../game/state';
 import { getAllGenera } from '../game/species';
-import type { AnimState } from '../shared/types';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
 import { type UserSettings, FOCUS_MIN, FOCUS_MAX, BREAK_MIN, BREAK_MAX } from '../shared/types';
 import { loadSettings, saveSettings } from '../persistence/storage';
-
-export type SpriteUriMap = Record<string, Record<string, Record<string, string>>>;
+import { buildSpriteUriMap } from '../shared/sprite-utils';
 
 function isDebugMode(): boolean {
   return vscode.workspace.getConfiguration('pomotank').get<boolean>('debugMode', false);
-}
-
-function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): SpriteUriMap {
-  const map: SpriteUriMap = {};
-  const states: AnimState[] = ['swim', 'weak', 'feeding'];
-
-  for (const genus of getAllGenera()) {
-    map[genus.id] = {};
-    for (const species of genus.species) {
-      map[genus.id][species.id] = {};
-      for (const state of states) {
-        const filename = species.sprites[state];
-        if (filename) {
-          const uri = webview.asWebviewUri(
-            vscode.Uri.joinPath(
-              extensionUri,
-              'media',
-              'sprites',
-              'fish',
-              genus.id,
-              species.id,
-              filename,
-            ),
-          );
-          map[genus.id][species.id][state] = uri.toString();
-        }
-      }
-    }
-  }
-  return map;
 }
 
 export class TankPanelManager {
@@ -101,7 +69,14 @@ export class TankPanelManager {
 
   private handleMessage(message: WebviewToExtensionMessage): void {
     switch (message.type) {
-      case 'ready':
+      case 'ready': {
+        const spriteMap = buildSpriteUriMap(
+          this.panel!.webview,
+          this.extensionUri,
+          getAllGenera,
+          vscode.Uri.joinPath,
+        );
+        this.sendToWebview({ type: 'spriteUriMap', spriteUriMap: spriteMap });
         this.sendToWebview({
           type: 'stateUpdate',
           state: this.engine.createSnapshot(false, isDebugMode()),
@@ -111,6 +86,7 @@ export class TankPanelManager {
           settings: loadSettings(),
         });
         break;
+      }
       case 'updateSettings': {
         const current = loadSettings();
         const merged: UserSettings = { ...current, ...message.settings };
@@ -142,9 +118,9 @@ export class TankPanelManager {
         this.engine.setWaterQualityFrozen(false, 'tank-panel');
         break;
       case 'waterChangeComplete':
-        // Atomic: apply maintenance effect and unfreeze in one step
+        // Unfreeze this owner then apply effect (bypass freeze in case another owner is active)
         this.engine.setWaterQualityFrozen(false, 'tank-panel');
-        this.engine.performAction('changeWater');
+        this.engine.performAction('changeWater', true);
         this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
         break;
       case 'cleanAlgae':
@@ -160,11 +136,9 @@ export class TankPanelManager {
         // No engine state change needed here.
         break;
       case 'mossCleaningComplete':
-        // Unfreeze first so performAction is not blocked by waterQualityFrozen guard
+        // Unfreeze this owner then apply effect (bypass freeze in case another owner is active)
         this.engine.setWaterQualityFrozen(false, 'moss-cleaning');
-        // performAction('cleanAlgae') sets algaeLevel=0 and applies pomo rewards, streaks, fish growth
-        // Engine algae was frozen at original level, so isTankHealthy returns false → full rewards
-        this.engine.performAction('cleanAlgae');
+        this.engine.performAction('cleanAlgae', true);
         this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
         break;
       case 'mossCleaningCancel':
@@ -257,7 +231,6 @@ export class TankPanelManager {
     );
     const nonce = getNonce();
     const cspSource = webview.cspSource;
-    const spriteUriMap = buildSpriteUriMap(webview, this.extensionUri);
 
     return `<!doctype html>
 <html lang="en">
@@ -281,7 +254,6 @@ export class TankPanelManager {
   </head>
   <body>
     <div id="root"></div>
-    <script nonce="${nonce}">window.__SPRITE_URI_MAP__ = ${JSON.stringify(spriteUriMap)};</script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
 </html>`;

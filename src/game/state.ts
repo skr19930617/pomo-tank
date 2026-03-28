@@ -163,6 +163,7 @@ export interface GameStateSnapshot {
   debugMode: boolean;
   tickMultiplier: number;
   waterChangeAnimating: boolean;
+  waterQualityFrozen: boolean;
 }
 
 // ── State Migration ──
@@ -182,22 +183,66 @@ const ITEM_MIGRATION: Record<string, string> = {
   tank_xl: 'xl_90',
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function migrateState(raw: any): GameState {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function migrateState(raw: unknown): GameState {
+  if (!isRecord(raw)) {
+    return createInitialState();
+  }
+
+  const defaults = createInitialState();
+  const state = raw as Record<string, unknown>;
+
   // Migrate old TankSizeTier → TankId
-  if (raw?.tank && 'sizeTier' in raw.tank && !('tankId' in raw.tank)) {
-    raw.tank.tankId = TIER_TO_TANK_ID[raw.tank.sizeTier] ?? 'nano_20';
-    delete raw.tank.sizeTier;
+  if (isRecord(state.tank)) {
+    const tank = state.tank as Record<string, unknown>;
+    if ('sizeTier' in tank && !('tankId' in tank)) {
+      const tier = String(tank.sizeTier);
+      tank.tankId = TIER_TO_TANK_ID[tier] ?? 'nano_20';
+      delete tank.sizeTier;
+    }
   }
 
   // Migrate unlockedItems
-  if (raw?.player?.unlockedItems && Array.isArray(raw.player.unlockedItems)) {
-    raw.player.unlockedItems = raw.player.unlockedItems.map(
-      (item: string) => ITEM_MIGRATION[item] ?? item,
-    );
+  if (isRecord(state.player)) {
+    const player = state.player as Record<string, unknown>;
+    if (Array.isArray(player.unlockedItems)) {
+      player.unlockedItems = (player.unlockedItems as string[]).map(
+        (item) => ITEM_MIGRATION[item] ?? item,
+      );
+    }
   }
 
-  return raw as GameState;
+  // Deep-merge with defaults to ensure all required fields exist and types are correct
+  const rawPlayer = isRecord(state.player) ? state.player as Record<string, unknown> : {};
+  const rawTank = isRecord(state.tank) ? state.tank as Record<string, unknown> : {};
+
+  const merged: GameState = {
+    player: {
+      pomoBalance: typeof rawPlayer.pomoBalance === 'number' ? rawPlayer.pomoBalance : defaults.player.pomoBalance,
+      totalPomoEarned: typeof rawPlayer.totalPomoEarned === 'number' ? rawPlayer.totalPomoEarned : defaults.player.totalPomoEarned,
+      currentStreak: typeof rawPlayer.currentStreak === 'number' ? rawPlayer.currentStreak : defaults.player.currentStreak,
+      lastMaintenanceDate: typeof rawPlayer.lastMaintenanceDate === 'string' ? rawPlayer.lastMaintenanceDate : defaults.player.lastMaintenanceDate,
+      dailyContinuityDays: typeof rawPlayer.dailyContinuityDays === 'number' ? rawPlayer.dailyContinuityDays : defaults.player.dailyContinuityDays,
+      unlockedItems: Array.isArray(rawPlayer.unlockedItems) ? (rawPlayer.unlockedItems as string[]).filter((i) => typeof i === 'string') : defaults.player.unlockedItems,
+      lastTickTimestamp: typeof rawPlayer.lastTickTimestamp === 'number' ? rawPlayer.lastTickTimestamp : defaults.player.lastTickTimestamp,
+      sessionStartTime: typeof rawPlayer.sessionStartTime === 'number' ? rawPlayer.sessionStartTime : defaults.player.sessionStartTime,
+    },
+    tank: {
+      tankId: typeof rawTank.tankId === 'string' ? rawTank.tankId as TankId : defaults.tank.tankId,
+      hungerLevel: typeof rawTank.hungerLevel === 'number' ? rawTank.hungerLevel : defaults.tank.hungerLevel,
+      waterDirtiness: typeof rawTank.waterDirtiness === 'number' ? rawTank.waterDirtiness : defaults.tank.waterDirtiness,
+      algaeLevel: typeof rawTank.algaeLevel === 'number' ? rawTank.algaeLevel : defaults.tank.algaeLevel,
+      filterId: typeof rawTank.filterId === 'string' || rawTank.filterId === null ? rawTank.filterId as FilterId | null : defaults.tank.filterId,
+    },
+    fish: Array.isArray(state.fish) ? (state.fish as Fish[]) : defaults.fish,
+    lightOn: typeof state.lightOn === 'boolean' ? state.lightOn : defaults.lightOn,
+    lightOffTimestamp: typeof state.lightOffTimestamp === 'number' ? state.lightOffTimestamp : defaults.lightOffTimestamp,
+  };
+
+  return merged;
 }
 
 // ── Initial State Factory ──

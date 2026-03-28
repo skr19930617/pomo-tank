@@ -2,41 +2,11 @@ import * as vscode from 'vscode';
 import type { GameEngine } from '../game/engine';
 import type { GameState } from '../game/state';
 import { getAllGenera } from '../game/species';
-import type { AnimState } from '../shared/types';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../shared/messages';
-import type { SpriteUriMap } from './tank-panel';
+import { buildSpriteUriMap } from '../shared/sprite-utils';
 
 function isDebugMode(): boolean {
   return vscode.workspace.getConfiguration('pomotank').get<boolean>('debugMode', false);
-}
-
-function buildSpriteUriMap(webview: vscode.Webview, extensionUri: vscode.Uri): SpriteUriMap {
-  const map: SpriteUriMap = {};
-  const states: AnimState[] = ['swim', 'weak', 'feeding'];
-  for (const genus of getAllGenera()) {
-    map[genus.id] = {};
-    for (const species of genus.species) {
-      map[genus.id][species.id] = {};
-      for (const state of states) {
-        const filename = species.sprites[state];
-        if (filename) {
-          const uri = webview.asWebviewUri(
-            vscode.Uri.joinPath(
-              extensionUri,
-              'media',
-              'sprites',
-              'fish',
-              genus.id,
-              species.id,
-              filename,
-            ),
-          );
-          map[genus.id][species.id][state] = uri.toString();
-        }
-      }
-    }
-  }
-  return map;
 }
 
 export class CompanionViewProvider implements vscode.WebviewViewProvider {
@@ -62,9 +32,17 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message: WebviewToExtensionMessage) => {
       switch (message.type) {
-        case 'ready':
+        case 'ready': {
+          const spriteMap = buildSpriteUriMap(
+            webviewView.webview,
+            this.extensionUri,
+            getAllGenera,
+            vscode.Uri.joinPath,
+          );
+          this.sendToWebview({ type: 'spriteUriMap', spriteUriMap: spriteMap });
           this.sendState(this.engine.getState());
           break;
+        }
         case 'openTank':
           vscode.commands.executeCommand('pomotank.openTank');
           break;
@@ -84,7 +62,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           break;
         case 'waterChangeComplete':
           this.engine.setWaterQualityFrozen(false, 'companion');
-          this.engine.performAction('changeWater');
+          this.engine.performAction('changeWater', true);
           this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
           break;
         case 'cleanAlgae':
@@ -154,8 +132,6 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     const nonce = getNonce();
     const cspSource = webview.cspSource;
 
-    const spriteUriMap = buildSpriteUriMap(webview, this.extensionUri);
-
     return `<!doctype html>
 <html lang="en">
   <head>
@@ -169,7 +145,6 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
   </head>
   <body>
     <div id="root"></div>
-    <script nonce="${nonce}">window.__SPRITE_URI_MAP__ = ${JSON.stringify(spriteUriMap)};</script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
 </html>`;

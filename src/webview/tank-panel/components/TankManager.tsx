@@ -9,21 +9,12 @@ import type { GameStateSnapshot } from '../../../game/state';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
 import { getFilter, getAllFilters } from '../../../game/filters';
 import { getTank, getAllTanks } from '../../../game/tanks';
+import { accordionSx, accordionSummarySx, accordionDetailsSx } from '../theme';
 
 interface TankManagerProps {
   state: GameStateSnapshot;
   sendMessage: (msg: WebviewToExtensionMessage) => void;
 }
-
-const accordionSummarySx = {
-  bgcolor: 'background.paper',
-  borderRadius: '4px',
-  border: '1px solid',
-  borderColor: 'border.dark',
-  color: 'text.secondary',
-  fontSize: '11px',
-  userSelect: 'none',
-} as const;
 
 const optionButtonSx = (isActive: boolean, wouldExceed: boolean) => ({
   fontSize: '9px',
@@ -58,14 +49,14 @@ export const TankManager: React.FC<TankManagerProps> = ({ state, sendMessage }) 
   return (
     <>
       {/* Tank Size Accordion */}
-      <Accordion sx={{ my: '4px', bgcolor: 'transparent' }}>
+      <Accordion sx={accordionSx}>
         <AccordionSummary
           sx={accordionSummarySx}
           expandIcon={<Typography sx={{ color: 'text.secondary', fontSize: '11px' }}>▼</Typography>}
         >
           <Typography variant="body1">Tank</Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ bgcolor: 'background.panel', borderRadius: '0 0 4px 4px' }}>
+        <AccordionDetails sx={accordionDetailsSx}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
             {availableTanks.map((tank) => {
               const isActive = state.tank.tankId === tank.id;
@@ -89,14 +80,14 @@ export const TankManager: React.FC<TankManagerProps> = ({ state, sendMessage }) 
       </Accordion>
 
       {/* Filter Accordion */}
-      <Accordion sx={{ my: '4px', bgcolor: 'transparent' }}>
+      <Accordion sx={accordionSx}>
         <AccordionSummary
           sx={accordionSummarySx}
           expandIcon={<Typography sx={{ color: 'text.secondary', fontSize: '11px' }}>▼</Typography>}
         >
           <Typography variant="body1">Filter</Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ bgcolor: 'background.panel', borderRadius: '0 0 4px 4px' }}>
+        <AccordionDetails sx={accordionDetailsSx}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
             {availableFilters.map((filter) => {
               const isActive = state.tank.filterId === filter.id;

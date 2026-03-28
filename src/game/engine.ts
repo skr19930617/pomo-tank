@@ -9,6 +9,18 @@ import {
   DEFAULT_SESSION_MINUTES,
 } from './state';
 import type { FilterId, TankId } from '../shared/types';
+import {
+  MAX_OFFLINE_MS,
+  TICK_MULTIPLIER_MIN,
+  TICK_MULTIPLIER_MAX,
+  FEED_REDUCTION,
+  WATER_CHANGE_DIRTINESS_REDUCTION,
+  WATER_CHANGE_ALGAE_REDUCTION,
+  TANK_HEALTHY_THRESHOLD,
+  FISH_NAME_MAX_LENGTH,
+  BREAK_WINDOW_LOW,
+  BREAK_WINDOW_HIGH,
+} from './constants';
 import { getFilter } from './filters';
 import { getTank } from './tanks';
 import { applyTick } from './deterioration';
@@ -39,8 +51,7 @@ export class GameEngine {
   private intervalId: ReturnType<typeof setTimeout> | null = null;
   private subscribers: Array<(state: GameState) => void> = [];
   private tickMultiplier: number = 1;
-  private waterQualityFrozen: boolean = false;
-  private waterChangeOwnerId: string | null = null;
+  private waterFreezers = new Set<string>();
 
   constructor(
     state: GameState,
@@ -63,7 +74,7 @@ export class GameEngine {
   }
 
   setTickMultiplier(n: number): void {
-    const clamped = Math.max(1, Math.min(100, Math.round(n)));
+    const clamped = Math.max(TICK_MULTIPLIER_MIN, Math.min(TICK_MULTIPLIER_MAX, Math.round(n)));
     this.tickMultiplier = clamped;
     // Restart interval with new speed
     if (this.intervalId !== null) {
@@ -104,8 +115,8 @@ export class GameEngine {
 
     // Apply deterioration (returns new state)
     // When water change animation is active, freeze water quality fields
-    const frozenWater = this.waterQualityFrozen ? this.state.tank.waterDirtiness : null;
-    const frozenAlgae = this.waterQualityFrozen ? this.state.tank.algaeLevel : null;
+    const frozenWater = this.isWaterQualityFrozen ? this.state.tank.waterDirtiness : null;
+    const frozenAlgae = this.isWaterQualityFrozen ? this.state.tank.algaeLevel : null;
     this.state = applyTick(this.state, isActive, this.sessionMinutes);
     if (frozenWater !== null && frozenAlgae !== null) {
       this.state = {
@@ -140,7 +151,7 @@ export class GameEngine {
   applyOfflineCatchUp(): void {
     const now = Date.now();
     const elapsed = now - this.state.player.lastTickTimestamp;
-    const maxOfflineMs = 24 * 60 * 60 * 1000;
+    const maxOfflineMs = MAX_OFFLINE_MS;
     const cappedElapsed = Math.min(elapsed, maxOfflineMs);
     const ticksToApply = Math.floor(cappedElapsed / 60_000);
 
@@ -167,9 +178,9 @@ export class GameEngine {
     };
   }
 
-  performAction(action: ActionType): void {
+  performAction(action: ActionType, bypassFreeze = false): void {
     // Block all maintenance actions during water change animation
-    if (this.waterQualityFrozen) return;
+    if (!bypassFreeze && this.isWaterQualityFrozen) return;
     const now = Date.now();
     const timeSinceLastMaintenance = now - this.state.player.sessionStartTime;
 
@@ -183,7 +194,7 @@ export class GameEngine {
           ...this.state,
           tank: {
             ...this.state.tank,
-            hungerLevel: Math.max(0, this.state.tank.hungerLevel - 60),
+            hungerLevel: Math.max(0, this.state.tank.hungerLevel - FEED_REDUCTION),
           },
         };
         break;
@@ -192,8 +203,8 @@ export class GameEngine {
           ...this.state,
           tank: {
             ...this.state.tank,
-            waterDirtiness: Math.max(0, this.state.tank.waterDirtiness - 50),
-            algaeLevel: Math.max(0, this.state.tank.algaeLevel - 10),
+            waterDirtiness: Math.max(0, this.state.tank.waterDirtiness - WATER_CHANGE_DIRTINESS_REDUCTION),
+            algaeLevel: Math.max(0, this.state.tank.algaeLevel - WATER_CHANGE_ALGAE_REDUCTION),
           },
         };
         break;
@@ -282,7 +293,7 @@ export class GameEngine {
   }
 
   purchaseItem(itemId: string): { success: boolean; message?: string } {
-    if (this.waterQualityFrozen) return { success: false, message: 'Water change in progress' };
+    if (this.isWaterQualityFrozen) return { success: false, message: 'Water change in progress' };
     const { state: newState, result } = executePurchase(this.state, itemId);
     if (result.success) {
       this.state = newState;
@@ -296,7 +307,7 @@ export class GameEngine {
   }
 
   resetState(): void {
-    if (this.waterQualityFrozen) return;
+    if (this.isWaterQualityFrozen) return;
     const fresh = createInitialState();
     this.state = fresh;
     this.notifySubscribers();
@@ -314,7 +325,7 @@ export class GameEngine {
   }
 
   switchTank(tankId: TankId): { success: boolean; message?: string } {
-    if (this.waterQualityFrozen) return { success: false, message: 'Water change in progress' };
+    if (this.isWaterQualityFrozen) return { success: false, message: 'Water change in progress' };
     const tankConfig = getTank(tankId);
     if (!tankConfig) {
       return { success: false, message: 'Unknown tank' };
@@ -341,7 +352,7 @@ export class GameEngine {
   }
 
   switchFilter(filterId: FilterId): { success: boolean; message?: string } {
-    if (this.waterQualityFrozen) return { success: false, message: 'Water change in progress' };
+    if (this.isWaterQualityFrozen) return { success: false, message: 'Water change in progress' };
     // Validate unlocked (basic_sponge is always available)
     if (filterId !== 'basic_sponge') {
       if (!this.state.player.unlockedItems.includes(filterId)) {
@@ -369,7 +380,7 @@ export class GameEngine {
     if (fishIndex < 0) {
       return { success: false, message: 'Fish not found' };
     }
-    const trimmed = customName.trim().slice(0, 20);
+    const trimmed = customName.trim().slice(0, FISH_NAME_MAX_LENGTH);
     const newFish = [...this.state.fish];
     newFish[fishIndex] = {
       ...newFish[fishIndex],
@@ -400,17 +411,17 @@ export class GameEngine {
     this.breakMinutes = minutes;
   }
 
-  setWaterQualityFrozen(frozen: boolean, ownerId?: string): void {
+  setWaterQualityFrozen(frozen: boolean, ownerId: string): void {
     if (frozen) {
-      this.waterQualityFrozen = true;
-      this.waterChangeOwnerId = ownerId ?? null;
+      this.waterFreezers.add(ownerId);
     } else {
-      // Only unfreeze if the caller is the owner (or no owner tracking)
-      if (ownerId && this.waterChangeOwnerId && ownerId !== this.waterChangeOwnerId) return;
-      this.waterQualityFrozen = false;
-      this.waterChangeOwnerId = null;
+      this.waterFreezers.delete(ownerId);
     }
     this.notifySubscribers();
+  }
+
+  private get isWaterQualityFrozen(): boolean {
+    return this.waterFreezers.size > 0;
   }
 
   reduceAlgae(amount: number): void {
@@ -495,13 +506,14 @@ export class GameEngine {
       lightOn: this.state.lightOn,
       debugMode,
       tickMultiplier: this.tickMultiplier,
-      waterChangeAnimating: this.waterQualityFrozen && this.waterChangeOwnerId !== 'moss-cleaning',
+      waterChangeAnimating: this.waterFreezers.has('tank-panel') || this.waterFreezers.has('companion'),
+      waterQualityFrozen: this.isWaterQualityFrozen,
     };
   }
 
   toggleLight(): boolean {
     // Block during water change animation
-    if (this.waterQualityFrozen) return this.state.lightOn;
+    if (this.isWaterQualityFrozen) return this.state.lightOn;
     const now = Date.now();
     if (this.state.lightOn) {
       // Turning off — pause break timer if active
@@ -545,17 +557,17 @@ export class GameEngine {
   isInBreakWindow(): boolean {
     const elapsed = this.getTimeSinceLastMaintenance();
     const sessionMs = this.sessionMinutes * 60 * 1000;
-    return elapsed >= sessionMs * 0.8 && elapsed <= sessionMs * 1.2;
+    return elapsed >= sessionMs * BREAK_WINDOW_LOW && elapsed <= sessionMs * BREAK_WINDOW_HIGH;
   }
 
   private isTankHealthy(action: ActionType): boolean {
     switch (action) {
       case 'feedFish':
-        return this.state.tank.hungerLevel < 10;
+        return this.state.tank.hungerLevel < TANK_HEALTHY_THRESHOLD;
       case 'changeWater':
-        return this.state.tank.waterDirtiness < 10;
+        return this.state.tank.waterDirtiness < TANK_HEALTHY_THRESHOLD;
       case 'cleanAlgae':
-        return this.state.tank.algaeLevel < 10;
+        return this.state.tank.algaeLevel < TANK_HEALTHY_THRESHOLD;
     }
   }
 

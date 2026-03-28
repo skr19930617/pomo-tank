@@ -7,6 +7,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { UserSettings } from '../../../shared/types';
 import { FOCUS_MIN, FOCUS_MAX, BREAK_MIN, BREAK_MAX } from '../../../shared/types';
+import { accordionSx, accordionSummarySx, accordionDetailsSx } from '../theme';
 
 interface SettingsPanelProps {
   settings: UserSettings;
@@ -15,32 +16,14 @@ interface SettingsPanelProps {
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onUpdateSetting }) => {
   return (
-    <Accordion
-      sx={{
-        my: '4px',
-        bgcolor: 'transparent',
-      }}
-    >
+    <Accordion sx={accordionSx}>
       <AccordionSummary
-        sx={{
-          bgcolor: 'background.paper',
-          borderRadius: '4px',
-          border: '1px solid',
-          borderColor: 'border.dark',
-          color: 'text.secondary',
-          fontSize: '11px',
-          userSelect: 'none',
-        }}
+        sx={accordionSummarySx}
         expandIcon={<Typography sx={{ color: 'text.secondary', fontSize: '11px' }}>▼</Typography>}
       >
         <Typography variant="body1">Settings</Typography>
       </AccordionSummary>
-      <AccordionDetails
-        sx={{
-          bgcolor: 'background.panel',
-          borderRadius: '0 0 4px 4px',
-        }}
-      >
+      <AccordionDetails sx={accordionDetailsSx}>
         <Box
           sx={{
             display: 'flex',

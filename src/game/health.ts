@@ -1,19 +1,22 @@
 import { type Fish, HealthState, type GameState } from './state';
-
-// Thresholds (in ticks, where 1 tick = 60 seconds)
-const WARNING_THRESHOLD = 120; // ~2 hours
-const SICK_THRESHOLD = 300; // ~5 hours
-const DEAD_THRESHOLD = 540; // ~9 hours
-
-const RECOVERY_RATE = 2; // sicknessTick decrease per tick when conditions are good
+import {
+  HEALTH_WARNING_THRESHOLD,
+  HEALTH_SICK_THRESHOLD,
+  HEALTH_DEAD_THRESHOLD,
+  HEALTH_RECOVERY_RATE,
+  POOR_HUNGER_THRESHOLD,
+  POOR_WATER_DIRTINESS_THRESHOLD,
+  POOR_ALGAE_THRESHOLD,
+} from './constants';
 
 /**
  * Returns true if conditions are poor for the given fish.
- * Poor conditions: fish hunger > 70, water dirtiness > 70, or algae level > 80.
  */
 export function isPoorConditions(_fish: Fish, state: GameState): boolean {
   return (
-    state.tank.hungerLevel > 70 || state.tank.waterDirtiness > 70 || state.tank.algaeLevel > 80
+    state.tank.hungerLevel > POOR_HUNGER_THRESHOLD ||
+    state.tank.waterDirtiness > POOR_WATER_DIRTINESS_THRESHOLD ||
+    state.tank.algaeLevel > POOR_ALGAE_THRESHOLD
   );
 }
 
@@ -22,13 +25,13 @@ function healthStateFromTick(sicknessTick: number, currentState: HealthState): H
     return HealthState.Dead;
   }
 
-  if (sicknessTick >= DEAD_THRESHOLD) {
+  if (sicknessTick >= HEALTH_DEAD_THRESHOLD) {
     return HealthState.Dead;
   }
-  if (sicknessTick >= SICK_THRESHOLD) {
+  if (sicknessTick >= HEALTH_SICK_THRESHOLD) {
     return HealthState.Sick;
   }
-  if (sicknessTick >= WARNING_THRESHOLD) {
+  if (sicknessTick >= HEALTH_WARNING_THRESHOLD) {
     return HealthState.Warning;
   }
   return HealthState.Healthy;
@@ -52,7 +55,7 @@ export function evaluateHealthTick(fish: Fish, state: GameState): Fish {
 
   const newSicknessTick = poor
     ? fish.sicknessTick + 1
-    : Math.max(0, fish.sicknessTick - RECOVERY_RATE);
+    : Math.max(0, fish.sicknessTick - HEALTH_RECOVERY_RATE);
 
   const newHealthState = healthStateFromTick(newSicknessTick, fish.healthState);
 
