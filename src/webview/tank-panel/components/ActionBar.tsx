@@ -3,6 +3,7 @@ import { Group } from 'react-konva';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
 import { DESK_HEIGHT } from '../../../shared/types';
 import type { FeedingPhase } from '../hooks/useFeedingMode';
+import type { WaterChangePhase } from '../hooks/useWaterChangeMode';
 import { PixelButton } from './PixelButton';
 
 // ── Icon bitmaps (8×8) ──
@@ -123,7 +124,10 @@ interface ActionBarProps {
   waterDirtiness?: number;
   algaeLevel?: number;
   feedingPhase?: FeedingPhase;
+  waterChangePhase?: WaterChangePhase;
+  waterChangeAnimatingGlobal?: boolean;
   onFeedClick?: () => void;
+  onWaterClick?: () => void;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -134,10 +138,13 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   showExpand,
   onExpandClick,
   avgHunger = 0,
-  waterDirtiness = 0,
+  waterDirtiness: _waterDirtiness,
   algaeLevel = 0,
   feedingPhase = 'idle',
+  waterChangePhase = 'idle',
+  waterChangeAnimatingGlobal = false,
   onFeedClick,
+  onWaterClick,
 }) => {
   // Feedback state: buttonId → timestamp when feedback started
   const [feedback, setFeedback] = useState<Record<string, number>>({});
@@ -192,13 +199,20 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   const startX = (sceneWidth - totalWidth) / 2;
   const barY = sceneHeight - DESK_HEIGHT + Math.floor((DESK_HEIGHT - btnSize) / 2);
 
+  // Water change animating phases (buttons fully locked)
+  const isWcAnimating = waterChangePhase === 'draining' || waterChangePhase === 'paused' || waterChangePhase === 'filling';
+
   // Determine disabled state per button
   const isDisabled = (id: string): boolean => {
+    // During water change animation (local or global), disable ALL buttons
+    if (isWcAnimating || waterChangeAnimatingGlobal) return true;
     if (!lightOn && id !== 'light') return true;
+    // During water change ready mode, disable everything except water (toggle)
+    if (waterChangePhase === 'ready' && id !== 'water') return true;
     if (id === 'feed') return avgHunger < LOW_THRESHOLD || feedingPhase !== 'idle';
     // Disable other maintenance buttons during feeding animation
     if (feedingPhase === 'animating' && (id === 'water' || id === 'algae' || id === 'light')) return true;
-    if (id === 'water') return waterDirtiness < LOW_THRESHOLD;
+    // Water change animation is always allowed (spec: even at dirtiness=0)
     if (id === 'algae') return algaeLevel < LOW_THRESHOLD;
     return false;
   };
@@ -225,6 +239,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
                 onExpandClick?.();
               } else if (btn.id === 'feed' && onFeedClick) {
                 onFeedClick();
+              } else if (btn.id === 'water' && onWaterClick) {
+                onWaterClick();
               } else if (btn.msgType) {
                 handleAction(btn.id, btn.msgType);
               }

@@ -74,6 +74,8 @@ export function useFishAnimation(
   const rafRef = useRef<number>(0);
   const attractionRef = useRef<AttractionTarget | null | undefined>(attractionTarget);
   useEffect(() => { attractionRef.current = attractionTarget; }, [attractionTarget]);
+  const boundsRef = useRef<FishBounds>(bounds);
+  useEffect(() => { boundsRef.current = bounds; }, [bounds]);
 
   // Sync fish list — add new fish, remove gone ones
   const syncFish = useCallback(() => {
@@ -109,11 +111,12 @@ export function useFishAnimation(
         const swimRange = genus
           ? SWIM_LAYER_RANGES[genus.swimLayer]
           : { min: 0.1, max: 0.9 };
-        const zoneMinY = bounds.top + bounds.height * swimRange.min;
-        const zoneMaxY = bounds.top + bounds.height * swimRange.max;
+        const b = boundsRef.current;
+        const zoneMinY = b.top + b.height * swimRange.min;
+        const zoneMaxY = b.top + b.height * swimRange.max;
 
         current.set(f.id, {
-          x: bounds.left + Math.random() * (bounds.width - 20) + 10,
+          x: b.left + Math.random() * (b.width - 20) + 10,
           y: zoneMinY + Math.random() * (zoneMaxY - zoneMinY),
           dx: (Math.random() - 0.5) * 2,
           dy: (Math.random() - 0.5) * 1,
@@ -121,7 +124,7 @@ export function useFishAnimation(
         });
       }
     }
-  }, [fish, bounds]);
+  }, [fish]);
 
   useEffect(() => {
     syncFish();
@@ -274,29 +277,32 @@ export function useFishAnimation(
           s.x += s.dx * effectiveSpeed;
           s.y += s.dy * effectiveSpeed;
 
-          // Bounce off tank walls (with margin for fish body)
-          const margin = 6;
-          if (s.x < bounds.left + margin) {
-            s.x = bounds.left + margin;
+          // Bounce off tank walls — use sprite half-size as margin so fish stay fully inside
+          const halfSize = displaySize / 2;
+          const xMargin = Math.max(halfSize, 4);
+          const yMargin = Math.max(halfSize, 4);
+          const b = boundsRef.current;
+          if (s.x < b.left + xMargin) {
+            s.x = b.left + xMargin;
             s.dx = Math.abs(s.dx);
           }
-          if (s.x > bounds.left + bounds.width - margin) {
-            s.x = bounds.left + bounds.width - margin;
+          if (s.x > b.left + b.width - xMargin) {
+            s.x = b.left + b.width - xMargin;
             s.dx = -Math.abs(s.dx);
           }
 
-          // Swim layer constraints
+          // Swim layer constraints — use sprite half-size so fish don't poke above water
           const swimRange = genus
             ? SWIM_LAYER_RANGES[genus.swimLayer]
             : { min: 0.1, max: 0.9 };
-          const zoneMinY = bounds.top + bounds.height * swimRange.min;
-          const zoneMaxY = bounds.top + bounds.height * swimRange.max;
-          if (s.y < zoneMinY + margin) {
-            s.y = zoneMinY + margin;
+          const zoneMinY = b.top + b.height * swimRange.min;
+          const zoneMaxY = b.top + b.height * swimRange.max;
+          if (s.y < zoneMinY + yMargin) {
+            s.y = zoneMinY + yMargin;
             s.dy = Math.abs(s.dy);
           }
-          if (s.y > zoneMaxY - margin) {
-            s.y = zoneMaxY - margin;
+          if (s.y > zoneMaxY - yMargin) {
+            s.y = zoneMaxY - yMargin;
             s.dy = -Math.abs(s.dy);
           }
         }
@@ -313,7 +319,7 @@ export function useFishAnimation(
     return () => {
       cancelAnimationFrame(rafRef.current);
     };
-  }, [fish, lightOn, bounds, syncFish, tankId]);
+  }, [fish, lightOn, syncFish, tankId]);
 
   return { animatedFish: animState.fish, frameCount: animState.frameCount };
 }

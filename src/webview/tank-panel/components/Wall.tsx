@@ -1,5 +1,5 @@
 import React from 'react';
-import { Rect, Line } from 'react-konva';
+import { Rect } from 'react-konva';
 
 interface WallProps {
   sceneWidth: number;

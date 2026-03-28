@@ -1,6 +1,6 @@
 # pomo-tank Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-26
+Auto-generated from all feature plans. Last updated: 2026-03-27
 
 ## Active Technologies
 - TypeScript 5.3+ + @types/vscode ^1.85.0, esbuild ^0.20.0 (002-tank-growth-light)
@@ -23,6 +23,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-26
 - VSCode ExtensionContext globalState (key-value persistence via `src/persistence/storage.ts`) (015-rebuild-debug-ui)
 - TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0 (016-tank-config-refactor)
 - VSCode ExtensionContext globalState（既存、本機能では変更なし） (017-interactive-feeding-anim)
+- N/A（描画のみの変更、ゲーム状態は既存のまま） (018-moss-rendering-improvement)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -42,10 +43,31 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 018-moss-rendering-improvement: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10
 - 017-interactive-feeding-anim: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 016-tank-config-refactor: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
-- 015-rebuild-debug-ui: Added TypeScript 5.3+ (strict mode) + React 19, @mui/material, @emotion/react, react-konva 19, Konva 10, @types/vscode ^1.85.0, esbuild ^0.20.0
 
 
 <!-- MANUAL ADDITIONS START -->
+
+## specflow Integration
+
+This project uses [specflow](https://github.com/skr19930617/specflow) + speckit for issue-driven development.
+
+### specflow Slash Command
+
+- `/specflow <issue-url>` — GitHub issue からの全ワークフロー
+- `/specflow` — issue URL をインタラクティブに入力
+
+フロー: issue 取得 → speckit.specify → speckit.clarify (人間) → Codex review → speckit.clarify (人間) → speckit.plan → speckit.tasks → speckit.implement → Codex review
+
+### Workflow Rules
+
+- spec は speckit のディレクトリ構造 (`specs/<number>-<name>/spec.md`) で管理される
+- Codex レビュー結果は `.specflow/state/<timestamp>/` に保存される
+- 実装時は spec の acceptance criteria をすべて満たすこと
+- `.specflow/` 配下のファイルは実装 diff に含めないこと
+- レビュー指摘への対応時、spec の意図を変えないこと
+- clarify と review 後の選択はユーザーがインタラクティブに決定する
+
 <!-- MANUAL ADDITIONS END -->

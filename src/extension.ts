@@ -84,7 +84,7 @@ export function activate(context: vscode.ExtensionContext): void {
         engine?.performAction('feedFish');
       }),
       vscode.commands.registerCommand('pomotank.changeWater', () => {
-        engine?.performAction('changeWater');
+        // Water change now requires the animated flow via the webview UI; no-op from command palette
       }),
       vscode.commands.registerCommand('pomotank.cleanAlgae', () => {
         engine?.performAction('cleanAlgae');

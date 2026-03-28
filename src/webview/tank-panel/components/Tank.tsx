@@ -9,9 +9,10 @@ interface TankProps {
   tankWidth: number;
   tankHeight: number;
   waterDirtiness: number;
-  algaeLevel: number;
   lightOn: boolean;
   filterId: FilterId | null;
+  waterLevelRatio?: number;
+  waterColorOverride?: string | null;
 }
 
 export const Tank: React.FC<TankProps> = ({
@@ -20,9 +21,10 @@ export const Tank: React.FC<TankProps> = ({
   tankWidth,
   tankHeight,
   waterDirtiness,
-  algaeLevel,
   lightOn,
   filterId,
+  waterLevelRatio = 0.9,
+  waterColorOverride,
 }) => {
   const frameThickness = 3;
   const innerLeft = tankLeft + frameThickness;
@@ -30,24 +32,24 @@ export const Tank: React.FC<TankProps> = ({
   const innerW = tankWidth - frameThickness * 2;
   const innerH = tankHeight - frameThickness * 2;
 
-  // Water fills 90% of inner height (air gap at top)
-  const waterRatio = 0.9;
-  const waterH = innerH * waterRatio;
+  // Water fills waterLevelRatio of inner height (air gap at top)
+  const waterH = innerH * waterLevelRatio;
   const waterTop = innerTop + innerH - waterH;
 
-  // Water color tinted by dirtiness (0-100)
-  const dirtFactor = Math.min(waterDirtiness / 100, 1);
-  const waterR = Math.round(60 + dirtFactor * 80);
-  const waterG = Math.round(140 + dirtFactor * -40);
-  const waterB = Math.round(200 + dirtFactor * -60);
-  const waterColor = `rgb(${waterR}, ${waterG}, ${waterB})`;
+  // Water color: use override if provided, otherwise compute from dirtiness
+  let waterColor: string;
+  if (waterColorOverride) {
+    waterColor = waterColorOverride;
+  } else {
+    const dirtFactor = Math.min(waterDirtiness / 100, 1);
+    const waterR = Math.round(60 + dirtFactor * 80);
+    const waterG = Math.round(140 + dirtFactor * -40);
+    const waterB = Math.round(200 + dirtFactor * -60);
+    waterColor = `rgb(${waterR}, ${waterG}, ${waterB})`;
+  }
 
   // Sand strip at bottom
   const sandHeight = 8;
-
-  // Algae strip height
-  const algaeFactor = Math.min(algaeLevel / 100, 1);
-  const algaeHeight = algaeFactor * 20;
 
   return (
     <>
@@ -91,18 +93,6 @@ export const Tank: React.FC<TankProps> = ({
         height={sandHeight}
         fill="#c2a868"
       />
-
-      {/* Algae on bottom above sand */}
-      {algaeHeight > 0 && (
-        <Rect
-          x={innerLeft}
-          y={innerTop + innerH - sandHeight - algaeHeight}
-          width={innerW}
-          height={algaeHeight}
-          fill="#4a8a3a"
-          opacity={0.5}
-        />
-      )}
 
       {/* Water shimmer highlights */}
       {lightOn && (
