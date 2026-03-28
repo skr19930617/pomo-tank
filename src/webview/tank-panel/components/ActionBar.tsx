@@ -4,6 +4,7 @@ import type { WebviewToExtensionMessage } from '../../../shared/messages';
 import { DESK_HEIGHT } from '../../../shared/types';
 import type { FeedingPhase } from '../hooks/useFeedingMode';
 import type { WaterChangePhase } from '../hooks/useWaterChangeMode';
+import type { MossCleaningPhase } from '../hooks/useMossCleaningMode';
 import { PixelButton } from './PixelButton';
 
 // ── Icon bitmaps (8×8) ──
@@ -126,8 +127,10 @@ interface ActionBarProps {
   feedingPhase?: FeedingPhase;
   waterChangePhase?: WaterChangePhase;
   waterChangeAnimatingGlobal?: boolean;
+  mossCleaningPhase?: MossCleaningPhase;
   onFeedClick?: () => void;
   onWaterClick?: () => void;
+  onAlgaeClick?: () => void;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -143,8 +146,10 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   feedingPhase = 'idle',
   waterChangePhase = 'idle',
   waterChangeAnimatingGlobal = false,
+  mossCleaningPhase = 'idle',
   onFeedClick,
   onWaterClick,
+  onAlgaeClick,
 }) => {
   // Feedback state: buttonId → timestamp when feedback started
   const [feedback, setFeedback] = useState<Record<string, number>>({});
@@ -201,11 +206,16 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 
   // Water change animating phases (buttons fully locked)
   const isWcAnimating = waterChangePhase === 'draining' || waterChangePhase === 'paused' || waterChangePhase === 'filling';
+  const isMcActive = mossCleaningPhase === 'active' || mossCleaningPhase === 'completing';
 
   // Determine disabled state per button
   const isDisabled = (id: string): boolean => {
     // During water change animation (local or global), disable ALL buttons
     if (isWcAnimating || waterChangeAnimatingGlobal) return true;
+    // During moss cleaning completing phase, disable ALL buttons
+    if (mossCleaningPhase === 'completing') return true;
+    // During moss cleaning active phase, disable all except algae (toggle to cancel)
+    if (mossCleaningPhase === 'active' && id !== 'algae') return true;
     if (!lightOn && id !== 'light') return true;
     // During water change ready mode, disable everything except water (toggle)
     if (waterChangePhase === 'ready' && id !== 'water') return true;
@@ -213,7 +223,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
     // Disable other maintenance buttons during feeding animation
     if (feedingPhase === 'animating' && (id === 'water' || id === 'algae' || id === 'light')) return true;
     // Water change animation is always allowed (spec: even at dirtiness=0)
-    if (id === 'algae') return algaeLevel < LOW_THRESHOLD;
+    if (id === 'algae') return algaeLevel < LOW_THRESHOLD && !isMcActive;
     return false;
   };
 
@@ -221,7 +231,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
     <Group>
       {buttons.map((btn, i) => {
         const bx = startX + i * (btnSize + gap);
-        const isActive = feedback[btn.id] !== undefined;
+        const isActive = feedback[btn.id] !== undefined || (btn.id === 'algae' && isMcActive);
 
         return (
           <PixelButton
@@ -241,6 +251,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
                 onFeedClick();
               } else if (btn.id === 'water' && onWaterClick) {
                 onWaterClick();
+              } else if (btn.id === 'algae' && onAlgaeClick) {
+                onAlgaeClick();
               } else if (btn.msgType) {
                 handleAction(btn.id, btn.msgType);
               }

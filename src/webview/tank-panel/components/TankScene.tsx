@@ -29,6 +29,9 @@ import { AlgaeOverlay } from './AlgaeOverlay';
 import { useTimer } from '../hooks/useTimer';
 import type { UseFeedingModeResult } from '../hooks/useFeedingMode';
 import type { UseWaterChangeModeResult } from '../hooks/useWaterChangeMode';
+import type { UseMossCleaningModeResult } from '../hooks/useMossCleaningMode';
+import { SPONGE_CURSOR } from '../hooks/useMossCleaningMode';
+import { Shape } from 'react-konva';
 
 const DEFAULT_SCENE_W = 480;
 const DEFAULT_SCENE_H = 380;
@@ -93,6 +96,7 @@ interface TankSceneProps {
   spriteImages: SpriteImageMap;
   feedingMode: UseFeedingModeResult;
   waterChangeMode: UseWaterChangeModeResult;
+  mossCleaningMode: UseMossCleaningModeResult;
 }
 
 export const TankScene: React.FC<TankSceneProps> = ({
@@ -110,6 +114,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   spriteImages,
   feedingMode,
   waterChangeMode,
+  mossCleaningMode,
 }) => {
   const tankConfig = getTank(state.tank.tankId);
   const rawTankW = tankConfig?.renderWidth ?? 200;
@@ -149,11 +154,13 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const waterH = innerH * 0.9;
   const waterSurfaceY = frameThickness + innerH - waterH; // top of water in tank coords
 
-  // ── Custom cursor for targeting/ready modes ──
+  // ── Custom cursor for targeting/ready/cleaning modes ──
   useEffect(() => {
     const container = stageRef.current?.container();
     if (!container) return;
-    if (feedingMode.phase === 'targeting') {
+    if (mossCleaningMode.phase === 'active') {
+      container.style.cursor = SPONGE_CURSOR;
+    } else if (feedingMode.phase === 'targeting') {
       container.style.cursor = 'crosshair';
     } else if (waterChangeMode.phase === 'ready') {
       container.style.cursor = 'pointer';
@@ -161,7 +168,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
       container.style.cursor = '';
     }
     return () => { container.style.cursor = ''; };
-  }, [feedingMode.phase, waterChangeMode.phase]);
+  }, [feedingMode.phase, waterChangeMode.phase, mossCleaningMode.phase]);
 
   // ── Outside-click to cancel water change ready mode ──
   useEffect(() => {
@@ -178,25 +185,93 @@ export const TankScene: React.FC<TankSceneProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waterChangeMode.phase, waterChangeMode.cancelReady]);
 
-  // ── ESC to cancel targeting/ready modes ──
+  // ── ESC to cancel targeting/ready/cleaning modes ──
   useEffect(() => {
     const isTargeting = feedingMode.phase === 'targeting';
     const isReady = waterChangeMode.phase === 'ready';
-    if (!isTargeting && !isReady) return;
+    const isCleaning = mossCleaningMode.phase === 'active';
+    if (!isTargeting && !isReady && !isCleaning) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isTargeting) feedingMode.cancelTargeting();
         if (isReady) waterChangeMode.cancelReady();
+        if (isCleaning) {
+          if (sendMessage) sendMessage({ type: 'mossCleaningCancel', totalReduction: mossCleaningMode.getTotalReduction() } as WebviewToExtensionMessage);
+          mossCleaningMode.cancelCleaning();
+        }
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedingMode.phase, feedingMode.cancelTargeting, waterChangeMode.phase, waterChangeMode.cancelReady]);
+  }, [feedingMode.phase, feedingMode.cancelTargeting, waterChangeMode.phase, waterChangeMode.cancelReady, mossCleaningMode.phase, mossCleaningMode.cancelCleaning, sendMessage]);
+
+  // ── Moss cleaning: mouse event handlers ──
+  const lastMossFrameTimeRef = useRef(performance.now());
+
+  const toTankLocal = useCallback((pointer: { x: number; y: number }) => {
+    const logicalX = pointer.x / layerScale;
+    const logicalY = pointer.y / layerScale;
+    const localX = (logicalX - tankX) / contentScale;
+    const localY = (logicalY - tankY) / contentScale;
+    return { localX, localY };
+  }, [layerScale, tankX, tankY, contentScale]);
+
+  const isInTank = useCallback((localX: number, localY: number) => {
+    return localX >= frameThickness && localX <= rawTankW - frameThickness &&
+      localY >= frameThickness && localY <= rawTankH - frameThickness;
+  }, [rawTankW, rawTankH]);
+
+  const handleStageMouseDown = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (mossCleaningMode.phase !== 'active') return;
+      const stage = e.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (!pointer) return;
+      const { localX, localY } = toTankLocal(pointer);
+      if (isInTank(localX, localY)) {
+        lastMossFrameTimeRef.current = performance.now();
+        mossCleaningMode.onMouseDown(localX, localY);
+      }
+    },
+    [mossCleaningMode, toTankLocal, isInTank],
+  );
+
+  const handleStageMouseMove = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (mossCleaningMode.phase !== 'active') return;
+      const stage = e.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (!pointer) return;
+      const { localX, localY } = toTankLocal(pointer);
+      if (isInTank(localX, localY)) {
+        const now = performance.now();
+        const deltaTimeMs = now - lastMossFrameTimeRef.current;
+        lastMossFrameTimeRef.current = now;
+        mossCleaningMode.onMouseMove(localX, localY, deltaTimeMs);
+      } else {
+        mossCleaningMode.onMouseLeave();
+      }
+    },
+    [mossCleaningMode, toTankLocal, isInTank],
+  );
+
+  const handleStageMouseUp = useCallback(() => {
+    if (mossCleaningMode.phase !== 'active') return;
+    mossCleaningMode.onMouseUp();
+  }, [mossCleaningMode]);
+
+  const handleStageMouseLeave = useCallback(() => {
+    if (mossCleaningMode.phase !== 'active') return;
+    mossCleaningMode.onMouseLeave();
+  }, [mossCleaningMode]);
 
   // ── Click handler on stage (feeding targeting + water change ready) ──
   const handleStageClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
+      // Suppress during moss cleaning mode
+      if (mossCleaningMode.phase !== 'idle') return;
+
       const stage = e.target.getStage();
       if (!stage) return;
       const pointer = stage.getPointerPosition();
@@ -234,7 +309,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
         return;
       }
     },
-    [feedingMode, waterChangeMode, state.tank.waterDirtiness, state.tank.algaeLevel, state.waterChangeAnimating, sendMessage, layerScale, tankX, tankY, contentScale, rawTankW, rawTankH, waterSurfaceY],
+    [feedingMode, waterChangeMode, mossCleaningMode.phase, state.tank.waterDirtiness, state.tank.algaeLevel, state.waterChangeAnimating, sendMessage, layerScale, tankX, tankY, contentScale, rawTankW, rawTankH, waterSurfaceY],
   );
 
   // ── Feeding mode: animation update + completion ──
@@ -245,6 +320,22 @@ export const TankScene: React.FC<TankSceneProps> = ({
       sendMessage({ type: 'feedFish' } as WebviewToExtensionMessage);
     }
   }, [feedingMode, frameCount, sendMessage]);
+
+  // ── Moss cleaning: animation update + message sending ──
+  const mcPhase = mossCleaningMode.phase;
+  const mcActive = mcPhase === 'active' || mcPhase === 'completing';
+
+  useEffect(() => {
+    if (!mcActive || frameCount === 0) return;
+    const reduction = mossCleaningMode.updateAnimation(rawTankW, rawTankH);
+    if (reduction > 0 && sendMessage) {
+      sendMessage({ type: 'mossCleaningProgress', reduction } as WebviewToExtensionMessage);
+    }
+    if (mossCleaningMode.isJustCompleted() && sendMessage) {
+      sendMessage({ type: 'mossCleaningComplete' } as WebviewToExtensionMessage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mcActive, frameCount, sendMessage]);
 
   // ── Water change ──
   const wcPhase = waterChangeMode.phase;
@@ -264,7 +355,16 @@ export const TankScene: React.FC<TankSceneProps> = ({
   }, [wcAnimating, frameCount, sendMessage]);
 
   return (
-    <Stage ref={stageRef} width={stageW} height={stageH} onClick={handleStageClick}>
+    <Stage
+      ref={stageRef}
+      width={stageW}
+      height={stageH}
+      onClick={handleStageClick}
+      onMouseDown={handleStageMouseDown}
+      onMouseMove={handleStageMouseMove}
+      onMouseUp={handleStageMouseUp}
+      onMouseLeave={handleStageMouseLeave}
+    >
       <Layer scaleX={layerScale} scaleY={layerScale}>
         {/* Background wall — full scene */}
         <Wall sceneWidth={sceneWidth} sceneHeight={sceneHeight} />
@@ -338,17 +438,76 @@ export const TankScene: React.FC<TankSceneProps> = ({
                 spriteImages={spriteImages}
                 feedingActive={feedingMode.phase === 'animating'}
                 hasFeedingAnim={genus?.hasFeedingAnim ?? false}
-                onClick={() => setSelectedFishId(selectedFishId === f.id ? null : f.id)}
+                onClick={() => {
+                  if (mossCleaningMode.phase !== 'idle') return; // suppress during moss cleaning
+                  setSelectedFishId(selectedFishId === f.id ? null : f.id);
+                }}
               />
             );
           })}
 
           {/* Algae overlay — rendered after fish = in front of fish */}
           <AlgaeOverlay
-            algaeLevel={state.tank.algaeLevel}
+            algaeLevel={mcActive ? mossCleaningMode.localAlgaeLevel : state.tank.algaeLevel}
             tankWidth={rawTankW}
             tankHeight={rawTankH}
           />
+
+          {/* Moss cleaning bubble effect (during active dragging) */}
+          {mcActive && mossCleaningMode.bubbles.length > 0 && (
+            <Shape
+              sceneFunc={(context, shape) => {
+                const ctx = context._context;
+                for (const b of mossCleaningMode.bubbles) {
+                  ctx.save();
+                  ctx.globalAlpha = b.opacity;
+                  ctx.fillStyle = 'rgba(200, 230, 255, 0.6)';
+                  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                  ctx.lineWidth = 0.5;
+                  ctx.beginPath();
+                  ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                  ctx.fill();
+                  ctx.stroke();
+                  ctx.restore();
+                }
+                context.fillStrokeShape(shape);
+              }}
+              listening={false}
+            />
+          )}
+
+          {/* Moss cleaning sparkle effect */}
+          {mossCleaningMode.phase === 'completing' && mossCleaningMode.sparkles.length > 0 && (
+            <Shape
+              sceneFunc={(context, shape) => {
+                const ctx = context._context;
+                for (const p of mossCleaningMode.sparkles) {
+                  ctx.save();
+                  ctx.globalAlpha = p.opacity;
+                  ctx.fillStyle = '#ffffaa';
+                  ctx.strokeStyle = '#ffdd44';
+                  ctx.lineWidth = 0.5;
+                  // Draw a 4-pointed star
+                  const s = p.size;
+                  ctx.beginPath();
+                  ctx.moveTo(p.x, p.y - s);
+                  ctx.lineTo(p.x + s * 0.3, p.y - s * 0.3);
+                  ctx.lineTo(p.x + s, p.y);
+                  ctx.lineTo(p.x + s * 0.3, p.y + s * 0.3);
+                  ctx.lineTo(p.x, p.y + s);
+                  ctx.lineTo(p.x - s * 0.3, p.y + s * 0.3);
+                  ctx.lineTo(p.x - s, p.y);
+                  ctx.lineTo(p.x - s * 0.3, p.y - s * 0.3);
+                  ctx.closePath();
+                  ctx.fill();
+                  ctx.stroke();
+                  ctx.restore();
+                }
+                context.fillStrokeShape(shape);
+              }}
+              listening={false}
+            />
+          )}
 
           {/* Fish info tooltip */}
           {selectedFishId && (() => {
@@ -386,14 +545,26 @@ export const TankScene: React.FC<TankSceneProps> = ({
             feedingPhase={feedingMode.phase}
             waterChangePhase={waterChangeMode.phase}
             waterChangeAnimatingGlobal={state.waterChangeAnimating}
+            mossCleaningPhase={mossCleaningMode.phase}
             onFeedClick={() => {
-              if (waterChangeMode.phase === 'idle') feedingMode.startTargeting();
+              if (waterChangeMode.phase === 'idle' && mossCleaningMode.phase === 'idle') feedingMode.startTargeting();
             }}
             onWaterClick={() => {
               if (waterChangeMode.phase === 'ready') {
                 waterChangeMode.cancelReady();
-              } else if (waterChangeMode.phase === 'idle' && feedingMode.phase === 'idle' && !state.waterChangeAnimating) {
+              } else if (waterChangeMode.phase === 'idle' && feedingMode.phase === 'idle' && mossCleaningMode.phase === 'idle' && !state.waterChangeAnimating) {
                 waterChangeMode.startReady();
+              }
+            }}
+            onAlgaeClick={() => {
+              if (mossCleaningMode.phase === 'active') {
+                // Cancel moss cleaning
+                if (sendMessage) sendMessage({ type: 'mossCleaningCancel', totalReduction: mossCleaningMode.getTotalReduction() } as WebviewToExtensionMessage);
+                mossCleaningMode.cancelCleaning();
+              } else if (mossCleaningMode.phase === 'idle' && waterChangeMode.phase === 'idle' && feedingMode.phase === 'idle' && !state.waterChangeAnimating) {
+                // Start moss cleaning
+                if (sendMessage) sendMessage({ type: 'mossCleaningStart' } as WebviewToExtensionMessage);
+                mossCleaningMode.startCleaning(state.tank.algaeLevel);
               }
             }}
           />

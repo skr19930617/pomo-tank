@@ -1,6 +1,6 @@
 # pomo-tank Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-27
+Auto-generated from all feature plans. Last updated: 2026-03-28
 
 ## Active Technologies
 - TypeScript 5.3+ + @types/vscode ^1.85.0, esbuild ^0.20.0 (002-tank-growth-light)
@@ -24,6 +24,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-27
 - TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0 (016-tank-config-refactor)
 - VSCode ExtensionContext globalState（既存、本機能では変更なし） (017-interactive-feeding-anim)
 - N/A（描画のみの変更、ゲーム状態は既存のまま） (018-moss-rendering-improvement)
+- VSCode ExtensionContext globalState（既存、苔レベルはfloatで管理） (021-moss-cleaning-action)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -43,9 +44,9 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 021-moss-cleaning-action: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/reac
 - 018-moss-rendering-improvement: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10
 - 017-interactive-feeding-anim: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
-- 016-tank-config-refactor: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
 
 
 <!-- MANUAL ADDITIONS START -->

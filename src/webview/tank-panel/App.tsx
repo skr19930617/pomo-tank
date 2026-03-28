@@ -8,6 +8,7 @@ import { useFishAnimation } from './hooks/useFishAnimation';
 import type { FishBounds } from './hooks/useFishAnimation';
 import { useFeedingMode } from './hooks/useFeedingMode';
 import { useWaterChangeMode } from './hooks/useWaterChangeMode';
+import { useMossCleaningMode } from './hooks/useMossCleaningMode';
 import { useSpriteLoader } from './hooks/useSpriteLoader';
 import { useContainerSize, fitScene } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
@@ -31,6 +32,7 @@ export const App: React.FC = () => {
   const [storeOpen, setStoreOpen] = useState(false);
   const feedingMode = useFeedingMode();
   const waterChangeMode = useWaterChangeMode();
+  const mossCleaningMode = useMossCleaningMode();
   const { ref, size, renderSize } = useContainerSize(480, 380);
 
   // fitted: updates every frame (for CSS transform), render: debounced (for canvas)
@@ -105,6 +107,7 @@ export const App: React.FC = () => {
             spriteImages={spriteImages}
             feedingMode={feedingMode}
             waterChangeMode={waterChangeMode}
+            mossCleaningMode={mossCleaningMode}
           />
         </Box>
       </Box>

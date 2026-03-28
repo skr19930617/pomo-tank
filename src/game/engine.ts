@@ -413,6 +413,15 @@ export class GameEngine {
     this.notifySubscribers();
   }
 
+  reduceAlgae(amount: number): void {
+    const newLevel = Math.max(0, this.state.tank.algaeLevel - amount);
+    this.state = {
+      ...this.state,
+      tank: { ...this.state.tank, algaeLevel: newLevel },
+    };
+    this.notifySubscribers();
+  }
+
   private getBreakRemainingMs(): number {
     if (this.timerMode !== 'break' || this.breakStartTimestamp === null) return 0;
     if (this.breakPausedRemainingMs !== null) return this.breakPausedRemainingMs;
@@ -486,7 +495,7 @@ export class GameEngine {
       lightOn: this.state.lightOn,
       debugMode,
       tickMultiplier: this.tickMultiplier,
-      waterChangeAnimating: this.waterQualityFrozen,
+      waterChangeAnimating: this.waterQualityFrozen && this.waterChangeOwnerId !== 'moss-cleaning',
     };
   }
 
