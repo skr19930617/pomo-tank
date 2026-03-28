@@ -34,4 +34,8 @@ export type WebviewToExtensionMessage =
   | { type: 'removeFish'; fishId: string }
   | { type: 'waterChangeAnimStart' }
   | { type: 'waterChangeAnimEnd' }
-  | { type: 'waterChangeComplete' };
+  | { type: 'waterChangeComplete' }
+  | { type: 'mossCleaningStart' }
+  | { type: 'mossCleaningProgress'; reduction: number }
+  | { type: 'mossCleaningComplete' }
+  | { type: 'mossCleaningCancel'; totalReduction: number };

@@ -80,6 +80,7 @@ export class TankPanelManager {
     this.panel.onDidDispose(() => {
       // Ensure water quality freeze is released if this view owns it
       this.engine.setWaterQualityFrozen(false, 'tank-panel');
+      this.engine.setWaterQualityFrozen(false, 'moss-cleaning');
       this.panel = null;
     });
   }
@@ -149,6 +150,29 @@ export class TankPanelManager {
       case 'cleanAlgae':
         this.engine.performAction('cleanAlgae');
         this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
+        break;
+      case 'mossCleaningStart':
+        this.engine.setWaterQualityFrozen(true, 'moss-cleaning');
+        break;
+      case 'mossCleaningProgress':
+        // UI tracks local algae level for instant feedback; engine state stays frozen
+        // so isTankHealthy check works correctly at completion time.
+        // No engine state change needed here.
+        break;
+      case 'mossCleaningComplete':
+        // Unfreeze first so performAction is not blocked by waterQualityFrozen guard
+        this.engine.setWaterQualityFrozen(false, 'moss-cleaning');
+        // performAction('cleanAlgae') sets algaeLevel=0 and applies pomo rewards, streaks, fish growth
+        // Engine algae was frozen at original level, so isTankHealthy returns false → full rewards
+        this.engine.performAction('cleanAlgae');
+        this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
+        break;
+      case 'mossCleaningCancel':
+        // Apply accumulated reduction so partial progress is preserved (FR-005)
+        this.engine.setWaterQualityFrozen(false, 'moss-cleaning');
+        if (message.totalReduction > 0) {
+          this.engine.reduceAlgae(message.totalReduction);
+        }
         break;
       case 'purchaseItem': {
         const result = this.engine.purchaseItem(message.itemId);
