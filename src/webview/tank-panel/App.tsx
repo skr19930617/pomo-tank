@@ -7,6 +7,7 @@ import { useGameState } from './hooks/useGameState';
 import { useFishAnimation } from './hooks/useFishAnimation';
 import type { FishBounds } from './hooks/useFishAnimation';
 import { useFeedingMode } from './hooks/useFeedingMode';
+import { useWaterChangeMode } from './hooks/useWaterChangeMode';
 import { useSpriteLoader } from './hooks/useSpriteLoader';
 import { useContainerSize, fitScene } from './hooks/useContainerSize';
 import { TankScene } from './components/TankScene';
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
   const { settings, updateSetting } = useSettings(sendMessage);
   const [storeOpen, setStoreOpen] = useState(false);
   const feedingMode = useFeedingMode();
+  const waterChangeMode = useWaterChangeMode();
   const { ref, size, renderSize } = useContainerSize(480, 380);
 
   // fitted: updates every frame (for CSS transform), render: debounced (for canvas)
@@ -39,20 +41,25 @@ export const App: React.FC = () => {
   const scaleX = rendered.width > 0 ? fitted.width / rendered.width : 1;
   const scaleY = rendered.height > 0 ? fitted.height / rendered.height : 1;
 
+  const waterLevelRatio = waterChangeMode.waterLevelRatio;
   const fishBounds: FishBounds = useMemo(() => {
     if (!state) return { left: 0, top: 0, width: 100, height: 100 };
     const tank = getTank(state.tank.tankId);
     if (!tank) return { left: 0, top: 0, width: 100, height: 100 };
     const frame = 3;
     const sand = 8;
+    // Match Tank.tsx water surface calculation exactly
+    const innerH = tank.renderHeight - frame * 2;
+    const waterH = innerH * waterLevelRatio;
+    const waterTop = frame + innerH - waterH; // top of water in tank-local coords
     return {
       left: frame,
-      top: frame,
+      top: waterTop,
       width: tank.renderWidth - frame * 2,
-      height: tank.renderHeight - frame * 2 - sand,
+      height: waterH - sand,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.tank.tankId]);
+  }, [state?.tank.tankId, waterLevelRatio]);
 
   const { animatedFish, frameCount } = useFishAnimation(
     state?.fish,
@@ -97,12 +104,13 @@ export const App: React.FC = () => {
             showExpand={false}
             spriteImages={spriteImages}
             feedingMode={feedingMode}
+            waterChangeMode={waterChangeMode}
           />
         </Box>
       </Box>
 
-      {/* Controls area — scrolls independently */}
-      <Box sx={{ flexShrink: 0, overflowY: 'auto', maxHeight: '40%' }}>
+      {/* Controls area — scrolls independently, disabled during water change animation */}
+      <Box sx={{ flexShrink: 0, overflowY: 'auto', maxHeight: '40%', ...(state.waterChangeAnimating ? { pointerEvents: 'none', opacity: 0.5 } : {}) }}>
         {/* Store button trigger */}
         <Box sx={{ display: 'flex', justifyContent: 'center', p: '4px', bgcolor: 'background.default' }}>
           <Button

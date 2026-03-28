@@ -76,6 +76,17 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           this.engine.performAction('changeWater');
           this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
           break;
+        case 'waterChangeAnimStart':
+          this.engine.setWaterQualityFrozen(true, 'companion');
+          break;
+        case 'waterChangeAnimEnd':
+          this.engine.setWaterQualityFrozen(false, 'companion');
+          break;
+        case 'waterChangeComplete':
+          this.engine.setWaterQualityFrozen(false, 'companion');
+          this.engine.performAction('changeWater');
+          this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
+          break;
         case 'cleanAlgae':
           this.engine.performAction('cleanAlgae');
           this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
@@ -109,6 +120,8 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     });
 
     webviewView.onDidDispose(() => {
+      // Ensure water quality freeze is released if this view owns it
+      this.engine.setWaterQualityFrozen(false, 'companion');
       this.view = null;
     });
   }

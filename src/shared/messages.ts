@@ -31,4 +31,7 @@ export type WebviewToExtensionMessage =
   | { type: 'switchTank'; tankId: TankId }
   | { type: 'switchFilter'; filterId: FilterId }
   | { type: 'renameFish'; fishId: string; customName: string }
-  | { type: 'removeFish'; fishId: string };
+  | { type: 'removeFish'; fishId: string }
+  | { type: 'waterChangeAnimStart' }
+  | { type: 'waterChangeAnimEnd' }
+  | { type: 'waterChangeComplete' };

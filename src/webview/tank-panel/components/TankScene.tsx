@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Stage, Layer, Group } from 'react-konva';
+import { Stage, Layer, Group, Rect } from 'react-konva';
 import type Konva from 'konva';
 import { useVisibilityResume } from '../hooks/useVisibilityResume';
 import type { GameStateSnapshot } from '../../../game/state';
@@ -28,6 +28,7 @@ import { FoodOverlay } from './FoodOverlay';
 import { AlgaeOverlay } from './AlgaeOverlay';
 import { useTimer } from '../hooks/useTimer';
 import type { UseFeedingModeResult } from '../hooks/useFeedingMode';
+import type { UseWaterChangeModeResult } from '../hooks/useWaterChangeMode';
 
 const DEFAULT_SCENE_W = 480;
 const DEFAULT_SCENE_H = 380;
@@ -91,6 +92,7 @@ interface TankSceneProps {
   onExpandClick?: () => void;
   spriteImages: SpriteImageMap;
   feedingMode: UseFeedingModeResult;
+  waterChangeMode: UseWaterChangeModeResult;
 }
 
 export const TankScene: React.FC<TankSceneProps> = ({
@@ -107,6 +109,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   onExpandClick,
   spriteImages,
   feedingMode,
+  waterChangeMode,
 }) => {
   const tankConfig = getTank(state.tank.tankId);
   const rawTankW = tankConfig?.renderWidth ?? 200;
@@ -146,62 +149,92 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const waterH = innerH * 0.9;
   const waterSurfaceY = frameThickness + innerH - waterH; // top of water in tank coords
 
-  // ── Feeding mode: custom cursor ──
+  // ── Custom cursor for targeting/ready modes ──
   useEffect(() => {
     const container = stageRef.current?.container();
     if (!container) return;
     if (feedingMode.phase === 'targeting') {
       container.style.cursor = 'crosshair';
+    } else if (waterChangeMode.phase === 'ready') {
+      container.style.cursor = 'pointer';
     } else {
       container.style.cursor = '';
     }
     return () => { container.style.cursor = ''; };
-  }, [feedingMode.phase]);
+  }, [feedingMode.phase, waterChangeMode.phase]);
 
-  // ── Feeding mode: ESC to cancel targeting ──
+  // ── Outside-click to cancel water change ready mode ──
   useEffect(() => {
-    if (feedingMode.phase !== 'targeting') return;
+    if (waterChangeMode.phase !== 'ready') return;
+    const handleDocClick = (e: MouseEvent) => {
+      // If click is inside the Konva stage container, handleStageClick handles it
+      const container = stageRef.current?.container();
+      if (container && container.contains(e.target as Node)) return;
+      waterChangeMode.cancelReady();
+    };
+    // Use capture phase so we get clicks before any stopPropagation
+    document.addEventListener('click', handleDocClick, true);
+    return () => document.removeEventListener('click', handleDocClick, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waterChangeMode.phase, waterChangeMode.cancelReady]);
+
+  // ── ESC to cancel targeting/ready modes ──
+  useEffect(() => {
+    const isTargeting = feedingMode.phase === 'targeting';
+    const isReady = waterChangeMode.phase === 'ready';
+    if (!isTargeting && !isReady) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        feedingMode.cancelTargeting();
+        if (isTargeting) feedingMode.cancelTargeting();
+        if (isReady) waterChangeMode.cancelReady();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedingMode.phase, feedingMode.cancelTargeting]);
+  }, [feedingMode.phase, feedingMode.cancelTargeting, waterChangeMode.phase, waterChangeMode.cancelReady]);
 
-  // ── Feeding mode: click handler on stage ──
+  // ── Click handler on stage (feeding targeting + water change ready) ──
   const handleStageClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (feedingMode.phase !== 'targeting') return;
-
       const stage = e.target.getStage();
       if (!stage) return;
       const pointer = stage.getPointerPosition();
       if (!pointer) return;
 
-      // Convert stage pixel coords → logical scene coords
+      // Convert stage pixel coords → logical scene coords → tank-local coords
       const logicalX = pointer.x / layerScale;
       const logicalY = pointer.y / layerScale;
-
-      // Convert scene coords → tank-local coords
       const localX = (logicalX - tankX) / contentScale;
       const localY = (logicalY - tankY) / contentScale;
 
-      // Check if click is inside tank water area
       const inTankX = localX >= frameThickness && localX <= rawTankW - frameThickness;
       const inTankY = localY >= waterSurfaceY && localY <= rawTankH - frameThickness;
 
-      if (inTankX && inTankY) {
-        const sandTop = rawTankH - frameThickness - 8; // 8px sand strip
-        feedingMode.confirmDrop(localX, waterSurfaceY, sandTop);
-      } else {
-        // Click outside tank water → cancel
-        feedingMode.cancelTargeting();
+      // ── Water change ready mode — full tank inner area triggers start ──
+      if (waterChangeMode.phase === 'ready') {
+        const inTankFull = inTankX && localY >= frameThickness && localY <= rawTankH - frameThickness;
+        if (inTankFull && !state.waterChangeAnimating) {
+          waterChangeMode.startDraining(state.tank.waterDirtiness, state.tank.algaeLevel);
+          if (sendMessage) sendMessage({ type: 'waterChangeAnimStart' } as WebviewToExtensionMessage);
+        } else {
+          waterChangeMode.cancelReady();
+        }
+        return;
+      }
+
+      // ── Feeding targeting mode ──
+      if (feedingMode.phase === 'targeting') {
+        if (inTankX && inTankY) {
+          const sandTop = rawTankH - frameThickness - 8; // 8px sand strip
+          feedingMode.confirmDrop(localX, waterSurfaceY, sandTop);
+        } else {
+          feedingMode.cancelTargeting();
+        }
+        return;
       }
     },
-    [feedingMode, layerScale, tankX, tankY, contentScale, rawTankW, rawTankH, waterSurfaceY],
+    [feedingMode, waterChangeMode, state.tank.waterDirtiness, state.tank.algaeLevel, state.waterChangeAnimating, sendMessage, layerScale, tankX, tankY, contentScale, rawTankW, rawTankH, waterSurfaceY],
   );
 
   // ── Feeding mode: animation update + completion ──
@@ -212,6 +245,23 @@ export const TankScene: React.FC<TankSceneProps> = ({
       sendMessage({ type: 'feedFish' } as WebviewToExtensionMessage);
     }
   }, [feedingMode, frameCount, sendMessage]);
+
+  // ── Water change ──
+  const wcPhase = waterChangeMode.phase;
+  const wcAnimating = wcPhase === 'draining' || wcPhase === 'paused' || wcPhase === 'filling';
+
+  // Water change: animation update + completion
+  useEffect(() => {
+    if (!wcAnimating || frameCount === 0) return;
+    const completed = waterChangeMode.updateAnimation();
+    if (completed && sendMessage) {
+      // Single atomic message: unfreeze + apply maintenance effect together
+      sendMessage({ type: 'waterChangeComplete' } as WebviewToExtensionMessage);
+      // Delay forceReset so the final color override persists until stateUpdate arrives
+      requestAnimationFrame(() => waterChangeMode.forceReset());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wcAnimating, frameCount, sendMessage]);
 
   return (
     <Stage ref={stageRef} width={stageW} height={stageH} onClick={handleStageClick}>
@@ -233,10 +283,24 @@ export const TankScene: React.FC<TankSceneProps> = ({
             tankTop={0}
             tankWidth={rawTankW}
             tankHeight={rawTankH}
-            waterDirtiness={state.tank.waterDirtiness}
+            waterDirtiness={(wcAnimating || waterChangeMode.pendingCompletion) ? waterChangeMode.snapshotDirtiness : state.tank.waterDirtiness}
             lightOn={state.lightOn}
             filterId={state.tank.filterId}
+            waterLevelRatio={waterChangeMode.waterLevelRatio}
+            waterColorOverride={waterChangeMode.waterColorOverride}
           />
+
+          {/* Water change ready mode indicator — pulsing overlay */}
+          {waterChangeMode.phase === 'ready' && (
+            <Rect
+              x={frameThickness}
+              y={waterSurfaceY}
+              width={rawTankW - frameThickness * 2}
+              height={rawTankH - frameThickness - waterSurfaceY}
+              fill="#4488cc"
+              opacity={0.12 + 0.08 * Math.sin(frameCount * 0.08)}
+            />
+          )}
 
           {/* External filter (HOB / canister) */}
           <FilterVisual
@@ -320,7 +384,18 @@ export const TankScene: React.FC<TankSceneProps> = ({
             waterDirtiness={state.tank.waterDirtiness}
             algaeLevel={state.tank.algaeLevel}
             feedingPhase={feedingMode.phase}
-            onFeedClick={feedingMode.startTargeting}
+            waterChangePhase={waterChangeMode.phase}
+            waterChangeAnimatingGlobal={state.waterChangeAnimating}
+            onFeedClick={() => {
+              if (waterChangeMode.phase === 'idle') feedingMode.startTargeting();
+            }}
+            onWaterClick={() => {
+              if (waterChangeMode.phase === 'ready') {
+                waterChangeMode.cancelReady();
+              } else if (waterChangeMode.phase === 'idle' && feedingMode.phase === 'idle' && !state.waterChangeAnimating) {
+                waterChangeMode.startReady();
+              }
+            }}
           />
         )}
 

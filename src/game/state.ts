@@ -162,6 +162,7 @@ export interface GameStateSnapshot {
   lightOn: boolean;
   debugMode: boolean;
   tickMultiplier: number;
+  waterChangeAnimating: boolean;
 }
 
 // ── State Migration ──

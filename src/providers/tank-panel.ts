@@ -78,6 +78,8 @@ export class TankPanelManager {
     });
 
     this.panel.onDidDispose(() => {
+      // Ensure water quality freeze is released if this view owns it
+      this.engine.setWaterQualityFrozen(false, 'tank-panel');
       this.panel = null;
     });
   }
@@ -129,6 +131,18 @@ export class TankPanelManager {
         this.sendToWebview({ type: 'actionResult', action: 'Feed Fish', success: true });
         break;
       case 'changeWater':
+        this.engine.performAction('changeWater');
+        this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
+        break;
+      case 'waterChangeAnimStart':
+        this.engine.setWaterQualityFrozen(true, 'tank-panel');
+        break;
+      case 'waterChangeAnimEnd':
+        this.engine.setWaterQualityFrozen(false, 'tank-panel');
+        break;
+      case 'waterChangeComplete':
+        // Atomic: apply maintenance effect and unfreeze in one step
+        this.engine.setWaterQualityFrozen(false, 'tank-panel');
         this.engine.performAction('changeWater');
         this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
         break;
