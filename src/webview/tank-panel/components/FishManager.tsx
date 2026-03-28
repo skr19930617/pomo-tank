@@ -202,9 +202,11 @@ export const FishManager: React.FC<FishManagerProps> = ({ state, sendMessage }) 
             const species = getSpecies(fish.genusId, fish.speciesId);
             const defaultName = species?.displayName ?? fish.speciesId;
             // Choose sprite based on health: Dead/Sick → weak, else → swim
-            const animState = fish.healthState === 'Dead' || fish.healthState === 'Sick' ? 'weak' : 'swim';
-            const spriteUri = spriteUriMap[fish.genusId]?.[fish.speciesId]?.[animState]
-              ?? spriteUriMap[fish.genusId]?.[fish.speciesId]?.swim;
+            const animState =
+              fish.healthState === 'Dead' || fish.healthState === 'Sick' ? 'weak' : 'swim';
+            const spriteUri =
+              spriteUriMap[fish.genusId]?.[fish.speciesId]?.[animState] ??
+              spriteUriMap[fish.genusId]?.[fish.speciesId]?.swim;
 
             return (
               <FishRow
@@ -213,7 +215,9 @@ export const FishManager: React.FC<FishManagerProps> = ({ state, sendMessage }) 
                 defaultName={defaultName}
                 spriteUri={spriteUri}
                 isConfirming={confirmingId === fish.id}
-                onRename={(value) => sendMessage({ type: 'renameFish', fishId: fish.id, customName: value })}
+                onRename={(value) =>
+                  sendMessage({ type: 'renameFish', fishId: fish.id, customName: value })
+                }
                 onRemoveClick={() => {
                   if (confirmingId === fish.id) {
                     setConfirmingId(null);

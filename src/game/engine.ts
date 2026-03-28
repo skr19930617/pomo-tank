@@ -203,7 +203,10 @@ export class GameEngine {
           ...this.state,
           tank: {
             ...this.state.tank,
-            waterDirtiness: Math.max(0, this.state.tank.waterDirtiness - WATER_CHANGE_DIRTINESS_REDUCTION),
+            waterDirtiness: Math.max(
+              0,
+              this.state.tank.waterDirtiness - WATER_CHANGE_DIRTINESS_REDUCTION,
+            ),
             algaeLevel: Math.max(0, this.state.tank.algaeLevel - WATER_CHANGE_ALGAE_REDUCTION),
           },
         };
@@ -341,7 +344,10 @@ export class GameEngine {
     const newMaxCapacity = tankConfig.baseCapacity + filterBonus;
     const currentCost = calculateCurrentCost(this.state.fish);
     if (currentCost > newMaxCapacity) {
-      return { success: false, message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})` };
+      return {
+        success: false,
+        message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})`,
+      };
     }
     this.state = {
       ...this.state,
@@ -365,7 +371,10 @@ export class GameEngine {
     const newMaxCapacity = (currentTank?.baseCapacity ?? 0) + newFilterBonus;
     const currentCost = calculateCurrentCost(this.state.fish);
     if (currentCost > newMaxCapacity) {
-      return { success: false, message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})` };
+      return {
+        success: false,
+        message: `Capacity would be exceeded (${currentCost}/${newMaxCapacity})`,
+      };
     }
     this.state = {
       ...this.state,
@@ -506,7 +515,8 @@ export class GameEngine {
       lightOn: this.state.lightOn,
       debugMode,
       tickMultiplier: this.tickMultiplier,
-      waterChangeAnimating: this.waterFreezers.has('tank-panel') || this.waterFreezers.has('companion'),
+      waterChangeAnimating:
+        this.waterFreezers.has('tank-panel') || this.waterFreezers.has('companion'),
       waterQualityFrozen: this.isWaterQualityFrozen,
     };
   }
@@ -532,7 +542,8 @@ export class GameEngine {
         : 0;
       // Resume break timer if it was paused
       if (this.timerMode === 'break' && this.breakPausedRemainingMs !== null) {
-        this.breakStartTimestamp = now - (this.breakMinutes * 60 * 1000 - this.breakPausedRemainingMs);
+        this.breakStartTimestamp =
+          now - (this.breakMinutes * 60 * 1000 - this.breakPausedRemainingMs);
         this.breakPausedRemainingMs = null;
       }
       this.state = {

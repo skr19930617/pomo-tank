@@ -64,7 +64,8 @@ function createAnimState(): AnimState {
 }
 
 function spawnParticles(drop: { x: number; y: number }): FoodParticle[] {
-  const count = PARTICLE_COUNT_MIN + Math.floor(Math.random() * (PARTICLE_COUNT_MAX - PARTICLE_COUNT_MIN + 1));
+  const count =
+    PARTICLE_COUNT_MIN + Math.floor(Math.random() * (PARTICLE_COUNT_MAX - PARTICLE_COUNT_MIN + 1));
   const result: FoodParticle[] = [];
   for (let i = 0; i < count; i++) {
     result.push({
@@ -192,21 +193,18 @@ export function useFeedingMode(): UseFeedingModeResult {
     setPhase('animating');
   }, []);
 
-  const updateAnimation = useCallback(
-    (frameCount: number): boolean => {
-      // Guard: only tick when animState has active drop (i.e., animating)
-      if (!animState.drop) return false;
-      const completed = tickAnimation(animState, frameCount);
-      setTick((t) => t + 1); // force re-render to pick up new particle positions
-      if (completed) {
-        animState = createAnimState();
-        setPhase('idle');
-        return true;
-      }
-      return false;
-    },
-    [],
-  );
+  const updateAnimation = useCallback((frameCount: number): boolean => {
+    // Guard: only tick when animState has active drop (i.e., animating)
+    if (!animState.drop) return false;
+    const completed = tickAnimation(animState, frameCount);
+    setTick((t) => t + 1); // force re-render to pick up new particle positions
+    if (completed) {
+      animState = createAnimState();
+      setPhase('idle');
+      return true;
+    }
+    return false;
+  }, []);
 
   const attractionTarget = phase === 'animating' ? computeAttractionTarget(animState) : null;
 

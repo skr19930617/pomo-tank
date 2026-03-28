@@ -76,13 +76,14 @@
   "scripts": {
     "build": "node esbuild.mjs --production",
     "watch": "node esbuild.mjs --watch",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run --passWithNoTests",
     "test:integration": "node ./test/integration/run.mjs",
     "test": "npm run test:unit",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"**/*.{json,yml,css}\" --ignore-path .prettierignore",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"**/*.{json,yml,css}\" --ignore-path .prettierignore",
+    "ci": "npm run lint && npm run format:check && npm run test:unit && npm run build",
     "package": "vsce package"
   },
   "devDependencies": {

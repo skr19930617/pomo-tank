@@ -56,10 +56,14 @@ export const Tank: React.FC<TankProps> = ({
       {/* Tank frame (3 sides — no top edge, open-top aquarium) */}
       <Line
         points={[
-          tankLeft, tankTop,
-          tankLeft, tankTop + tankHeight,
-          tankLeft + tankWidth, tankTop + tankHeight,
-          tankLeft + tankWidth, tankTop,
+          tankLeft,
+          tankTop,
+          tankLeft,
+          tankTop + tankHeight,
+          tankLeft + tankWidth,
+          tankTop + tankHeight,
+          tankLeft + tankWidth,
+          tankTop,
         ]}
         stroke="#88aacc"
         strokeWidth={frameThickness}
@@ -135,10 +139,14 @@ export const Tank: React.FC<TankProps> = ({
       {/* Glass border overlay (3 sides) */}
       <Line
         points={[
-          tankLeft, tankTop,
-          tankLeft, tankTop + tankHeight,
-          tankLeft + tankWidth, tankTop + tankHeight,
-          tankLeft + tankWidth, tankTop,
+          tankLeft,
+          tankTop,
+          tankLeft,
+          tankTop + tankHeight,
+          tankLeft + tankWidth,
+          tankTop + tankHeight,
+          tankLeft + tankWidth,
+          tankTop,
         ]}
         stroke="#aaccee"
         strokeWidth={1}

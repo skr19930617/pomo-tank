@@ -1,14 +1,13 @@
-name: Lint & Format
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
-  lint:
-    name: ESLint & Prettier
+  ci:
+    name: Lint, Format, Test & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -27,3 +26,9 @@ jobs:
 
       - name: Prettier
         run: npm run format:check
+
+      - name: Unit Tests
+        run: npm run test:unit
+
+      - name: Build
+        run: npm run build

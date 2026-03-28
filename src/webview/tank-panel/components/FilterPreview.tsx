@@ -39,8 +39,26 @@ export const FilterPreview: React.FC<FilterPreviewProps> = ({ filterId }) => {
       >
         <Box sx={{ position: 'relative', width: sw, height: sh }}>
           <Box sx={{ width: '100%', height: '100%', bgcolor: primaryColor, borderRadius: '1px' }} />
-          <Box sx={{ position: 'absolute', top: '20%', left: '15%', width: '70%', height: '2px', bgcolor: accentColor }} />
-          <Box sx={{ position: 'absolute', bottom: '20%', left: '15%', width: '70%', height: '2px', bgcolor: accentColor }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '20%',
+              left: '15%',
+              width: '70%',
+              height: '2px',
+              bgcolor: accentColor,
+            }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: '20%',
+              left: '15%',
+              width: '70%',
+              height: '2px',
+              bgcolor: accentColor,
+            }}
+          />
         </Box>
       </Box>
     );
@@ -62,8 +80,25 @@ export const FilterPreview: React.FC<FilterPreviewProps> = ({ filterId }) => {
       >
         <Box sx={{ position: 'relative', width: sw, height: sh }}>
           <Box sx={{ width: '100%', height: '55%', bgcolor: primaryColor, borderRadius: '1px' }} />
-          <Box sx={{ width: '70%', height: '45%', bgcolor: accentColor, mx: 'auto', borderRadius: '0 0 1px 1px' }} />
-          <Box sx={{ position: 'absolute', top: 0, right: 0, width: '3px', height: '3px', bgcolor: accentColor }} />
+          <Box
+            sx={{
+              width: '70%',
+              height: '45%',
+              bgcolor: accentColor,
+              mx: 'auto',
+              borderRadius: '0 0 1px 1px',
+            }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '3px',
+              height: '3px',
+              bgcolor: accentColor,
+            }}
+          />
         </Box>
       </Box>
     );
@@ -84,11 +119,49 @@ export const FilterPreview: React.FC<FilterPreviewProps> = ({ filterId }) => {
     >
       <Box sx={{ position: 'relative', width: sw, height: sh }}>
         <Box sx={{ width: '100%', height: '100%', bgcolor: primaryColor, borderRadius: '2px' }} />
-        <Box sx={{ position: 'absolute', top: 0, left: '-1px', width: 'calc(100% + 2px)', height: '3px', bgcolor: accentColor, borderRadius: '1px 1px 0 0' }} />
-        <Box sx={{ position: 'absolute', bottom: 0, left: '-1px', width: 'calc(100% + 2px)', height: '3px', bgcolor: accentColor, borderRadius: '0 0 1px 1px' }} />
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: '-1px',
+            width: 'calc(100% + 2px)',
+            height: '3px',
+            bgcolor: accentColor,
+            borderRadius: '1px 1px 0 0',
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: '-1px',
+            width: 'calc(100% + 2px)',
+            height: '3px',
+            bgcolor: accentColor,
+            borderRadius: '0 0 1px 1px',
+          }}
+        />
         {/* Tubes */}
-        <Box sx={{ position: 'absolute', top: '-4px', left: '20%', width: '2px', height: '4px', bgcolor: accentColor }} />
-        <Box sx={{ position: 'absolute', top: '-4px', right: '20%', width: '2px', height: '4px', bgcolor: primaryColor }} />
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '-4px',
+            left: '20%',
+            width: '2px',
+            height: '4px',
+            bgcolor: accentColor,
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '-4px',
+            right: '20%',
+            width: '2px',
+            height: '4px',
+            bgcolor: primaryColor,
+          }}
+        />
       </Box>
     </Box>
   );

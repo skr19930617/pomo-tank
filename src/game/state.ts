@@ -216,30 +216,65 @@ export function migrateState(raw: unknown): GameState {
   }
 
   // Deep-merge with defaults to ensure all required fields exist and types are correct
-  const rawPlayer = isRecord(state.player) ? state.player as Record<string, unknown> : {};
-  const rawTank = isRecord(state.tank) ? state.tank as Record<string, unknown> : {};
+  const rawPlayer = isRecord(state.player) ? (state.player as Record<string, unknown>) : {};
+  const rawTank = isRecord(state.tank) ? (state.tank as Record<string, unknown>) : {};
 
   const merged: GameState = {
     player: {
-      pomoBalance: typeof rawPlayer.pomoBalance === 'number' ? rawPlayer.pomoBalance : defaults.player.pomoBalance,
-      totalPomoEarned: typeof rawPlayer.totalPomoEarned === 'number' ? rawPlayer.totalPomoEarned : defaults.player.totalPomoEarned,
-      currentStreak: typeof rawPlayer.currentStreak === 'number' ? rawPlayer.currentStreak : defaults.player.currentStreak,
-      lastMaintenanceDate: typeof rawPlayer.lastMaintenanceDate === 'string' ? rawPlayer.lastMaintenanceDate : defaults.player.lastMaintenanceDate,
-      dailyContinuityDays: typeof rawPlayer.dailyContinuityDays === 'number' ? rawPlayer.dailyContinuityDays : defaults.player.dailyContinuityDays,
-      unlockedItems: Array.isArray(rawPlayer.unlockedItems) ? (rawPlayer.unlockedItems as string[]).filter((i) => typeof i === 'string') : defaults.player.unlockedItems,
-      lastTickTimestamp: typeof rawPlayer.lastTickTimestamp === 'number' ? rawPlayer.lastTickTimestamp : defaults.player.lastTickTimestamp,
-      sessionStartTime: typeof rawPlayer.sessionStartTime === 'number' ? rawPlayer.sessionStartTime : defaults.player.sessionStartTime,
+      pomoBalance:
+        typeof rawPlayer.pomoBalance === 'number'
+          ? rawPlayer.pomoBalance
+          : defaults.player.pomoBalance,
+      totalPomoEarned:
+        typeof rawPlayer.totalPomoEarned === 'number'
+          ? rawPlayer.totalPomoEarned
+          : defaults.player.totalPomoEarned,
+      currentStreak:
+        typeof rawPlayer.currentStreak === 'number'
+          ? rawPlayer.currentStreak
+          : defaults.player.currentStreak,
+      lastMaintenanceDate:
+        typeof rawPlayer.lastMaintenanceDate === 'string'
+          ? rawPlayer.lastMaintenanceDate
+          : defaults.player.lastMaintenanceDate,
+      dailyContinuityDays:
+        typeof rawPlayer.dailyContinuityDays === 'number'
+          ? rawPlayer.dailyContinuityDays
+          : defaults.player.dailyContinuityDays,
+      unlockedItems: Array.isArray(rawPlayer.unlockedItems)
+        ? (rawPlayer.unlockedItems as string[]).filter((i) => typeof i === 'string')
+        : defaults.player.unlockedItems,
+      lastTickTimestamp:
+        typeof rawPlayer.lastTickTimestamp === 'number'
+          ? rawPlayer.lastTickTimestamp
+          : defaults.player.lastTickTimestamp,
+      sessionStartTime:
+        typeof rawPlayer.sessionStartTime === 'number'
+          ? rawPlayer.sessionStartTime
+          : defaults.player.sessionStartTime,
     },
     tank: {
-      tankId: typeof rawTank.tankId === 'string' ? rawTank.tankId as TankId : defaults.tank.tankId,
-      hungerLevel: typeof rawTank.hungerLevel === 'number' ? rawTank.hungerLevel : defaults.tank.hungerLevel,
-      waterDirtiness: typeof rawTank.waterDirtiness === 'number' ? rawTank.waterDirtiness : defaults.tank.waterDirtiness,
-      algaeLevel: typeof rawTank.algaeLevel === 'number' ? rawTank.algaeLevel : defaults.tank.algaeLevel,
-      filterId: typeof rawTank.filterId === 'string' || rawTank.filterId === null ? rawTank.filterId as FilterId | null : defaults.tank.filterId,
+      tankId:
+        typeof rawTank.tankId === 'string' ? (rawTank.tankId as TankId) : defaults.tank.tankId,
+      hungerLevel:
+        typeof rawTank.hungerLevel === 'number' ? rawTank.hungerLevel : defaults.tank.hungerLevel,
+      waterDirtiness:
+        typeof rawTank.waterDirtiness === 'number'
+          ? rawTank.waterDirtiness
+          : defaults.tank.waterDirtiness,
+      algaeLevel:
+        typeof rawTank.algaeLevel === 'number' ? rawTank.algaeLevel : defaults.tank.algaeLevel,
+      filterId:
+        typeof rawTank.filterId === 'string' || rawTank.filterId === null
+          ? (rawTank.filterId as FilterId | null)
+          : defaults.tank.filterId,
     },
     fish: Array.isArray(state.fish) ? (state.fish as Fish[]) : defaults.fish,
     lightOn: typeof state.lightOn === 'boolean' ? state.lightOn : defaults.lightOn,
-    lightOffTimestamp: typeof state.lightOffTimestamp === 'number' ? state.lightOffTimestamp : defaults.lightOffTimestamp,
+    lightOffTimestamp:
+      typeof state.lightOffTimestamp === 'number'
+        ? state.lightOffTimestamp
+        : defaults.lightOffTimestamp,
   };
 
   return merged;

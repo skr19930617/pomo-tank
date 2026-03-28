@@ -10,11 +10,7 @@ const EMA_ALPHA = 0.1;
  * All values are 0-100; lower is better.
  * Returns 0.0 (all at 100) to 1.0 (all at 0).
  */
-export function computeQualitySnapshot(
-  hunger: number,
-  dirtiness: number,
-  algae: number,
-): number {
+export function computeQualitySnapshot(hunger: number, dirtiness: number, algae: number): number {
   return 1.0 - (hunger + dirtiness + algae) / 300;
 }
 

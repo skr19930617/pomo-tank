@@ -155,9 +155,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
             onClick={() => onSetTickMultiplier(preset)}
             sx={{
               ...debugButtonSx,
-              ...(tickMultiplier === preset
-                ? { bgcolor: '#664422', borderColor: '#886633' }
-                : {}),
+              ...(tickMultiplier === preset ? { bgcolor: '#664422', borderColor: '#886633' } : {}),
             }}
           >
             {preset}x
@@ -187,7 +185,6 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           </Button>
         )}
       </Box>
-
     </Box>
   );
 };

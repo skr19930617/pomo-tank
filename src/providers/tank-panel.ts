@@ -90,8 +90,14 @@ export class TankPanelManager {
       case 'updateSettings': {
         const current = loadSettings();
         const merged: UserSettings = { ...current, ...message.settings };
-        merged.focusMinutes = Math.max(FOCUS_MIN, Math.min(FOCUS_MAX, Math.round(merged.focusMinutes)));
-        merged.breakMinutes = Math.max(BREAK_MIN, Math.min(BREAK_MAX, Math.round(merged.breakMinutes)));
+        merged.focusMinutes = Math.max(
+          FOCUS_MIN,
+          Math.min(FOCUS_MAX, Math.round(merged.focusMinutes)),
+        );
+        merged.breakMinutes = Math.max(
+          BREAK_MIN,
+          Math.min(BREAK_MAX, Math.round(merged.breakMinutes)),
+        );
         saveSettings(merged);
         this.engine.setSessionMinutes(merged.focusMinutes);
         this.engine.setBreakMinutes(merged.breakMinutes);
@@ -168,25 +174,37 @@ export class TankPanelManager {
       case 'switchTank': {
         const tankResult = this.engine.switchTank(message.tankId);
         this.sendToWebview({ type: 'managementResult', action: 'Switch Tank', ...tankResult });
-        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        this.sendToWebview({
+          type: 'stateUpdate',
+          state: this.engine.createSnapshot(false, isDebugMode()),
+        });
         break;
       }
       case 'switchFilter': {
         const filterResult = this.engine.switchFilter(message.filterId);
         this.sendToWebview({ type: 'managementResult', action: 'Switch Filter', ...filterResult });
-        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        this.sendToWebview({
+          type: 'stateUpdate',
+          state: this.engine.createSnapshot(false, isDebugMode()),
+        });
         break;
       }
       case 'renameFish': {
         const renameResult = this.engine.renameFish(message.fishId, message.customName);
         this.sendToWebview({ type: 'managementResult', action: 'Rename Fish', ...renameResult });
-        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        this.sendToWebview({
+          type: 'stateUpdate',
+          state: this.engine.createSnapshot(false, isDebugMode()),
+        });
         break;
       }
       case 'removeFish': {
         const removeResult = this.engine.removeFish(message.fishId);
         this.sendToWebview({ type: 'managementResult', action: 'Remove Fish', ...removeResult });
-        this.sendToWebview({ type: 'stateUpdate', state: this.engine.createSnapshot(false, isDebugMode()) });
+        this.sendToWebview({
+          type: 'stateUpdate',
+          state: this.engine.createSnapshot(false, isDebugMode()),
+        });
         break;
       }
       case 'debugSetPomo':
@@ -224,7 +242,14 @@ export class TankPanelManager {
       vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'tank-detail', 'style.css'),
     );
     const fontUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'media', 'webview', 'tank-detail', 'fonts', 'press-start-2p.woff2'),
+      vscode.Uri.joinPath(
+        this.extensionUri,
+        'media',
+        'webview',
+        'tank-detail',
+        'fonts',
+        'press-start-2p.woff2',
+      ),
     );
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview-tank-panel.js'),

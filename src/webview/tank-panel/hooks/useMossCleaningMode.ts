@@ -40,7 +40,10 @@ function buildSpongeCursorUri(): string {
     for (let x = 0; x < size; x++) {
       const c = colors[bitmap[y][x]] ?? colors[0];
       const i = (y * size + x) * 4;
-      data[i] = c[0]; data[i + 1] = c[1]; data[i + 2] = c[2]; data[i + 3] = c[3];
+      data[i] = c[0];
+      data[i + 1] = c[1];
+      data[i + 2] = c[2];
+      data[i + 3] = c[3];
     }
   }
   // Build minimal PNG manually (uncompressed)
@@ -65,7 +68,8 @@ function buildBmpDataUri(
   const view = new DataView(buf);
 
   // BMP file header (14 bytes)
-  view.setUint8(0, 0x42); view.setUint8(1, 0x4D); // 'BM'
+  view.setUint8(0, 0x42);
+  view.setUint8(1, 0x4d); // 'BM'
   view.setUint32(2, fileSize, true);
   view.setUint32(10, headerSize, true); // pixel data offset
 
@@ -78,10 +82,10 @@ function buildBmpDataUri(
   view.setUint32(30, 3, true); // compression = BI_BITFIELDS
   view.setUint32(34, pixelDataSize, true);
   // Masks: R, G, B, A
-  view.setUint32(54, 0x00FF0000, true); // red mask
-  view.setUint32(58, 0x0000FF00, true); // green mask
-  view.setUint32(62, 0x000000FF, true); // blue mask
-  view.setUint32(66, 0xFF000000, true); // alpha mask
+  view.setUint32(54, 0x00ff0000, true); // red mask
+  view.setUint32(58, 0x0000ff00, true); // green mask
+  view.setUint32(62, 0x000000ff, true); // blue mask
+  view.setUint32(66, 0xff000000, true); // alpha mask
 
   // Pixel data
   let offset = headerSize;
@@ -89,7 +93,7 @@ function buildBmpDataUri(
     for (let x = 0; x < size; x++) {
       const c = colors[bitmap[y][x]] ?? colors[0];
       // BMP BGRA order
-      view.setUint8(offset, c[2]);     // B
+      view.setUint8(offset, c[2]); // B
       view.setUint8(offset + 1, c[1]); // G
       view.setUint8(offset + 2, c[0]); // R
       view.setUint8(offset + 3, c[3]); // A

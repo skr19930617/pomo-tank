@@ -23,7 +23,7 @@ const AVG_DOT_AREA = Math.PI * AVG_DOT_RADIUS * AVG_DOT_RADIUS;
  * Using the random overlap formula: coverage = 1 - e^(-n × dotArea / totalArea),
  * we solve for n: n = -ln(1 - coverage) × totalArea / dotArea
  */
-const TARGET_COVERAGE = 0.90;
+const TARGET_COVERAGE = 0.9;
 
 /** Tank frame thickness (must match Tank.tsx). */
 const FRAME_THICKNESS = 3;
@@ -86,7 +86,7 @@ function getOpacity(level: number): number {
  * Solved for n: n = -ln(1 - coverage) × totalArea / dotArea
  */
 function computeMaxDots(drawableArea: number): number {
-  return Math.ceil(-Math.log(1 - TARGET_COVERAGE) * drawableArea / AVG_DOT_AREA);
+  return Math.ceil((-Math.log(1 - TARGET_COVERAGE) * drawableArea) / AVG_DOT_AREA);
 }
 
 /**
@@ -94,10 +94,7 @@ function computeMaxDots(drawableArea: number): number {
  * Each dot has a threshold (1-100) indicating when it appears.
  * Dot count is derived from drawable area to hit coverage targets at any tank size.
  */
-function generateDots(
-  tankWidth: number,
-  tankHeight: number,
-): AlgaeDot[] {
+function generateDots(tankWidth: number, tankHeight: number): AlgaeDot[] {
   const rand = mulberry32(PRNG_SEED);
 
   const innerW = tankWidth - FRAME_THICKNESS * 2;
@@ -127,10 +124,7 @@ export const AlgaeOverlay: React.FC<AlgaeOverlayProps> = ({
   tankWidth,
   tankHeight,
 }) => {
-  const dots = useMemo(
-    () => generateDots(tankWidth, tankHeight),
-    [tankWidth, tankHeight],
-  );
+  const dots = useMemo(() => generateDots(tankWidth, tankHeight), [tankWidth, tankHeight]);
 
   if (algaeLevel <= 0) return null;
 

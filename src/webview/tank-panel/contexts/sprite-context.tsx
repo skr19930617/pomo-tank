@@ -23,9 +23,7 @@ export function SpriteUriMapProvider({ children }: SpriteUriMapProviderProps) {
   }, []);
 
   return (
-    <SpriteUriMapContext.Provider value={spriteUriMap}>
-      {children}
-    </SpriteUriMapContext.Provider>
+    <SpriteUriMapContext.Provider value={spriteUriMap}>{children}</SpriteUriMapContext.Provider>
   );
 }
 
