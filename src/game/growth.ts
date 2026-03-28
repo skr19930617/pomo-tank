@@ -20,11 +20,7 @@ export function computeEffectiveLifespan(baseLifespanWeeks: number, quality: num
  * - Computes new body length via sigmoid curve
  * - Checks for natural death (age >= effective lifespan)
  */
-export function growFish(
-  fish: Fish,
-  _genus: GenusConfig,
-  species: SpeciesConfig,
-): Partial<Fish> {
+export function growFish(fish: Fish, _genus: GenusConfig, species: SpeciesConfig): Partial<Fish> {
   const newAge = fish.ageWeeks + 1;
   const effectiveLifespan = computeEffectiveLifespan(fish.lifespanWeeks, fish.maintenanceQuality);
 

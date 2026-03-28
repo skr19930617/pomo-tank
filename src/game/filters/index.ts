@@ -23,22 +23,28 @@ export function getAllFilters(): FilterConfig[] {
  * Build store items for purchasable filters (skip filters with pomoCost = 0).
  * Returns a Record keyed by FilterId.
  */
-export function buildFilterStoreItems(): Record<string, {
-  id: string;
-  name: string;
-  type: StoreItemType;
-  pomoCost: number;
-  prerequisite: FilterConfig['prerequisite'];
-  description: string;
-}> {
-  const items: Record<string, {
+export function buildFilterStoreItems(): Record<
+  string,
+  {
     id: string;
     name: string;
     type: StoreItemType;
     pomoCost: number;
     prerequisite: FilterConfig['prerequisite'];
     description: string;
-  }> = {};
+  }
+> {
+  const items: Record<
+    string,
+    {
+      id: string;
+      name: string;
+      type: StoreItemType;
+      pomoCost: number;
+      prerequisite: FilterConfig['prerequisite'];
+      description: string;
+    }
+  > = {};
 
   for (const filter of ALL_FILTERS) {
     if (filter.pomoCost <= 0) continue;

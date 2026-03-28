@@ -24,7 +24,9 @@ export function App() {
   const feedingMode = useFeedingMode();
   const waterChangeMode = useWaterChangeMode();
   const mossCleaningMode = useMossCleaningMode();
-  const { images: spriteImages } = useSpriteLoader(Object.keys(spriteUriMap).length > 0 ? spriteUriMap : null);
+  const { images: spriteImages } = useSpriteLoader(
+    Object.keys(spriteUriMap).length > 0 ? spriteUriMap : null,
+  );
   const { ref, size, renderSize } = useContainerSize(220, 180);
 
   // fitted: updates every frame (for CSS transform), render: debounced (for canvas)
@@ -80,7 +82,13 @@ export function App() {
         justifyContent: 'center',
       }}
     >
-      <Box sx={{ transform: `scale(${scaleX}, ${scaleY})`, transformOrigin: 'center center', willChange: 'transform' }}>
+      <Box
+        sx={{
+          transform: `scale(${scaleX}, ${scaleY})`,
+          transformOrigin: 'center center',
+          willChange: 'transform',
+        }}
+      >
         <TankScene
           state={state}
           animatedFish={animatedFish}

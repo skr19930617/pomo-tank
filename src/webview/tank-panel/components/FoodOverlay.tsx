@@ -34,7 +34,7 @@ export const FoodOverlay: React.FC<FoodOverlayProps> = ({ particles, canState })
           x={canState.x}
           y={canState.y}
           rotation={canState.rotation}
-          offsetX={CAN_SIZE * CAN_PIXEL / 2}
+          offsetX={(CAN_SIZE * CAN_PIXEL) / 2}
           offsetY={CAN_SIZE * CAN_PIXEL}
         >
           {CAN_BITMAP.flatMap((row, ry) =>

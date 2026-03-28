@@ -119,7 +119,9 @@ export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible, onClo
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                     {fishSpriteUri && <FishPreview spriteUri={fishSpriteUri} />}
-                    {item.type === StoreItemType.Filter && <FilterPreview filterId={item.id as FilterId} />}
+                    {item.type === StoreItemType.Filter && (
+                      <FilterPreview filterId={item.id as FilterId} />
+                    )}
                     <Typography
                       variant="body1"
                       noWrap
@@ -142,7 +144,9 @@ export const Store: React.FC<StoreProps> = ({ items, sendMessage, visible, onClo
                       <Typography variant="body2">{item.pomoCost}</Typography>
                     </Box>
                     {item.capacityCost !== undefined && (
-                      <Box sx={{ display: 'inline-flex', alignItems: 'center', color: 'info.light' }}>
+                      <Box
+                        sx={{ display: 'inline-flex', alignItems: 'center', color: 'info.light' }}
+                      >
                         <PixelIcon icon={FISH_ICON} color={FISH_COLOR} />
                         <Typography variant="body2">{item.capacityCost}</Typography>
                       </Box>

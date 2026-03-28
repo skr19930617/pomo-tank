@@ -205,7 +205,10 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   const barY = sceneHeight - DESK_HEIGHT + Math.floor((DESK_HEIGHT - btnSize) / 2);
 
   // Water change animating phases (buttons fully locked)
-  const isWcAnimating = waterChangePhase === 'draining' || waterChangePhase === 'paused' || waterChangePhase === 'filling';
+  const isWcAnimating =
+    waterChangePhase === 'draining' ||
+    waterChangePhase === 'paused' ||
+    waterChangePhase === 'filling';
   const isMcActive = mossCleaningPhase === 'active' || mossCleaningPhase === 'completing';
 
   // Determine disabled state per button
@@ -221,7 +224,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
     if (waterChangePhase === 'ready' && id !== 'water') return true;
     if (id === 'feed') return avgHunger < LOW_THRESHOLD || feedingPhase !== 'idle';
     // Disable other maintenance buttons during feeding animation
-    if (feedingPhase === 'animating' && (id === 'water' || id === 'algae' || id === 'light')) return true;
+    if (feedingPhase === 'animating' && (id === 'water' || id === 'algae' || id === 'light'))
+      return true;
     // Water change animation is always allowed (spec: even at dirtiness=0)
     if (id === 'algae') return algaeLevel < LOW_THRESHOLD && !isMcActive;
     return false;

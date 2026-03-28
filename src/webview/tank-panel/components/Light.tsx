@@ -21,8 +21,18 @@ export const Light: React.FC<LightProps> = ({ tankLeft, tankWidth, lightTop, lig
   return (
     <>
       {/* Suspension wires */}
-      <Line points={[wireX1, wireTopY, wireX1, lightTop]} stroke="#667788" strokeWidth={2} opacity={0.7} />
-      <Line points={[wireX2, wireTopY, wireX2, lightTop]} stroke="#667788" strokeWidth={2} opacity={0.7} />
+      <Line
+        points={[wireX1, wireTopY, wireX1, lightTop]}
+        stroke="#667788"
+        strokeWidth={2}
+        opacity={0.7}
+      />
+      <Line
+        points={[wireX2, wireTopY, wireX2, lightTop]}
+        stroke="#667788"
+        strokeWidth={2}
+        opacity={0.7}
+      />
 
       {/* Light housing (dark bar on top) */}
       <Rect x={tankLeft} y={lightTop} width={tankWidth} height={housingHeight} fill="#333344" />

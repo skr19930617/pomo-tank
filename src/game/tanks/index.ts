@@ -7,9 +7,7 @@ import { xl90 } from './xl-90';
 
 const ALL_TANKS: TankConfig[] = [nano20, small30, medium45, large60, xl90];
 
-export const TANK_REGISTRY: Map<TankId, TankConfig> = new Map(
-  ALL_TANKS.map((t) => [t.id, t]),
-);
+export const TANK_REGISTRY: Map<TankId, TankConfig> = new Map(ALL_TANKS.map((t) => [t.id, t]));
 
 export function getTank(id: TankId | null | undefined): TankConfig | undefined {
   if (!id) return undefined;
@@ -23,22 +21,28 @@ export function getAllTanks(): TankConfig[] {
 /**
  * Build store items for purchasable tanks (skip tanks with pomoCost = 0).
  */
-export function buildTankStoreItems(): Record<string, {
-  id: string;
-  name: string;
-  type: StoreItemType;
-  pomoCost: number;
-  prerequisite: TankConfig['prerequisite'];
-  description: string;
-}> {
-  const items: Record<string, {
+export function buildTankStoreItems(): Record<
+  string,
+  {
     id: string;
     name: string;
     type: StoreItemType;
     pomoCost: number;
     prerequisite: TankConfig['prerequisite'];
     description: string;
-  }> = {};
+  }
+> {
+  const items: Record<
+    string,
+    {
+      id: string;
+      name: string;
+      type: StoreItemType;
+      pomoCost: number;
+      prerequisite: TankConfig['prerequisite'];
+      description: string;
+    }
+  > = {};
 
   for (const tank of ALL_TANKS) {
     if (tank.pomoCost <= 0) continue;

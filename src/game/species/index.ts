@@ -7,9 +7,7 @@ import { shrimp } from './shrimp';
 
 const ALL_GENERA: GenusConfig[] = [neonTetra, corydoras, gourami, otocinclus, shrimp];
 
-export const GENUS_REGISTRY: Map<string, GenusConfig> = new Map(
-  ALL_GENERA.map((g) => [g.id, g]),
-);
+export const GENUS_REGISTRY: Map<string, GenusConfig> = new Map(ALL_GENERA.map((g) => [g.id, g]));
 
 export function getGenus(genusId: string): GenusConfig | undefined {
   return GENUS_REGISTRY.get(genusId);
@@ -60,22 +58,28 @@ export function parseSpeciesStoreId(
  * Build store items for all fish species (one entry per species).
  * Returns a Record keyed by composite "genusId:speciesId" IDs.
  */
-export function buildFishStoreItems(): Record<string, {
-  id: string;
-  name: string;
-  type: StoreItemType;
-  pomoCost: number;
-  prerequisite: { requiredUnlocks?: string[] };
-  description: string;
-}> {
-  const items: Record<string, {
+export function buildFishStoreItems(): Record<
+  string,
+  {
     id: string;
     name: string;
     type: StoreItemType;
     pomoCost: number;
     prerequisite: { requiredUnlocks?: string[] };
     description: string;
-  }> = {};
+  }
+> {
+  const items: Record<
+    string,
+    {
+      id: string;
+      name: string;
+      type: StoreItemType;
+      pomoCost: number;
+      prerequisite: { requiredUnlocks?: string[] };
+      description: string;
+    }
+  > = {};
 
   for (const genus of ALL_GENERA) {
     for (const species of genus.species) {

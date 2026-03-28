@@ -29,7 +29,9 @@ const SCENE_ASPECT = SCENE_H / SCENE_W;
 export const App: React.FC = () => {
   const { state, notification, sendMessage } = useGameState();
   const spriteUriMap = useSpriteUriMap();
-  const { images: spriteImages } = useSpriteLoader(Object.keys(spriteUriMap).length > 0 ? spriteUriMap : null);
+  const { images: spriteImages } = useSpriteLoader(
+    Object.keys(spriteUriMap).length > 0 ? spriteUriMap : null,
+  );
   const { settings, updateSetting } = useSettings(sendMessage);
   const [storeOpen, setStoreOpen] = useState(false);
   const feedingMode = useFeedingMode();
@@ -75,14 +77,31 @@ export const App: React.FC = () => {
 
   if (!state) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'text.disabled' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '200px',
+          color: 'text.disabled',
+        }}
+      >
         <Typography>Connecting to Pomotank...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', p: '12px' }}>
+    <Box
+      sx={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        p: '12px',
+      }}
+    >
       {/* Scene area — flexes to fill available space */}
       <Box
         ref={ref}
@@ -94,7 +113,13 @@ export const App: React.FC = () => {
           justifyContent: 'center',
         }}
       >
-        <Box sx={{ transform: `scale(${scaleX}, ${scaleY})`, transformOrigin: 'center center', willChange: 'transform' }}>
+        <Box
+          sx={{
+            transform: `scale(${scaleX}, ${scaleY})`,
+            transformOrigin: 'center center',
+            willChange: 'transform',
+          }}
+        >
           <TankScene
             state={state}
             animatedFish={animatedFish}
@@ -115,9 +140,23 @@ export const App: React.FC = () => {
       </Box>
 
       {/* Controls area — scrolls independently, disabled during water change animation */}
-      <Box sx={{ flexShrink: 0, overflowY: 'auto', maxHeight: '40%', ...(state.waterChangeAnimating ? { pointerEvents: 'none', opacity: 0.5 } : {}) }}>
+      <Box
+        sx={{
+          flexShrink: 0,
+          overflowY: 'auto',
+          maxHeight: '40%',
+          ...(state.waterChangeAnimating ? { pointerEvents: 'none', opacity: 0.5 } : {}),
+        }}
+      >
         {/* Store button trigger */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: '4px', bgcolor: 'background.default' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            p: '4px',
+            bgcolor: 'background.default',
+          }}
+        >
           <Button
             variant="outlined"
             size="small"
@@ -149,7 +188,9 @@ export const App: React.FC = () => {
             pomoBalance={state.player.pomoBalance}
             tickMultiplier={state.tickMultiplier}
             onSetPomo={(amount) => sendMessage({ type: 'debugSetPomo', amount })}
-            onSetTickMultiplier={(multiplier) => sendMessage({ type: 'debugSetTickMultiplier', multiplier })}
+            onSetTickMultiplier={(multiplier) =>
+              sendMessage({ type: 'debugSetTickMultiplier', multiplier })
+            }
             onResetState={() => sendMessage({ type: 'debugResetState' })}
           />
         )}
@@ -175,7 +216,12 @@ export const App: React.FC = () => {
       />
 
       {/* Store overlay */}
-      <Store items={state.store.items} sendMessage={sendMessage} visible={storeOpen} onClose={() => setStoreOpen(false)} />
+      <Store
+        items={state.store.items}
+        sendMessage={sendMessage}
+        visible={storeOpen}
+        onClose={() => setStoreOpen(false)}
+      />
     </Box>
   );
 };

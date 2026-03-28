@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { UserSettings } from '../../../shared/types';
 import { DEFAULT_USER_SETTINGS } from '../../../shared/types';
-import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../../../shared/messages';
+import type {
+  ExtensionToWebviewMessage,
+  WebviewToExtensionMessage,
+} from '../../../shared/messages';
 
 export interface UseSettingsResult {
   settings: UserSettings;

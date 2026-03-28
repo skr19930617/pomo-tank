@@ -10,8 +10,8 @@ export type WaterChangePhase = 'idle' | 'ready' | 'draining' | 'paused' | 'filli
 export const DRAIN_DURATION_MS = 6000;
 export const PAUSE_DURATION_MS = 2000;
 export const FILL_DURATION_MS = 6000;
-export const MIN_WATER_RATIO = 0.30;
-export const NORMAL_WATER_RATIO = 0.90;
+export const MIN_WATER_RATIO = 0.3;
+export const NORMAL_WATER_RATIO = 0.9;
 
 /** Lowest water level = NORMAL * MIN = 0.9 * 0.3 = 0.27 */
 const MIN_WATER_LEVEL = NORMAL_WATER_RATIO * MIN_WATER_RATIO;
@@ -27,18 +27,10 @@ function easeInOut(t: number): number {
 
 function dirtinessToRgb(dirtiness: number): [number, number, number] {
   const d = Math.min(dirtiness / 100, 1);
-  return [
-    Math.round(60 + d * 80),
-    Math.round(140 + d * -40),
-    Math.round(200 + d * -60),
-  ];
+  return [Math.round(60 + d * 80), Math.round(140 + d * -40), Math.round(200 + d * -60)];
 }
 
-function lerpRgb(
-  a: [number, number, number],
-  b: [number, number, number],
-  t: number,
-): string {
+function lerpRgb(a: [number, number, number], b: [number, number, number], t: number): string {
   const r = Math.round(a[0] + (b[0] - a[0]) * t);
   const g = Math.round(a[1] + (b[1] - a[1]) * t);
   const bl = Math.round(a[2] + (b[2] - a[2]) * t);
@@ -99,7 +91,10 @@ function computeWaterLevel(): number {
 function computeWaterColor(): string | null {
   // Hold final color after completion until forceReset
   if (animState.pendingCompletion) {
-    const endDirtiness = Math.max(0, animState.snapshotDirtiness - WATER_CHANGE_DIRTINESS_REDUCTION);
+    const endDirtiness = Math.max(
+      0,
+      animState.snapshotDirtiness - WATER_CHANGE_DIRTINESS_REDUCTION,
+    );
     const endRgb = dirtinessToRgb(endDirtiness);
     return `rgb(${endRgb[0]}, ${endRgb[1]}, ${endRgb[2]})`;
   }

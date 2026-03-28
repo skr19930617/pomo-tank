@@ -163,8 +163,7 @@ export function executePurchase(
       const lifespanWeeks = speciesConfig
         ? Math.round(
             (speciesConfig.minLifespanYears +
-              Math.random() *
-                (speciesConfig.maxLifespanYears - speciesConfig.minLifespanYears)) *
+              Math.random() * (speciesConfig.maxLifespanYears - speciesConfig.minLifespanYears)) *
               52,
           )
         : 208;

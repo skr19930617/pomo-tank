@@ -167,7 +167,9 @@ export const TankScene: React.FC<TankSceneProps> = ({
     } else {
       container.style.cursor = '';
     }
-    return () => { container.style.cursor = ''; };
+    return () => {
+      container.style.cursor = '';
+    };
   }, [feedingMode.phase, waterChangeMode.phase, mossCleaningMode.phase]);
 
   // ── Outside-click to cancel water change ready mode ──
@@ -196,7 +198,11 @@ export const TankScene: React.FC<TankSceneProps> = ({
         if (isTargeting) feedingMode.cancelTargeting();
         if (isReady) waterChangeMode.cancelReady();
         if (isCleaning) {
-          if (sendMessage) sendMessage({ type: 'mossCleaningCancel', totalReduction: mossCleaningMode.getTotalReduction() } as WebviewToExtensionMessage);
+          if (sendMessage)
+            sendMessage({
+              type: 'mossCleaningCancel',
+              totalReduction: mossCleaningMode.getTotalReduction(),
+            } as WebviewToExtensionMessage);
           mossCleaningMode.cancelCleaning();
         }
       }
@@ -204,23 +210,41 @@ export const TankScene: React.FC<TankSceneProps> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedingMode.phase, feedingMode.cancelTargeting, waterChangeMode.phase, waterChangeMode.cancelReady, mossCleaningMode.phase, mossCleaningMode.cancelCleaning, sendMessage]);
+  }, [
+    feedingMode.phase,
+    feedingMode.cancelTargeting,
+    waterChangeMode.phase,
+    waterChangeMode.cancelReady,
+    mossCleaningMode.phase,
+    mossCleaningMode.cancelCleaning,
+    sendMessage,
+  ]);
 
   // ── Moss cleaning: mouse event handlers ──
   const lastMossFrameTimeRef = useRef(performance.now());
 
-  const toTankLocal = useCallback((pointer: { x: number; y: number }) => {
-    const logicalX = pointer.x / layerScale;
-    const logicalY = pointer.y / layerScale;
-    const localX = (logicalX - tankX) / contentScale;
-    const localY = (logicalY - tankY) / contentScale;
-    return { localX, localY };
-  }, [layerScale, tankX, tankY, contentScale]);
+  const toTankLocal = useCallback(
+    (pointer: { x: number; y: number }) => {
+      const logicalX = pointer.x / layerScale;
+      const logicalY = pointer.y / layerScale;
+      const localX = (logicalX - tankX) / contentScale;
+      const localY = (logicalY - tankY) / contentScale;
+      return { localX, localY };
+    },
+    [layerScale, tankX, tankY, contentScale],
+  );
 
-  const isInTank = useCallback((localX: number, localY: number) => {
-    return localX >= frameThickness && localX <= rawTankW - frameThickness &&
-      localY >= frameThickness && localY <= rawTankH - frameThickness;
-  }, [rawTankW, rawTankH]);
+  const isInTank = useCallback(
+    (localX: number, localY: number) => {
+      return (
+        localX >= frameThickness &&
+        localX <= rawTankW - frameThickness &&
+        localY >= frameThickness &&
+        localY <= rawTankH - frameThickness
+      );
+    },
+    [rawTankW, rawTankH],
+  );
 
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -288,10 +312,12 @@ export const TankScene: React.FC<TankSceneProps> = ({
 
       // ── Water change ready mode — full tank inner area triggers start ──
       if (waterChangeMode.phase === 'ready') {
-        const inTankFull = inTankX && localY >= frameThickness && localY <= rawTankH - frameThickness;
+        const inTankFull =
+          inTankX && localY >= frameThickness && localY <= rawTankH - frameThickness;
         if (inTankFull && !state.waterChangeAnimating) {
           waterChangeMode.startDraining(state.tank.waterDirtiness, state.tank.algaeLevel);
-          if (sendMessage) sendMessage({ type: 'waterChangeAnimStart' } as WebviewToExtensionMessage);
+          if (sendMessage)
+            sendMessage({ type: 'waterChangeAnimStart' } as WebviewToExtensionMessage);
         } else {
           waterChangeMode.cancelReady();
         }
@@ -309,7 +335,22 @@ export const TankScene: React.FC<TankSceneProps> = ({
         return;
       }
     },
-    [feedingMode, waterChangeMode, mossCleaningMode.phase, state.tank.waterDirtiness, state.tank.algaeLevel, state.waterChangeAnimating, sendMessage, layerScale, tankX, tankY, contentScale, rawTankW, rawTankH, waterSurfaceY],
+    [
+      feedingMode,
+      waterChangeMode,
+      mossCleaningMode.phase,
+      state.tank.waterDirtiness,
+      state.tank.algaeLevel,
+      state.waterChangeAnimating,
+      sendMessage,
+      layerScale,
+      tankX,
+      tankY,
+      contentScale,
+      rawTankW,
+      rawTankH,
+      waterSurfaceY,
+    ],
   );
 
   // ── Feeding mode: animation update + completion ──
@@ -375,7 +416,13 @@ export const TankScene: React.FC<TankSceneProps> = ({
         {/* Tank cluster: scaled & positioned group */}
         <Group x={tankX} y={tankY} scaleX={contentScale} scaleY={contentScale}>
           {/* Light bar */}
-          <Light tankLeft={0} tankWidth={rawTankW} lightTop={lightTopRaw} lightOn={state.lightOn} lightGap={lightGapRaw} />
+          <Light
+            tankLeft={0}
+            tankWidth={rawTankW}
+            lightTop={lightTopRaw}
+            lightOn={state.lightOn}
+            lightGap={lightGapRaw}
+          />
 
           {/* Tank body */}
           <Tank
@@ -383,7 +430,11 @@ export const TankScene: React.FC<TankSceneProps> = ({
             tankTop={0}
             tankWidth={rawTankW}
             tankHeight={rawTankH}
-            waterDirtiness={(wcAnimating || waterChangeMode.pendingCompletion) ? waterChangeMode.snapshotDirtiness : state.tank.waterDirtiness}
+            waterDirtiness={
+              wcAnimating || waterChangeMode.pendingCompletion
+                ? waterChangeMode.snapshotDirtiness
+                : state.tank.waterDirtiness
+            }
             lightOn={state.lightOn}
             filterId={state.tank.filterId}
             waterLevelRatio={waterChangeMode.waterLevelRatio}
@@ -412,10 +463,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
 
           {/* Food overlay (can + particles) */}
           {feedingMode.phase === 'animating' && (
-            <FoodOverlay
-              particles={feedingMode.particles}
-              canState={feedingMode.canState}
-            />
+            <FoodOverlay particles={feedingMode.particles} canState={feedingMode.canState} />
           )}
 
           {/* Fish */}
@@ -510,24 +558,25 @@ export const TankScene: React.FC<TankSceneProps> = ({
           )}
 
           {/* Fish info tooltip */}
-          {selectedFishId && (() => {
-            const f = state.fish.find((fi) => fi.id === selectedFishId);
-            const anim = f ? animatedFish.get(f.id) : undefined;
-            if (!f || !anim) return null;
-            const sp = getSpecies(f.genusId, f.speciesId);
-            return (
-              <FishTooltip
-                x={anim.x}
-                y={anim.y}
-                speciesName={sp?.displayName ?? f.speciesId}
-                customName={f.customName}
-                bodyLengthMm={f.bodyLengthMm}
-                ageWeeks={f.ageWeeks}
-                healthState={f.healthState}
-                maintenanceQuality={f.maintenanceQuality}
-              />
-            );
-          })()}
+          {selectedFishId &&
+            (() => {
+              const f = state.fish.find((fi) => fi.id === selectedFishId);
+              const anim = f ? animatedFish.get(f.id) : undefined;
+              if (!f || !anim) return null;
+              const sp = getSpecies(f.genusId, f.speciesId);
+              return (
+                <FishTooltip
+                  x={anim.x}
+                  y={anim.y}
+                  speciesName={sp?.displayName ?? f.speciesId}
+                  customName={f.customName}
+                  bodyLengthMm={f.bodyLengthMm}
+                  ageWeeks={f.ageWeeks}
+                  healthState={f.healthState}
+                  maintenanceQuality={f.maintenanceQuality}
+                />
+              );
+            })()}
         </Group>
 
         {/* Action bar — on desk area */}
@@ -547,23 +596,39 @@ export const TankScene: React.FC<TankSceneProps> = ({
             waterChangeAnimatingGlobal={state.waterChangeAnimating}
             mossCleaningPhase={mossCleaningMode.phase}
             onFeedClick={() => {
-              if (waterChangeMode.phase === 'idle' && mossCleaningMode.phase === 'idle') feedingMode.startTargeting();
+              if (waterChangeMode.phase === 'idle' && mossCleaningMode.phase === 'idle')
+                feedingMode.startTargeting();
             }}
             onWaterClick={() => {
               if (waterChangeMode.phase === 'ready') {
                 waterChangeMode.cancelReady();
-              } else if (waterChangeMode.phase === 'idle' && feedingMode.phase === 'idle' && mossCleaningMode.phase === 'idle' && !state.waterChangeAnimating) {
+              } else if (
+                waterChangeMode.phase === 'idle' &&
+                feedingMode.phase === 'idle' &&
+                mossCleaningMode.phase === 'idle' &&
+                !state.waterChangeAnimating
+              ) {
                 waterChangeMode.startReady();
               }
             }}
             onAlgaeClick={() => {
               if (mossCleaningMode.phase === 'active') {
                 // Cancel moss cleaning
-                if (sendMessage) sendMessage({ type: 'mossCleaningCancel', totalReduction: mossCleaningMode.getTotalReduction() } as WebviewToExtensionMessage);
+                if (sendMessage)
+                  sendMessage({
+                    type: 'mossCleaningCancel',
+                    totalReduction: mossCleaningMode.getTotalReduction(),
+                  } as WebviewToExtensionMessage);
                 mossCleaningMode.cancelCleaning();
-              } else if (mossCleaningMode.phase === 'idle' && waterChangeMode.phase === 'idle' && feedingMode.phase === 'idle' && !state.waterChangeAnimating) {
+              } else if (
+                mossCleaningMode.phase === 'idle' &&
+                waterChangeMode.phase === 'idle' &&
+                feedingMode.phase === 'idle' &&
+                !state.waterChangeAnimating
+              ) {
                 // Start moss cleaning
-                if (sendMessage) sendMessage({ type: 'mossCleaningStart' } as WebviewToExtensionMessage);
+                if (sendMessage)
+                  sendMessage({ type: 'mossCleaningStart' } as WebviewToExtensionMessage);
                 mossCleaningMode.startCleaning(state.tank.algaeLevel);
               }
             }}

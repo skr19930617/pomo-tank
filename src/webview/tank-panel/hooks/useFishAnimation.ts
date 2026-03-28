@@ -73,9 +73,13 @@ export function useFishAnimation(
   }>({ fish: new Map(), frameCount: 0 });
   const rafRef = useRef<number>(0);
   const attractionRef = useRef<AttractionTarget | null | undefined>(attractionTarget);
-  useEffect(() => { attractionRef.current = attractionTarget; }, [attractionTarget]);
+  useEffect(() => {
+    attractionRef.current = attractionTarget;
+  }, [attractionTarget]);
   const boundsRef = useRef<FishBounds>(bounds);
-  useEffect(() => { boundsRef.current = bounds; }, [bounds]);
+  useEffect(() => {
+    boundsRef.current = bounds;
+  }, [bounds]);
 
   // Sync fish list — add new fish, remove gone ones
   const syncFish = useCallback(() => {
@@ -108,9 +112,7 @@ export function useFishAnimation(
     for (const f of fish) {
       if (!current.has(f.id)) {
         const genus = getGenus(f.genusId);
-        const swimRange = genus
-          ? SWIM_LAYER_RANGES[genus.swimLayer]
-          : { min: 0.1, max: 0.9 };
+        const swimRange = genus ? SWIM_LAYER_RANGES[genus.swimLayer] : { min: 0.1, max: 0.9 };
         const b = boundsRef.current;
         const zoneMinY = b.top + b.height * swimRange.min;
         const zoneMaxY = b.top + b.height * swimRange.max;
@@ -180,9 +182,12 @@ export function useFishAnimation(
           // ── Boids schooling: separation + alignment + cohesion ──
           const neighbors = schoolingFish.get(f.genusId);
           if (neighbors && neighbors.length >= 2) {
-            let sepX = 0, sepY = 0;
-            let alignDx = 0, alignDy = 0;
-            let cohX = 0, cohY = 0;
+            let sepX = 0,
+              sepY = 0;
+            let alignDx = 0,
+              alignDy = 0;
+            let cohX = 0,
+              cohY = 0;
             let neighborCount = 0;
 
             for (const other of neighbors) {
@@ -292,9 +297,7 @@ export function useFishAnimation(
           }
 
           // Swim layer constraints — use sprite half-size so fish don't poke above water
-          const swimRange = genus
-            ? SWIM_LAYER_RANGES[genus.swimLayer]
-            : { min: 0.1, max: 0.9 };
+          const swimRange = genus ? SWIM_LAYER_RANGES[genus.swimLayer] : { min: 0.1, max: 0.9 };
           const zoneMinY = b.top + b.height * swimRange.min;
           const zoneMaxY = b.top + b.height * swimRange.max;
           if (s.y < zoneMinY + yMargin) {

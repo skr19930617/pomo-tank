@@ -82,7 +82,11 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   const timerOpacity = isPaused ? 0.35 : 1;
 
   const balanceStr =
-    pomoBalance !== undefined ? (pomoBalance >= 100000 ? '99999+' : String(pomoBalance)) : undefined;
+    pomoBalance !== undefined
+      ? pomoBalance >= 100000
+        ? '99999+'
+        : String(pomoBalance)
+      : undefined;
 
   // ── Measure text widths to determine scale ──
   const pad = 4;
@@ -91,7 +95,8 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   const fishIconW = FISH_ICON[0].length;
 
   const timerW = measureText(timerStr);
-  const costStr = currentCost !== undefined && maxCost !== undefined ? `${currentCost}/${maxCost}` : '';
+  const costStr =
+    currentCost !== undefined && maxCost !== undefined ? `${currentCost}/${maxCost}` : '';
   const costW = costStr ? fishIconW + iconGap + measureText(costStr) : 0;
   const coinW = balanceStr !== undefined ? coinIconW + iconGap + measureText(balanceStr) : 0;
 
@@ -148,7 +153,13 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
       }
     }
     costElements.push(
-      <PixelText key="cost" text={costStr} x={costX + fishIconW + iconGap} y={4} color={costColor} />,
+      <PixelText
+        key="cost"
+        text={costStr}
+        x={costX + fishIconW + iconGap}
+        y={4}
+        color={costColor}
+      />,
     );
   }
 

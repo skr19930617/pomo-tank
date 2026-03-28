@@ -25,6 +25,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-28
 - VSCode ExtensionContext globalState（既存、本機能では変更なし） (017-interactive-feeding-anim)
 - N/A（描画のみの変更、ゲーム状態は既存のまま） (018-moss-rendering-improvement)
 - VSCode ExtensionContext globalState（既存、苔レベルはfloatで管理） (021-moss-cleaning-action)
+- TypeScript 5.3+ (strict mode), Node.js 18 + Vitest 1.2.0, ESLint 9.x, Prettier 3.x, esbuild 0.20.0 (023-ci-improvement)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -37,16 +38,19 @@ tests/
 
 ## Commands
 
-npm test && npm run lint
+npm run ci
+
+This runs all CI checks locally: lint → format check → unit tests → build (stops on first failure).
+After making changes, always run `npm run ci` to verify. If any step fails, fix the issue and re-run.
 
 ## Code Style
 
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 023-ci-improvement: Added TypeScript 5.3+ (strict mode), Node.js 18 + Vitest 1.2.0, ESLint 9.x, Prettier 3.x, esbuild 0.20.0
 - 022-full-refactoring: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
 - 021-moss-cleaning-action: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/reac
-- 018-moss-rendering-improvement: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10
 
 
 <!-- MANUAL ADDITIONS START -->
