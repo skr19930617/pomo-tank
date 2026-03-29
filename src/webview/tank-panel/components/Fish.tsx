@@ -20,6 +20,9 @@ interface FishProps {
   feedingActive: boolean;
   hasFeedingAnim: boolean;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  isHovered?: boolean;
 }
 
 export const FishSprite: React.FC<FishProps> = ({
@@ -36,6 +39,9 @@ export const FishSprite: React.FC<FishProps> = ({
   feedingActive,
   hasFeedingAnim,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
+  isHovered = false,
 }) => {
   const spriteRef = useRef<Konva.Sprite>(null);
   const isDead = healthState === HealthState.Dead;
@@ -94,23 +100,55 @@ export const FishSprite: React.FC<FishProps> = ({
 
   if (!spriteImage || Object.keys(animations).length === 0) {
     // Fallback: simple colored rectangle if no sprite loaded
+    const fallbackScaleY = isDead ? -1 : 1;
     return (
-      <Group x={x} y={y} scaleX={scaleX} opacity={alpha}>
-        <Rect
-          x={-halfSize / 2}
-          y={-halfSize / 4}
-          width={halfSize}
-          height={halfSize / 2}
-          fill="#888888"
-          cornerRadius={2}
-        />
+      <Group
+        x={x}
+        y={y}
+        opacity={alpha}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        <Group scaleX={scaleX} scaleY={fallbackScaleY}>
+          <Rect
+            x={-halfSize / 2}
+            y={-halfSize / 4}
+            width={halfSize}
+            height={halfSize / 2}
+            fill="#888888"
+            cornerRadius={2}
+          />
+        </Group>
+        {isHovered && (
+          <Rect
+            x={-halfSize}
+            y={-halfSize}
+            width={displaySize}
+            height={displaySize}
+            fill="white"
+            opacity={0.25}
+            listening={false}
+          />
+        )}
       </Group>
     );
   }
 
+  // Dead fish: flip the inner group vertically (scaleY={-1}) around center (offset point).
+  // Keep sprite scaleY={scale} unchanged — the group flip handles the visual inversion.
+  const groupScaleY = isDead ? -1 : 1;
+
   return (
-    <Group x={x} y={y} opacity={alpha} onClick={onClick} onTap={onClick}>
-      <Group scaleX={scaleX} offsetX={halfSize} offsetY={halfSize}>
+    <Group
+      x={x}
+      y={y}
+      opacity={alpha}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <Group scaleX={scaleX} scaleY={groupScaleY} offsetX={halfSize} offsetY={halfSize}>
         <Sprite
           ref={spriteRef}
           image={spriteImage}
@@ -121,6 +159,19 @@ export const FishSprite: React.FC<FishProps> = ({
           scaleY={scale}
         />
       </Group>
+
+      {/* Hover highlight overlay */}
+      {isHovered && (
+        <Rect
+          x={-halfSize}
+          y={-halfSize}
+          width={displaySize}
+          height={displaySize}
+          fill="white"
+          opacity={0.25}
+          listening={false}
+        />
+      )}
 
       {/* Speech bubble */}
       {showBubble && (

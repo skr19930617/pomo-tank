@@ -10,6 +10,8 @@ export interface AnimatedFishData {
   y: number;
   dx: number;
   displaySize: number;
+  /** Ordering for dead fish Z-sort (0 = not dead, >0 = death sequence). */
+  deathOrder: number;
 }
 
 interface FishAnimState {
@@ -19,6 +21,8 @@ interface FishAnimState {
   dy: number;
   /** Frame when fish arrived near food (0 = not arrived yet). */
   foodArrivedFrame: number;
+  /** Death ordering for Z-sort (0 = not dead yet). */
+  deathOrder: number;
 }
 
 export interface FishBounds {
@@ -26,6 +30,8 @@ export interface FishBounds {
   top: number;
   width: number;
   height: number;
+  /** Y coordinate of the actual tank floor (sand bottom) in tank-local coords. */
+  tankFloorY: number;
 }
 
 const BASE_SPEED = 0.5;
@@ -67,6 +73,7 @@ export function useFishAnimation(
   attractionTarget?: AttractionTarget | null,
 ): { animatedFish: Map<string, AnimatedFishData>; frameCount: number } {
   const stateRef = useRef<Map<string, FishAnimState>>(new Map());
+  const deathCounterRef = useRef(0);
   const [animState, setAnimState] = useState<{
     fish: Map<string, AnimatedFishData>;
     frameCount: number;
@@ -123,6 +130,7 @@ export function useFishAnimation(
           dx: (Math.random() - 0.5) * 2,
           dy: (Math.random() - 0.5) * 1,
           foodArrivedFrame: 0,
+          deathOrder: 0,
         });
       }
     }
@@ -170,7 +178,17 @@ export function useFishAnimation(
         const displaySize = mmToPx(f.bodyLengthMm, tankWidthMm, tankRenderWidth);
 
         if (isDead) {
-          // Dead fish freeze in place
+          // Assign death order on first Dead transition
+          if (s.deathOrder === 0) {
+            s.deathOrder = ++deathCounterRef.current;
+          }
+          // Position at tank floor, stop movement
+          const halfSize = displaySize / 2;
+          const b = boundsRef.current;
+          s.y = b.tankFloorY - halfSize; // center-based: bottom edge touches floor
+          s.x = Math.max(b.left + halfSize, Math.min(b.left + b.width - halfSize, s.x));
+          s.dx = 0;
+          s.dy = 0;
         } else {
           const speciesSpeed = genus?.baseSpeed ?? 1.0;
           const healthMul =
@@ -310,7 +328,7 @@ export function useFishAnimation(
           }
         }
 
-        result.set(f.id, { x: s.x, y: s.y, dx: s.dx, displaySize });
+        result.set(f.id, { x: s.x, y: s.y, dx: s.dx, displaySize, deathOrder: s.deathOrder });
       }
 
       setAnimState({ fish: result, frameCount: frameCounter });
