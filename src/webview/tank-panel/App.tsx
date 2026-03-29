@@ -49,9 +49,9 @@ export const App: React.FC = () => {
 
   const waterLevelRatio = waterChangeMode.waterLevelRatio;
   const fishBounds: FishBounds = useMemo(() => {
-    if (!state) return { left: 0, top: 0, width: 100, height: 100 };
+    if (!state) return { left: 0, top: 0, width: 100, height: 100, tankFloorY: 100 };
     const tank = getTank(state.tank.tankId);
-    if (!tank) return { left: 0, top: 0, width: 100, height: 100 };
+    if (!tank) return { left: 0, top: 0, width: 100, height: 100, tankFloorY: 100 };
     const frame = 3;
     const sand = 8;
     // Match Tank.tsx water surface calculation exactly
@@ -63,6 +63,7 @@ export const App: React.FC = () => {
       top: waterTop,
       width: tank.renderWidth - frame * 2,
       height: waterH - sand,
+      tankFloorY: frame + innerH,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.tank.tankId, waterLevelRatio]);

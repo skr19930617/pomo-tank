@@ -42,7 +42,7 @@ export const FishTooltip: React.FC<FishTooltipProps> = ({
   const careTxt = `Care ${qualityStars(maintenanceQuality)}`;
 
   return (
-    <Group x={px} y={py}>
+    <Group x={px} y={py} listening={false}>
       <Rect width={w} height={h} fill="#1a1a2e" cornerRadius={3} opacity={0.95} />
       <Rect
         x={0.5}

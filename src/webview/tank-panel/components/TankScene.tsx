@@ -14,6 +14,8 @@ import { getTank } from '../../../game/tanks';
 import type { AnimatedFishData } from '../hooks/useFishAnimation';
 import type { SpriteImageMap } from '../hooks/useSpriteLoader';
 import type { WebviewToExtensionMessage } from '../../../shared/messages';
+import { HealthState } from '../../../shared/types';
+import type { GenusId } from '../../../shared/types';
 import { getGenus, getSpecies } from '../../../game/species';
 import { FishTooltip } from './FishTooltip';
 import { Wall } from './Wall';
@@ -126,7 +128,28 @@ export const TankScene: React.FC<TankSceneProps> = ({
   );
 
   const { contentScale, tankX, tankY, deskTop } = layout;
-  const [selectedFishId, setSelectedFishId] = useState<string | null>(null);
+  // ── Hover / dead-fish interaction state (Tank Panel only, gated by !compact) ──
+  const [hoveredFishId, setHoveredFishId] = useState<string | null>(null);
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  const [fadingGhosts, setFadingGhosts] = useState<
+    Map<
+      string,
+      {
+        x: number;
+        y: number;
+        displaySize: number;
+        genusId: GenusId;
+        speciesId: string;
+        startTime: number;
+      }
+    >
+  >(new Map());
+
+  const isAnyModeActive =
+    feedingMode.phase === 'targeting' ||
+    waterChangeMode.phase === 'ready' ||
+    mossCleaningMode.phase === 'active';
+
   const stageRef = useRef<Konva.Stage>(null);
   useVisibilityResume(stageRef);
 
@@ -154,7 +177,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const waterH = innerH * 0.9;
   const waterSurfaceY = frameThickness + innerH - waterH; // top of water in tank coords
 
-  // ── Custom cursor for targeting/ready/cleaning modes ──
+  // ── Custom cursor for targeting/ready/cleaning modes + dead fish pointer ──
   useEffect(() => {
     const container = stageRef.current?.container();
     if (!container) return;
@@ -164,13 +187,25 @@ export const TankScene: React.FC<TankSceneProps> = ({
       container.style.cursor = 'crosshair';
     } else if (waterChangeMode.phase === 'ready') {
       container.style.cursor = 'pointer';
+    } else if (!compact && hoveredFishId && !isAnyModeActive) {
+      // Dead fish hover: show pointer cursor
+      const hoveredFish = state.fish.find((f) => f.id === hoveredFishId);
+      container.style.cursor = hoveredFish?.healthState === HealthState.Dead ? 'pointer' : '';
     } else {
       container.style.cursor = '';
     }
     return () => {
       container.style.cursor = '';
     };
-  }, [feedingMode.phase, waterChangeMode.phase, mossCleaningMode.phase]);
+  }, [
+    feedingMode.phase,
+    waterChangeMode.phase,
+    mossCleaningMode.phase,
+    hoveredFishId,
+    compact,
+    isAnyModeActive,
+    state.fish,
+  ]);
 
   // ── Outside-click to cancel water change ready mode ──
   useEffect(() => {
@@ -219,6 +254,85 @@ export const TankScene: React.FC<TankSceneProps> = ({
     mossCleaningMode.cancelCleaning,
     sendMessage,
   ]);
+
+  // ── Mode suppression: clear hover state when any mode activates (FR-010) ──
+  useEffect(() => {
+    if (!compact && isAnyModeActive) {
+      setHoveredFishId(null);
+    }
+  }, [compact, isAnyModeActive]);
+
+  // ── Per-frame hover re-evaluation for stationary cursor (FR-014) ──
+  useEffect(() => {
+    if (compact || isAnyModeActive) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+
+    // Convert stage pixels → logical coords → tank-local coords
+    const logicalX = pointer.x / layerScale;
+    const logicalY = pointer.y / layerScale;
+    const localX = (logicalX - tankX) / contentScale;
+    const localY = (logicalY - tankY) / contentScale;
+
+    // Build sorted fish list (alive first = topmost in Z, then dead by deathOrder desc)
+    const sortedFish = [...state.fish]
+      .filter((f) => !removingIds.has(f.id))
+      .sort((a, b) => {
+        const aDead = a.healthState === HealthState.Dead ? 1 : 0;
+        const bDead = b.healthState === HealthState.Dead ? 1 : 0;
+        if (aDead !== bDead) return aDead - bDead; // alive first (topmost)
+        if (aDead && bDead) {
+          // Among dead: higher deathOrder = newer = more front
+          const aOrder = animatedFish.get(a.id)?.deathOrder ?? 0;
+          const bOrder = animatedFish.get(b.id)?.deathOrder ?? 0;
+          return bOrder - aOrder;
+        }
+        return 0;
+      });
+
+    let foundId: string | null = null;
+    for (const f of sortedFish) {
+      const anim = animatedFish.get(f.id);
+      if (!anim) continue;
+      const half = anim.displaySize / 2;
+      if (
+        localX >= anim.x - half &&
+        localX <= anim.x + half &&
+        localY >= anim.y - half &&
+        localY <= anim.y + half
+      ) {
+        foundId = f.id;
+        break;
+      }
+    }
+    setHoveredFishId(foundId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameCount, compact]);
+
+  // ── Fade ghost cleanup: remove expired ghosts after 300ms ──
+  useEffect(() => {
+    if (fadingGhosts.size === 0) return;
+    const timer = requestAnimationFrame(() => {
+      const now = performance.now();
+      let changed = false;
+      const newGhosts = new Map(fadingGhosts);
+      const newRemoving = new Set(removingIds);
+      for (const [id, ghost] of fadingGhosts) {
+        if (now - ghost.startTime >= 300) {
+          newGhosts.delete(id);
+          newRemoving.delete(id);
+          changed = true;
+        }
+      }
+      if (changed) {
+        setFadingGhosts(newGhosts);
+        setRemovingIds(newRemoving);
+      }
+    });
+    return () => cancelAnimationFrame(timer);
+  }, [fadingGhosts, removingIds, frameCount]);
 
   // ── Moss cleaning: mouse event handlers ──
   const lastMossFrameTimeRef = useRef(performance.now());
@@ -466,33 +580,110 @@ export const TankScene: React.FC<TankSceneProps> = ({
             <FoodOverlay particles={feedingMode.particles} canState={feedingMode.canState} />
           )}
 
-          {/* Fish */}
-          {state.fish.map((f) => {
-            const anim = animatedFish.get(f.id);
-            if (!anim) return null;
-            const genus = getGenus(f.genusId);
-            return (
-              <FishSprite
-                key={f.id}
-                x={anim.x}
-                y={anim.y}
-                dx={anim.dx}
-                genusId={f.genusId}
-                speciesId={f.speciesId}
-                healthState={f.healthState}
-                tankHunger={state.tank.hungerLevel}
-                frameCount={frameCount}
-                displaySize={anim.displaySize}
-                spriteImages={spriteImages}
-                feedingActive={feedingMode.phase === 'animating'}
-                hasFeedingAnim={genus?.hasFeedingAnim ?? false}
-                onClick={() => {
-                  if (mossCleaningMode.phase !== 'idle') return; // suppress during moss cleaning
-                  setSelectedFishId(selectedFishId === f.id ? null : f.id);
-                }}
-              />
-            );
-          })}
+          {/* Fish — Z-sorted: dead fish in back, alive fish in front (FR-005a) */}
+          {(() => {
+            const visibleFish = state.fish.filter((f) => !removingIds.has(f.id));
+            const sorted = compact
+              ? visibleFish
+              : [...visibleFish].sort((a, b) => {
+                  const aDead = a.healthState === HealthState.Dead ? 1 : 0;
+                  const bDead = b.healthState === HealthState.Dead ? 1 : 0;
+                  if (aDead !== bDead) return bDead - aDead; // dead first (back)
+                  if (aDead && bDead) {
+                    const aOrder = animatedFish.get(a.id)?.deathOrder ?? 0;
+                    const bOrder = animatedFish.get(b.id)?.deathOrder ?? 0;
+                    return aOrder - bOrder; // older dead = further back
+                  }
+                  return 0;
+                });
+            return sorted.map((f) => {
+              const anim = animatedFish.get(f.id);
+              if (!anim) return null;
+              const genus = getGenus(f.genusId);
+              return (
+                <FishSprite
+                  key={f.id}
+                  x={anim.x}
+                  y={anim.y}
+                  dx={anim.dx}
+                  genusId={f.genusId}
+                  speciesId={f.speciesId}
+                  healthState={f.healthState}
+                  tankHunger={state.tank.hungerLevel}
+                  frameCount={frameCount}
+                  displaySize={anim.displaySize}
+                  spriteImages={spriteImages}
+                  feedingActive={feedingMode.phase === 'animating'}
+                  hasFeedingAnim={genus?.hasFeedingAnim ?? false}
+                  isHovered={!compact && hoveredFishId === f.id}
+                  onMouseEnter={
+                    compact
+                      ? undefined
+                      : () => {
+                          if (!isAnyModeActive && !removingIds.has(f.id)) setHoveredFishId(f.id);
+                        }
+                  }
+                  onMouseLeave={compact ? undefined : () => setHoveredFishId(null)}
+                  onClick={
+                    compact
+                      ? undefined
+                      : () => {
+                          if (
+                            f.healthState === HealthState.Dead &&
+                            !isAnyModeActive &&
+                            sendMessage
+                          ) {
+                            // Immediately clear hover (FR-015) and mark as removing
+                            setHoveredFishId(null);
+                            setRemovingIds((prev) => new Set(prev).add(f.id));
+                            setFadingGhosts((prev) => {
+                              const next = new Map(prev);
+                              next.set(f.id, {
+                                x: anim.x,
+                                y: anim.y,
+                                displaySize: anim.displaySize,
+                                genusId: f.genusId,
+                                speciesId: f.speciesId,
+                                startTime: performance.now(),
+                              });
+                              return next;
+                            });
+                            sendMessage({ type: 'removeFish', fishId: f.id });
+                          }
+                          // Alive fish click = no-op (FR-009)
+                        }
+                  }
+                />
+              );
+            });
+          })()}
+
+          {/* Fade-out ghosts for removed dead fish (FR-015) */}
+          {fadingGhosts.size > 0 &&
+            [...fadingGhosts.entries()].map(([id, ghost]) => {
+              const elapsed = performance.now() - ghost.startTime;
+              // FishSprite already applies opacity=0.4 for Dead fish, so wrapper is fade-only
+              const opacity = Math.max(0, 1 - elapsed / 300);
+              const genus = getGenus(ghost.genusId as GenusId);
+              return (
+                <Group key={`ghost-${id}`} listening={false} opacity={opacity}>
+                  <FishSprite
+                    x={ghost.x}
+                    y={ghost.y}
+                    dx={0}
+                    genusId={ghost.genusId as GenusId}
+                    speciesId={ghost.speciesId}
+                    healthState={HealthState.Dead}
+                    tankHunger={0}
+                    frameCount={frameCount}
+                    displaySize={ghost.displaySize}
+                    spriteImages={spriteImages}
+                    feedingActive={false}
+                    hasFeedingAnim={genus?.hasFeedingAnim ?? false}
+                  />
+                </Group>
+              );
+            })}
 
           {/* Algae overlay — rendered after fish = in front of fish */}
           <AlgaeOverlay
@@ -557,10 +748,11 @@ export const TankScene: React.FC<TankSceneProps> = ({
             />
           )}
 
-          {/* Fish info tooltip */}
-          {selectedFishId &&
+          {/* Fish info tooltip — hover-based (FR-001/FR-018) */}
+          {!compact &&
+            hoveredFishId &&
             (() => {
-              const f = state.fish.find((fi) => fi.id === selectedFishId);
+              const f = state.fish.find((fi) => fi.id === hoveredFishId);
               const anim = f ? animatedFish.get(f.id) : undefined;
               if (!f || !anim) return null;
               const sp = getSpecies(f.genusId, f.speciesId);
