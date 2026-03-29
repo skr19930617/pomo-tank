@@ -219,10 +219,8 @@ export class TankPanelManager {
       case 'debugSetTickMultiplier':
         if (isDebugMode()) {
           this.engine.setTickMultiplier(message.multiplier);
-          this.sendToWebview({
-            type: 'stateUpdate',
-            state: this.engine.createSnapshot(false, isDebugMode()),
-          });
+          // No manual stateUpdate needed — setTickMultiplier triggers
+          // notifySubscribers which sends the snapshot via updateState
         }
         break;
       case 'debugResetState':

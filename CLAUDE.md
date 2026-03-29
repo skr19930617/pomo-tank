@@ -28,6 +28,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-29
 - TypeScript 5.3+ (strict mode), Node.js 18 + Vitest 1.2.0, ESLint 9.x, Prettier 3.x, esbuild 0.20.0 (023-ci-improvement)
 - TypeScript 5.3 (strict mode) + React 19, react-konva 19, Konva 10, @mui/material 7, @types/vscode ^1.85.0, esbuild 0.20.0 (024-dead-fish-interaction)
 - VSCode ExtensionContext globalState (existing via `src/persistence/storage.ts`) (024-dead-fish-interaction)
+- TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @types/vscode ^1.85.0, esbuild 0.20.0 (025-fix-debug-timer-display)
 
 - TypeScript 5.x + `@types/vscode` (VSCode Extension API), esbuild (bundler) (001-pomotank-mvp)
 
@@ -50,9 +51,9 @@ After making changes, always run `npm run ci` to verify. If any step fails, fix 
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 025-fix-debug-timer-display: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @types/vscode ^1.85.0, esbuild 0.20.0
 - 024-dead-fish-interaction: Added TypeScript 5.3 (strict mode) + React 19, react-konva 19, Konva 10, @mui/material 7, @types/vscode ^1.85.0, esbuild 0.20.0
 - 023-ci-improvement: Added TypeScript 5.3+ (strict mode), Node.js 18 + Vitest 1.2.0, ESLint 9.x, Prettier 3.x, esbuild 0.20.0
-- 022-full-refactoring: Added TypeScript 5.3+ (strict mode) + React 19, react-konva 19, Konva 10, @mui/material, @emotion/react, @types/vscode ^1.85.0, esbuild ^0.20.0
 
 
 <!-- MANUAL ADDITIONS START -->

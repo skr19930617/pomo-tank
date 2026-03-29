@@ -25,7 +25,7 @@ interface HudOverlayProps {
   currentStreak?: number;
 }
 
-function formatTimer(totalSec: number): string {
+export function formatTimer(totalSec: number): string {
   const capped = Math.min(totalSec, 359999); // 99:59:59
   const hrs = Math.floor(capped / 3600);
   const min = Math.floor((capped % 3600) / 60);
