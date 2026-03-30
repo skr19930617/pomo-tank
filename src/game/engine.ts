@@ -46,11 +46,13 @@ export class GameEngine {
   private sessionMinutes: number;
   private breakMinutes: number;
   private timerMode: TimerMode = 'focus';
-  private breakStartTimestamp: number | null = null;
-  private breakPausedRemainingMs: number | null = null;
   private intervalId: ReturnType<typeof setTimeout> | null = null;
   private subscribers: Array<(state: GameState) => void> = [];
   private tickMultiplier: number = 1;
+  private gameElapsedMs: number = 0;
+  private lastTickClientTs: number = Date.now();
+  private breakGameElapsedMs: number = 0;
+  private breakLastTickClientTs: number = 0;
   private waterFreezers = new Set<string>();
 
   constructor(
@@ -75,6 +77,8 @@ export class GameEngine {
 
   setTickMultiplier(n: number): void {
     const clamped = Math.max(TICK_MULTIPLIER_MIN, Math.min(TICK_MULTIPLIER_MAX, Math.round(n)));
+    this.flushSubTick();
+    this.flushBreakSubTick();
     this.tickMultiplier = clamped;
     // Restart interval with new speed
     if (this.intervalId !== null) {
@@ -109,6 +113,15 @@ export class GameEngine {
     if (!this.state.lightOn) {
       this.notifySubscribers();
       return;
+    }
+
+    // Accumulate game time (1 tick = 1 minute of game time)
+    if (this.timerMode === 'break') {
+      this.breakGameElapsedMs += 60_000;
+      this.breakLastTickClientTs = Date.now();
+    } else {
+      this.gameElapsedMs += 60_000;
+      this.lastTickClientTs = Date.now();
     }
 
     const isActive = this.activityTracker.isActivelyCoding();
@@ -182,7 +195,7 @@ export class GameEngine {
     // Block all maintenance actions during water change animation
     if (!bypassFreeze && this.isWaterQualityFrozen) return;
     const now = Date.now();
-    const timeSinceLastMaintenance = now - this.state.player.sessionStartTime;
+    const wallClockElapsed = now - this.state.player.sessionStartTime;
 
     // Edge case: check if tank actually needs this action
     const tankHealthy = this.isTankHealthy(action);
@@ -226,7 +239,7 @@ export class GameEngine {
     const result = tankHealthy
       ? { points: 0, timingBonus: 1.0, streakMultiplier: 1.0, dailyBonus: 0 }
       : calculatePoints(
-          timeSinceLastMaintenance,
+          wallClockElapsed,
           this.state.player.currentStreak,
           isFirstToday,
           this.state.player.dailyContinuityDays,
@@ -234,7 +247,7 @@ export class GameEngine {
         );
 
     // Update streak
-    const wellTimed = isWellTimed(timeSinceLastMaintenance, this.sessionMinutes);
+    const wellTimed = isWellTimed(wallClockElapsed, this.sessionMinutes);
     const newStreak = updateStreak(this.state.player.currentStreak, wellTimed);
 
     // Update daily continuity
@@ -256,11 +269,15 @@ export class GameEngine {
       },
     };
 
+    // Reset focus game time for new session
+    this.gameElapsedMs = 0;
+    this.lastTickClientTs = now;
+
     // Enter break mode if breakMinutes > 0
     if (this.breakMinutes > 0) {
       this.timerMode = 'break';
-      this.breakStartTimestamp = now;
-      this.breakPausedRemainingMs = null;
+      this.breakGameElapsedMs = 0;
+      this.breakLastTickClientTs = now;
     }
 
     // ── Per-pomo fish progression: quality update + growth + aging ──
@@ -313,6 +330,11 @@ export class GameEngine {
     if (this.isWaterQualityFrozen) return;
     const fresh = createInitialState();
     this.state = fresh;
+    this.gameElapsedMs = 0;
+    this.lastTickClientTs = Date.now();
+    this.breakGameElapsedMs = 0;
+    this.breakLastTickClientTs = 0;
+    this.timerMode = 'focus';
     this.notifySubscribers();
   }
 
@@ -443,19 +465,21 @@ export class GameEngine {
   }
 
   private getBreakRemainingMs(): number {
-    if (this.timerMode !== 'break' || this.breakStartTimestamp === null) return 0;
-    if (this.breakPausedRemainingMs !== null) return this.breakPausedRemainingMs;
-    const elapsed = Date.now() - this.breakStartTimestamp;
-    const remaining = this.breakMinutes * 60 * 1000 - elapsed;
-    return Math.max(0, remaining);
+    if (this.timerMode !== 'break') return 0;
+    const subTickMs = this.state.lightOn
+      ? (Date.now() - this.breakLastTickClientTs) * this.tickMultiplier
+      : 0;
+    const gameElapsed = this.breakGameElapsedMs + subTickMs;
+    return Math.max(0, this.breakMinutes * 60 * 1000 - gameElapsed);
   }
 
   private checkBreakExpiry(): void {
     if (this.timerMode !== 'break') return;
     if (this.getBreakRemainingMs() <= 0) {
       this.timerMode = 'focus';
-      this.breakStartTimestamp = null;
-      this.breakPausedRemainingMs = null;
+      // Reset focus game time so timer starts from 0
+      this.gameElapsedMs = 0;
+      this.lastTickClientTs = Date.now();
       // Reset sessionStartTime so focus timer starts from 0
       this.state = {
         ...this.state,
@@ -469,7 +493,10 @@ export class GameEngine {
 
   createSnapshot(isActiveCoding: boolean, debugMode: boolean = false): GameStateSnapshot {
     this.checkBreakExpiry();
-    const timeSinceLastMaintenance = Date.now() - this.state.player.sessionStartTime;
+    const subTickMs = this.state.lightOn
+      ? (Date.now() - this.lastTickClientTs) * this.tickMultiplier
+      : 0;
+    const timeSinceLastMaintenance = this.gameElapsedMs + subTickMs;
 
     return {
       tank: {
@@ -526,10 +553,9 @@ export class GameEngine {
     if (this.isWaterQualityFrozen) return this.state.lightOn;
     const now = Date.now();
     if (this.state.lightOn) {
-      // Turning off — pause break timer if active
-      if (this.timerMode === 'break' && this.breakStartTimestamp !== null) {
-        this.breakPausedRemainingMs = this.getBreakRemainingMs();
-      }
+      // Turning off — flush sub-tick time before pausing
+      this.flushSubTick();
+      this.flushBreakSubTick();
       this.state = {
         ...this.state,
         lightOn: false,
@@ -540,11 +566,10 @@ export class GameEngine {
       const lightOffDuration = this.state.lightOffTimestamp
         ? now - this.state.lightOffTimestamp
         : 0;
-      // Resume break timer if it was paused
-      if (this.timerMode === 'break' && this.breakPausedRemainingMs !== null) {
-        this.breakStartTimestamp =
-          now - (this.breakMinutes * 60 * 1000 - this.breakPausedRemainingMs);
-        this.breakPausedRemainingMs = null;
+      // Re-anchor game time timestamps to skip paused duration
+      this.lastTickClientTs = now;
+      if (this.timerMode === 'break') {
+        this.breakLastTickClientTs = now;
       }
       this.state = {
         ...this.state,
@@ -624,6 +649,20 @@ export class GameEngine {
         },
       };
     }
+  }
+
+  private flushSubTick(): void {
+    if (!this.state.lightOn || this.timerMode === 'break') return;
+    const now = Date.now();
+    this.gameElapsedMs += (now - this.lastTickClientTs) * this.tickMultiplier;
+    this.lastTickClientTs = now;
+  }
+
+  private flushBreakSubTick(): void {
+    if (!this.state.lightOn || this.timerMode !== 'break') return;
+    const now = Date.now();
+    this.breakGameElapsedMs += (now - this.breakLastTickClientTs) * this.tickMultiplier;
+    this.breakLastTickClientTs = now;
   }
 
   private notifySubscribers(): void {
