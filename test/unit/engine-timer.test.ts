@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GameEngine } from '../../src/game/engine';
 import { createInitialState } from '../../src/game/state';
-import { formatTimer } from '../../src/webview/tank-panel/components/HudOverlay';
+import { formatTimer } from '../../src/shared/format-timer';
 
 const mockTracker = { isActivelyCoding: () => true };
 
