@@ -35,7 +35,7 @@ const IDLE_FEEDING_MODE: UseFeedingModeResult = {
 
 const IDLE_WATER_CHANGE_MODE: UseWaterChangeModeResult = {
   phase: 'idle',
-  waterLevelRatio: 1,
+  waterLevelRatio: 0.9,
   waterColorOverride: null,
   snapshotDirtiness: 0,
   pendingCompletion: false,
