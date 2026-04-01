@@ -46,60 +46,12 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         case 'openTank':
           vscode.commands.executeCommand('pomotank.openTank');
           break;
-        case 'feedFish':
-          this.engine.performAction('feedFish');
-          this.sendToWebview({ type: 'actionResult', action: 'Feed Fish', success: true });
-          break;
-        case 'changeWater':
-          this.engine.performAction('changeWater');
-          this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
-          break;
-        case 'waterChangeAnimStart':
-          this.engine.setWaterQualityFrozen(true, 'companion');
-          break;
-        case 'waterChangeAnimEnd':
-          this.engine.setWaterQualityFrozen(false, 'companion');
-          break;
-        case 'waterChangeComplete':
-          this.engine.setWaterQualityFrozen(false, 'companion');
-          this.engine.performAction('changeWater', true);
-          this.sendToWebview({ type: 'actionResult', action: 'Change Water', success: true });
-          break;
-        case 'cleanAlgae':
-          this.engine.performAction('cleanAlgae');
-          this.sendToWebview({ type: 'actionResult', action: 'Clean Algae', success: true });
-          break;
-        case 'toggleLight': {
-          const lightOn = this.engine.toggleLight();
-          this.sendToWebview({ type: 'lightToggleResult', lightOn, success: true });
-          break;
-        }
-        case 'debugSetPomo':
-          if (isDebugMode()) {
-            this.engine.setPomo(message.amount);
-            this.sendToWebview({
-              type: 'stateUpdate',
-              state: this.engine.createSnapshot(false, isDebugMode()),
-            });
-          }
-          break;
-        case 'debugResetState':
-          if (isDebugMode()) {
-            this.engine.resetState();
-            this.sendToWebview({
-              type: 'stateUpdate',
-              state: this.engine.createSnapshot(false, isDebugMode()),
-            });
-          }
-          break;
         default:
           break;
       }
     });
 
     webviewView.onDidDispose(() => {
-      // Ensure water quality freeze is released if this view owns it
-      this.engine.setWaterQualityFrozen(false, 'companion');
       this.view = null;
     });
   }
