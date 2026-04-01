@@ -13,9 +13,10 @@ import type { UseFeedingModeResult } from '../tank-panel/hooks/useFeedingMode';
 import type { UseWaterChangeModeResult } from '../tank-panel/hooks/useWaterChangeMode';
 import type { UseMossCleaningModeResult } from '../tank-panel/hooks/useMossCleaningMode';
 
-/** Fixed logical scene dimensions — the coordinate space everything is designed in. */
+/** Fixed logical scene dimensions — the coordinate space everything is designed in.
+ * Height increased (was 90) to fill the space freed by removing ActionBar buttons. */
 const SCENE_W = 110;
-const SCENE_H = 90;
+const SCENE_H = 130;
 const SCENE_ASPECT = SCENE_H / SCENE_W;
 
 const noop = () => {};
