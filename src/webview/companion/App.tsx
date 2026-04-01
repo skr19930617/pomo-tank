@@ -15,7 +15,7 @@ import type { UseMossCleaningModeResult } from '../tank-panel/hooks/useMossClean
 
 /** Fixed logical scene dimensions — the coordinate space everything is designed in.
  * Height increased (was 90) to fill the space freed by removing ActionBar buttons. */
-const SCENE_W = 110;
+const SCENE_W = 155;
 const SCENE_H = 130;
 const SCENE_ASPECT = SCENE_H / SCENE_W;
 
@@ -143,6 +143,7 @@ export function App() {
           containerWidth={rendered.width}
           containerHeight={rendered.height}
           compact={true}
+          deskHeight={12}
           spriteImages={spriteImages}
           feedingMode={IDLE_FEEDING_MODE}
           waterChangeMode={IDLE_WATER_CHANGE_MODE}

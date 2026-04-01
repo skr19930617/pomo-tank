@@ -59,8 +59,9 @@ export function computeTankLayout(
   sceneHeight: number,
   rawTankW: number,
   rawTankH: number,
+  deskH: number = DESK_HEIGHT,
 ): TankLayout {
-  const deskTop = sceneHeight - DESK_HEIGHT;
+  const deskTop = sceneHeight - deskH;
 
   const lightGap = rawTankH * LIGHT_GAP_RATIO;
   const clusterH = rawTankH + LIGHT_BAR_HEIGHT + lightGap;
@@ -99,6 +100,8 @@ interface TankSceneProps {
   feedingMode: UseFeedingModeResult;
   waterChangeMode: UseWaterChangeModeResult;
   mossCleaningMode: UseMossCleaningModeResult;
+  /** Override the default desk height (default: DESK_HEIGHT = 30). */
+  deskHeight?: number;
 }
 
 export const TankScene: React.FC<TankSceneProps> = ({
@@ -114,6 +117,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
   showExpand = false,
   onExpandClick,
   spriteImages,
+  deskHeight: deskHeightProp,
   feedingMode,
   waterChangeMode,
   mossCleaningMode,
@@ -122,9 +126,10 @@ export const TankScene: React.FC<TankSceneProps> = ({
   const rawTankW = tankConfig?.renderWidth ?? 200;
   const rawTankH = tankConfig?.renderHeight ?? 150;
 
+  const deskH = deskHeightProp ?? DESK_HEIGHT;
   const layout = useMemo(
-    () => computeTankLayout(sceneWidth, sceneHeight, rawTankW, rawTankH),
-    [sceneWidth, sceneHeight, rawTankW, rawTankH],
+    () => computeTankLayout(sceneWidth, sceneHeight, rawTankW, rawTankH, deskH),
+    [sceneWidth, sceneHeight, rawTankW, rawTankH, deskH],
   );
 
   const { contentScale, tankX, tankY, deskTop } = layout;
@@ -525,7 +530,7 @@ export const TankScene: React.FC<TankSceneProps> = ({
         <Wall sceneWidth={sceneWidth} sceneHeight={sceneHeight} />
 
         {/* Desk — full width at bottom */}
-        <Desk sceneWidth={sceneWidth} deskTop={deskTop} deskHeight={DESK_HEIGHT} />
+        <Desk sceneWidth={sceneWidth} deskTop={deskTop} deskHeight={deskH} />
 
         {/* Tank cluster: scaled & positioned group */}
         <Group x={tankX} y={tankY} scaleX={contentScale} scaleY={contentScale}>

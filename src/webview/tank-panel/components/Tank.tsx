@@ -152,13 +152,13 @@ export const Tank: React.FC<TankProps> = ({
         strokeWidth={1}
       />
 
-      {/* Dark overlay when light off */}
+      {/* Dark overlay when light off — water area only (air gap stays subtle) */}
       {!lightOn && (
         <Rect
           x={innerLeft}
-          y={innerTop}
+          y={waterTop}
           width={innerW}
-          height={innerH}
+          height={waterH}
           fill="#000022"
           opacity={0.35}
         />
